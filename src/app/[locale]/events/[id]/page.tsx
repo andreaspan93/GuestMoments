@@ -1,6 +1,7 @@
 import { hasLocale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
+import { BrandingUploads } from "@/components/branding-uploads";
 import { DeleteEventButton } from "@/components/delete-event-button";
 import { EventForm } from "@/components/event-form";
 import { Link, redirect } from "@/i18n/navigation";
@@ -10,6 +11,7 @@ import {
   formatAthensDateTime,
 } from "@/lib/events/expiry";
 import { getCustomerEvent } from "@/lib/events/service";
+import { signedObjectUrl } from "@/lib/storage/links";
 import { getRequestSession } from "@/lib/session";
 
 export default async function EditEventPage({
@@ -38,6 +40,11 @@ export default async function EditEventPage({
   }
 
   const t = await getTranslations("events");
+  const [cover, logo, background] = await Promise.all([
+    signedObjectUrl(event.coverKey),
+    signedObjectUrl(event.logoKey),
+    signedObjectUrl(event.backgroundImageKey),
+  ]);
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 pb-16">
@@ -71,6 +78,10 @@ export default async function EditEventPage({
             }}
           />
         </div>
+        <BrandingUploads
+          eventId={event.id}
+          previews={{ cover, logo, background }}
+        />
         <div className="mt-8">
           <DeleteEventButton
             eventId={event.id}

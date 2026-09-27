@@ -10,6 +10,9 @@ import {
 } from "@/lib/events/expiry";
 import { EventError, type EventFormValues } from "@/lib/events/schema";
 import { prisma } from "@/lib/prisma";
+import { getStorage } from "@/lib/storage";
+import type { IStorageService } from "@/lib/storage/types";
+import { eventStoragePrefix } from "@/lib/uploads/policy";
 
 type Actor = {
   id: string;
@@ -142,7 +145,11 @@ export async function updateCustomerEvent(
   });
 }
 
-export async function deleteCustomerEvent(actor: Actor, eventId: string) {
+export async function deleteCustomerEvent(
+  actor: Actor,
+  eventId: string,
+  storage?: IStorageService,
+) {
   const existing = await prisma.event.findFirst({
     where: {
       id: eventId,
@@ -155,6 +162,7 @@ export async function deleteCustomerEvent(actor: Actor, eventId: string) {
     throw new EventError("notFound");
   }
 
+  await (storage ?? getStorage()).deletePrefix(eventStoragePrefix(existing.id));
   await prisma.event.delete({
     where: { id: existing.id },
   });

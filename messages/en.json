@@ -90,6 +90,13 @@
     "openGuest": "Guest page",
     "expires": "Available until",
     "counts": "0 photos · 0 videos · 0 MB",
+    "brandingTitle": "Cover, logo, and background",
+    "brandingLead": "These images appear on the guest page.",
+    "cover": "Cover",
+    "logo": "Logo",
+    "backgroundImage": "Background image",
+    "brandingSaved": "Image saved.",
+    "brandingFailed": "The image was not saved.",
     "errors": {
       "invalid": "Check the details and try again.",
       "pastExpiry": "That date is already past the end of the retention period. Choose a later date."
