@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { hasLocale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
-import { LanguageSwitcher } from "@/components/language-switcher";
 import { routing } from "@/i18n/routing";
 
 export async function generateMetadata({
@@ -34,11 +33,8 @@ export default async function HomePage({
   const t = await getTranslations("landing");
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 py-8 sm:py-16">
-      <header className="flex items-center justify-end">
-        <LanguageSwitcher />
-      </header>
-      <section className="mt-16 flex flex-1 flex-col justify-center rounded-3xl border border-border bg-card px-6 py-12 shadow-sm sm:mt-24 sm:px-12">
+    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 pb-16">
+      <section className="flex flex-1 flex-col justify-center rounded-3xl border border-border bg-card px-6 py-12 shadow-sm sm:px-12">
         <p className="text-sm font-medium tracking-wide text-primary uppercase">
           {t("eyebrow")}
         </p>
