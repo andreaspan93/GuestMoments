@@ -8,16 +8,23 @@ import { getTranslations } from "next-intl/server";
 
 export async function SiteHeader() {
   const t = await getTranslations("auth");
+  const events = await getTranslations("events");
   const session = await getRequestSession();
 
   return (
-    <header className="mx-auto flex w-full max-w-3xl flex-wrap items-center justify-between gap-3 px-6 py-8">
+    <header className="mx-auto flex w-full max-w-3xl flex-wrap items-center justify-between gap-3 px-6 py-8 print:hidden">
       <Link href="/" className="text-sm font-semibold tracking-tight">
         GuestMoments
       </Link>
       <div className="flex flex-wrap items-center gap-2">
         {session ? (
           <>
+            <Link
+              href="/events"
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+            >
+              {events("nav")}
+            </Link>
             <Link
               href="/account"
               className={buttonVariants({ variant: "outline", size: "sm" })}

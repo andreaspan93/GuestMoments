@@ -1,4 +1,11 @@
 import { auth } from "../src/lib/auth";
+import {
+  DEFAULT_MAX_PHOTO_BYTES,
+  DEFAULT_MAX_STORAGE_BYTES,
+  DEFAULT_MAX_VIDEO_BYTES,
+  DEFAULT_RETENTION_DAYS,
+  PLATFORM_SETTINGS_ID,
+} from "../src/lib/events/defaults";
 import { prisma } from "../src/lib/prisma";
 
 async function main() {
@@ -40,6 +47,20 @@ async function main() {
   });
 
   console.log(`Owner ready: ${email}`);
+
+  await prisma.platformSettings.upsert({
+    where: { id: PLATFORM_SETTINGS_ID },
+    create: {
+      id: PLATFORM_SETTINGS_ID,
+      defaultRetentionDays: DEFAULT_RETENTION_DAYS,
+      maxPhotoBytes: DEFAULT_MAX_PHOTO_BYTES,
+      maxVideoBytes: DEFAULT_MAX_VIDEO_BYTES,
+      defaultMaxStorageBytes: DEFAULT_MAX_STORAGE_BYTES,
+    },
+    update: {},
+  });
+
+  console.log("Platform settings ready");
 }
 
 main()

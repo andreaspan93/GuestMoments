@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Noto_Sans } from "next/font/google";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import "./globals.css";
 
 const notoSans = Noto_Sans({
@@ -20,7 +20,11 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const headerStore = await headers();
-  const locale = headerStore.get("x-next-intl-locale") ?? "el";
+  const guestLocale = (await cookies()).get("guest-locale")?.value === "en" ? "en" : "el";
+  const locale =
+    headerStore.get("x-guest-event") === "1"
+      ? guestLocale
+      : (headerStore.get("x-next-intl-locale") ?? "el");
 
   return (
     <html lang={locale} className={`${notoSans.variable} h-full antialiased`}>

@@ -51,5 +51,48 @@
       "resetInvalid": "This reset link is invalid or has expired.",
       "sessionExpired": "Your session expired. Log in again."
     }
+  },
+  "events": {
+    "nav": "Events",
+    "title": "Your events",
+    "empty": "You do not have any events yet.",
+    "create": "New event",
+    "createTitle": "New event",
+    "createLead": "Guests will use a link and a QR code. There is no guest account.",
+    "editTitle": "Edit event",
+    "edit": "Edit",
+    "name": "Name",
+    "date": "Date",
+    "welcomeEl": "Welcome message (Greek)",
+    "welcomeEn": "Welcome message (English)",
+    "instructionsEl": "Upload instructions (Greek)",
+    "instructionsEn": "Upload instructions (English)",
+    "fallbackHint": "If an English field is empty, guests see the Greek text.",
+    "background": "Background color",
+    "accent": "Accent color",
+    "privacy": "What guests can see",
+    "fullGallery": "The full gallery",
+    "ownUploads": "Only their own uploads",
+    "status": "Status",
+    "active": "Active",
+    "disabled": "Disabled",
+    "save": "Save",
+    "createSubmit": "Create event",
+    "saved": "Your changes were saved.",
+    "pending": "Please wait…",
+    "delete": "Delete event",
+    "deleteConfirm": "Delete this event?",
+    "qr": "QR code",
+    "qrLead": "Guests scan this code to open the event page.",
+    "qrAlt": "QR code for the guest page",
+    "downloadQr": "Download PNG",
+    "print": "Print",
+    "openGuest": "Guest page",
+    "expires": "Available until",
+    "counts": "0 photos · 0 videos · 0 MB",
+    "errors": {
+      "invalid": "Check the details and try again.",
+      "pastExpiry": "That date is already past the end of the retention period. Choose a later date."
+    }
   }
 }

@@ -21,6 +21,7 @@ model User {
   preferredLocale String    @default("el")
   sessions        Session[]
   accounts        Account[]
+  events          Event[]
 
   @@unique([email])
   @@map("user")
@@ -72,4 +73,46 @@ model Verification {
 
   @@index([identifier])
   @@map("verification")
+}
+
+model PlatformSettings {
+  id                     String   @id
+  defaultRetentionDays   Int
+  maxPhotoBytes          BigInt
+  maxVideoBytes          BigInt
+  defaultMaxStorageBytes BigInt
+  updatedAt              DateTime @updatedAt
+
+  @@map("platform_settings")
+}
+
+model Event {
+  id                   String    @id
+  customerId           String
+  customer             User      @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  uniqueCode           String
+  name                 String
+  eventDate            DateTime  @db.Date
+  welcomeMessageEl     String    @default("")
+  welcomeMessageEn     String    @default("")
+  uploadInstructionsEl String    @default("")
+  uploadInstructionsEn String    @default("")
+  coverKey             String?
+  logoKey              String?
+  backgroundColor      String
+  backgroundImageKey   String?
+  accentColor          String
+  status               String    @default("ACTIVE")
+  privacyMode          String    @default("FULL_GALLERY")
+  retentionDays        Int
+  maxStorageBytes      BigInt
+  expiresAt            DateTime
+  storagePurgedAt      DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@unique([uniqueCode])
+  @@index([customerId])
+  @@index([expiresAt])
+  @@map("event")
 }
