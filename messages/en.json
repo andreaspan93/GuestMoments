@@ -76,6 +76,7 @@
     "status": "Status",
     "active": "Active",
     "disabled": "Disabled",
+    "expired": "Expired",
     "save": "Save",
     "createSubmit": "Create event",
     "saved": "Your changes were saved.",

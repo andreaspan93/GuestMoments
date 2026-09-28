@@ -3,6 +3,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
 import { guestEventUrl } from "@/lib/events/code";
 import { calendarDateFromDb, formatAthensDateTime, formatCalendarDate } from "@/lib/events/expiry";
+import { eventStatusLabelKey } from "@/lib/events/status";
 import { requireOwnerPage } from "@/lib/owner/page";
 import { listOwnerEvents } from "@/lib/owner/service";
 
@@ -45,7 +46,7 @@ export default async function OwnerEventsPage({
               <p className="mt-1 text-sm text-foreground/80">
                 {formatCalendarDate(calendarDateFromDb(event.eventDate), locale)}
                 {" · "}
-                {event.status === "ACTIVE" ? eventsT("active") : eventsT("disabled")}
+                {eventsT(eventStatusLabelKey(event.status))}
                 {" · "}
                 {t("retentionValue", { days: event.retentionDays })}
               </p>

@@ -6,6 +6,7 @@ import { Link } from "@/i18n/navigation";
 import { redirect } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
 import { formatAthensDateTime, formatCalendarDate, calendarDateFromDb } from "@/lib/events/expiry";
+import { eventStatusLabelKey } from "@/lib/events/status";
 import { guestEventUrl } from "@/lib/events/code";
 import { mediaTotals } from "@/lib/gallery/service";
 import { listCustomerEvents } from "@/lib/events/service";
@@ -57,7 +58,7 @@ export default async function EventsPage({
               <p className="mt-2 text-sm text-foreground/80">
                 {formatCalendarDate(calendarDateFromDb(event.eventDate), locale)}
                 {" · "}
-                {event.status === "ACTIVE" ? t("active") : t("disabled")}
+                {t(eventStatusLabelKey(event.status))}
                 {" · "}
                 {event.privacyMode === "FULL_GALLERY"
                   ? t("fullGallery")
