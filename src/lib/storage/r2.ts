@@ -8,6 +8,7 @@ import {
   S3Client,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { attachmentDisposition } from "@/lib/storage/disposition";
 import type { IStorageService, StoredObjectHead } from "@/lib/storage/types";
 
 export type R2Config = {
@@ -66,6 +67,9 @@ export function createR2Storage(config: R2Config): IStorageService {
       const command = new GetObjectCommand({
         Bucket: config.bucket,
         Key: input.key,
+        ResponseContentDisposition: input.downloadName
+          ? attachmentDisposition(input.downloadName)
+          : undefined,
       });
 
       return getSignedUrl(client, command, {

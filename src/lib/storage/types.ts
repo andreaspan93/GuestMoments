@@ -17,7 +17,11 @@ export interface IStorageService {
     contentLength: number;
     expiresInSeconds: number;
   }): Promise<PresignedPut>;
-  presignGet(input: { key: string; expiresInSeconds: number }): Promise<string>;
+  presignGet(input: {
+    key: string;
+    expiresInSeconds: number;
+    downloadName?: string;
+  }): Promise<string>;
   headObject(key: string): Promise<StoredObjectHead | null>;
   deleteObject(key: string): Promise<void>;
   deletePrefix(prefix: string): Promise<void>;

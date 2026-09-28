@@ -1,4 +1,5 @@
 import { Readable } from "node:stream";
+import { attachmentDisposition } from "@/lib/storage/disposition";
 import { r2ConfigFromEnv } from "@/lib/storage/r2";
 import {
   readSignedContentType,
@@ -40,6 +41,7 @@ function signedRequest(url: URL, method: "PUT" | "GET") {
     return null;
   }
 
+  const downloadName = url.searchParams.get("downloadName") || undefined;
   const expected = storageSignature({
     method,
     key,
@@ -47,13 +49,14 @@ function signedRequest(url: URL, method: "PUT" | "GET") {
     contentLength,
     expiresAt,
     secret,
+    downloadName,
   });
 
   if (!storageSignatureMatches(expected, provided)) {
     return null;
   }
 
-  return { key, contentType, contentLength: Number(contentLength) };
+  return { key, contentType, contentLength: Number(contentLength), downloadName };
 }
 
 export async function PUT(request: Request) {
@@ -100,12 +103,16 @@ export async function GET(request: Request) {
   try {
     const bytes = await readSignedObject(signed.key);
 
-    return new Response(new Uint8Array(bytes), {
-      headers: {
-        "Content-Type": await readSignedContentType(signed.key),
-        "Cache-Control": "private, no-store",
-      },
-    });
+    const headers: Record<string, string> = {
+      "Content-Type": await readSignedContentType(signed.key),
+      "Cache-Control": "private, no-store",
+    };
+
+    if (signed.downloadName) {
+      headers["Content-Disposition"] = attachmentDisposition(signed.downloadName);
+    }
+
+    return new Response(new Uint8Array(bytes), { headers });
   } catch {
     return unavailable();
   }

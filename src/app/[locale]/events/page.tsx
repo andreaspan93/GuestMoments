@@ -7,6 +7,7 @@ import { redirect } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
 import { formatAthensDateTime, formatCalendarDate, calendarDateFromDb } from "@/lib/events/expiry";
 import { guestEventUrl } from "@/lib/events/code";
+import { mediaTotals } from "@/lib/gallery/service";
 import { listCustomerEvents } from "@/lib/events/service";
 import { getRequestSession } from "@/lib/session";
 
@@ -31,6 +32,7 @@ export default async function EventsPage({
 
   const t = await getTranslations("events");
   const events = await listCustomerEvents(session.user);
+  const totals = await mediaTotals(events.map((event) => event.id));
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-6 pb-16">
@@ -64,8 +66,20 @@ export default async function EventsPage({
               <p className="mt-1 text-sm text-foreground/80">
                 {t("expires")} {formatAthensDateTime(event.expiresAt, locale)}
               </p>
-              <p className="mt-1 text-sm text-foreground/80">{t("counts")}</p>
+              <p className="mt-1 text-sm text-foreground/80">
+                {t("counts", {
+                  photos: totals.get(event.id)?.photos ?? 0,
+                  videos: totals.get(event.id)?.videos ?? 0,
+                  storage: totals.get(event.id)?.storageLabel ?? "0 MB",
+                })}
+              </p>
               <div className="mt-4 flex flex-wrap gap-2">
+                <Link
+                  href={`/events/${event.id}/gallery`}
+                  className={buttonVariants({ variant: "outline", size: "sm" })}
+                >
+                  {t("gallery")}
+                </Link>
                 <Link
                   href={`/events/${event.id}`}
                   className={buttonVariants({ variant: "outline", size: "sm" })}

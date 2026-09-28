@@ -7,6 +7,7 @@ export function storageSignature(input: {
   contentLength: string;
   expiresAt: number;
   secret: string;
+  downloadName?: string;
 }) {
   const payload = [
     input.method,
@@ -14,9 +15,13 @@ export function storageSignature(input: {
     input.contentType,
     input.contentLength,
     String(input.expiresAt),
-  ].join("\n");
+  ];
 
-  return createHmac("sha256", input.secret).update(payload).digest("base64url");
+  if (input.downloadName) {
+    payload.push(input.downloadName);
+  }
+
+  return createHmac("sha256", input.secret).update(payload.join("\n")).digest("base64url");
 }
 
 export function storageSignatureMatches(

@@ -56,9 +56,14 @@ export default async function EditEventPage({
               {t("expires")} {formatAthensDateTime(event.expiresAt, locale)}
             </p>
           </div>
-          <Link href={`/events/${event.id}/qr`} className="text-sm text-primary underline-offset-4 hover:underline">
-            {t("qr")}
-          </Link>
+          <div className="flex gap-4">
+            <Link href={`/events/${event.id}/gallery`} className="text-sm text-primary underline-offset-4 hover:underline">
+              {t("gallery")}
+            </Link>
+            <Link href={`/events/${event.id}/qr`} className="text-sm text-primary underline-offset-4 hover:underline">
+              {t("qr")}
+            </Link>
+          </div>
         </div>
         <div className="mt-8 max-w-xl">
           <EventForm

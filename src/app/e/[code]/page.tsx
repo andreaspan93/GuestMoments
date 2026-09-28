@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { GuestGallery } from "@/components/guest-gallery";
 import { GuestLanguageSwitch } from "@/components/guest-language-switch";
 import { GuestUploader } from "@/components/guest-uploader";
 import { decideGuestAccess } from "@/lib/events/access";
@@ -6,7 +7,9 @@ import { formatCalendarDate, calendarDateFromDb } from "@/lib/events/expiry";
 import { readGuestLocale } from "@/lib/events/guest-actions";
 import { loadGuestEvent } from "@/lib/events/service";
 import { guestChrome, guestText } from "@/lib/events/text";
+import { guestGalleryItems } from "@/lib/gallery/service";
 import { signedObjectUrl } from "@/lib/storage/links";
+import { readGuestCookie } from "@/lib/uploads/http";
 
 export default async function GuestEventRoute({
   params,
@@ -41,6 +44,13 @@ export default async function GuestEventRoute({
         signedObjectUrl(event.backgroundImageKey),
       ])
     : [null, null, null];
+  const galleryItems = open
+    ? await guestGalleryItems({
+        event,
+        customerDisabled: loaded.customerDisabled,
+        cookieToken: await readGuestCookie(code),
+      })
+    : [];
   const welcome = guestText(locale, event.welcomeMessageEl, event.welcomeMessageEn);
   const instructions = guestText(
     locale,
@@ -58,11 +68,11 @@ export default async function GuestEventRoute({
         backgroundPosition: "center",
       }}
     >
-      <div className="mx-auto flex w-full max-w-lg flex-1 flex-col">
+      <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col">
         <div className="flex justify-end">
           <GuestLanguageSwitch locale={locale} accentColor={event.accentColor} />
         </div>
-        <section className="mt-6 flex flex-1 flex-col rounded-3xl bg-card px-6 py-10 shadow-sm">
+        <section className="mx-auto mt-6 flex w-full max-w-lg flex-1 flex-col rounded-3xl bg-card px-6 py-10 shadow-sm">
           {logoUrl ? (
             // Signed storage URL; the image optimizer is not used.
             // eslint-disable-next-line @next/next/no-img-element
@@ -106,6 +116,11 @@ export default async function GuestEventRoute({
             </>
           )}
         </section>
+        {open ? (
+          <div className="mx-auto mt-6 w-full max-w-3xl rounded-3xl bg-card px-6 py-8 shadow-sm">
+            <GuestGallery code={event.uniqueCode} locale={locale} initialItems={galleryItems} />
+          </div>
+        ) : null}
       </div>
     </main>
   );

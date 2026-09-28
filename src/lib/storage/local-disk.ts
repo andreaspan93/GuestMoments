@@ -43,6 +43,7 @@ function signedUrl(input: {
   contentType: string;
   contentLength: string;
   expiresInSeconds: number;
+  downloadName?: string;
 }) {
   const expiresAt = Date.now() + input.expiresInSeconds * 1000;
   const signature = storageSignature({
@@ -52,6 +53,7 @@ function signedUrl(input: {
     contentLength: input.contentLength,
     expiresAt,
     secret: secret(),
+    downloadName: input.downloadName,
   });
   const params = new URLSearchParams({
     method: input.method,
@@ -61,6 +63,10 @@ function signedUrl(input: {
     expiresAt: String(expiresAt),
     signature,
   });
+
+  if (input.downloadName) {
+    params.set("downloadName", input.downloadName);
+  }
 
   return `${appOrigin()}/api/dev-storage?${params.toString()}`;
 }
@@ -88,6 +94,7 @@ export function createLocalDiskStorage(): IStorageService {
         contentType: "",
         contentLength: "",
         expiresInSeconds: input.expiresInSeconds,
+        downloadName: input.downloadName,
       });
     },
     async headObject(key): Promise<StoredObjectHead | null> {

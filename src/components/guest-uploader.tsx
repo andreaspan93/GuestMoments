@@ -160,6 +160,7 @@ export function GuestUploader({
     }
 
     updateItem(item.id, { status: "done", progress: 100, message: copy.uploadDone });
+    window.dispatchEvent(new Event("guestmoments-gallery-refresh"));
   }
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
