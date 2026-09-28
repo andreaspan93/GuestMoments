@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import {
@@ -76,9 +76,51 @@ export function EventForm({
     ? updateEventAction.bind(null, eventId)
     : createEventAction;
   const [state, formAction, pending] = useActionState(action, null);
+  const [privacyMode, setPrivacyMode] = useState(values.privacyMode);
+  const [status, setStatus] = useState(values.status);
+  const [savedPrivacy, setSavedPrivacy] = useState(values.privacyMode);
+  const [savedStatus, setSavedStatus] = useState(values.status);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  if (values.privacyMode !== savedPrivacy || values.status !== savedStatus) {
+    setSavedPrivacy(values.privacyMode);
+    setSavedStatus(values.status);
+    setPrivacyMode(values.privacyMode);
+    setStatus(values.status);
+  }
+
+  useEffect(() => {
+    if (state?.success !== "saved") {
+      return;
+    }
+
+    const form = formRef.current;
+
+    if (!form) {
+      return;
+    }
+
+    const apply = () => {
+      const privacy = form.elements.namedItem("privacyMode");
+      const statusField = form.elements.namedItem("status");
+
+      if (privacy instanceof HTMLSelectElement) {
+        privacy.value = privacyMode;
+      }
+
+      if (statusField instanceof HTMLSelectElement) {
+        statusField.value = status;
+      }
+    };
+
+    apply();
+    const frame = requestAnimationFrame(apply);
+
+    return () => cancelAnimationFrame(frame);
+  }, [state, privacyMode, status]);
 
   return (
-    <form action={formAction} className="grid gap-4">
+    <form ref={formRef} action={formAction} className="grid gap-4">
       <label className="grid gap-2 text-sm font-medium">
         {t("name")}
         <input
@@ -161,7 +203,12 @@ export function EventForm({
         <select
           className={fieldClassName}
           name="privacyMode"
-          defaultValue={values.privacyMode}
+          value={privacyMode}
+          onChange={(event) => {
+            setPrivacyMode(
+              event.target.value === "OWN_UPLOADS" ? "OWN_UPLOADS" : "FULL_GALLERY",
+            );
+          }}
         >
           <option value="FULL_GALLERY">{t("fullGallery")}</option>
           <option value="OWN_UPLOADS">{t("ownUploads")}</option>
@@ -169,7 +216,14 @@ export function EventForm({
       </label>
       <label className="grid gap-2 text-sm font-medium">
         {t("status")}
-        <select className={fieldClassName} name="status" defaultValue={values.status}>
+        <select
+          className={fieldClassName}
+          name="status"
+          value={status}
+          onChange={(event) => {
+            setStatus(event.target.value === "DISABLED" ? "DISABLED" : "ACTIVE");
+          }}
+        >
           <option value="ACTIVE">{t("active")}</option>
           <option value="DISABLED">{t("disabled")}</option>
         </select>

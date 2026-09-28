@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import {
@@ -73,9 +73,51 @@ export function OwnerEventForm({
     ? updateOwnerEventAction.bind(null, eventId)
     : createOwnerEventAction;
   const [state, formAction, pending] = useActionState(action, null);
+  const [privacyMode, setPrivacyMode] = useState(defaults.privacyMode);
+  const [status, setStatus] = useState(defaults.status);
+  const [savedPrivacy, setSavedPrivacy] = useState(defaults.privacyMode);
+  const [savedStatus, setSavedStatus] = useState(defaults.status);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  if (defaults.privacyMode !== savedPrivacy || defaults.status !== savedStatus) {
+    setSavedPrivacy(defaults.privacyMode);
+    setSavedStatus(defaults.status);
+    setPrivacyMode(defaults.privacyMode);
+    setStatus(defaults.status);
+  }
+
+  useEffect(() => {
+    if (state?.success !== "saved") {
+      return;
+    }
+
+    const form = formRef.current;
+
+    if (!form) {
+      return;
+    }
+
+    const apply = () => {
+      const privacy = form.elements.namedItem("privacyMode");
+      const statusField = form.elements.namedItem("status");
+
+      if (privacy instanceof HTMLSelectElement) {
+        privacy.value = privacyMode;
+      }
+
+      if (statusField instanceof HTMLSelectElement) {
+        statusField.value = status;
+      }
+    };
+
+    apply();
+    const frame = requestAnimationFrame(apply);
+
+    return () => cancelAnimationFrame(frame);
+  }, [state, privacyMode, status]);
 
   return (
-    <form action={formAction} className="grid gap-4">
+    <form ref={formRef} action={formAction} className="grid gap-4">
       <label className="grid gap-2 text-sm font-medium">
         {t("customer")}
         <select
@@ -205,7 +247,12 @@ export function OwnerEventForm({
         <select
           className={fieldClassName}
           name="privacyMode"
-          defaultValue={defaults.privacyMode}
+          value={privacyMode}
+          onChange={(event) => {
+            setPrivacyMode(
+              event.target.value === "OWN_UPLOADS" ? "OWN_UPLOADS" : "FULL_GALLERY",
+            );
+          }}
         >
           <option value="FULL_GALLERY">{events("fullGallery")}</option>
           <option value="OWN_UPLOADS">{events("ownUploads")}</option>
@@ -213,7 +260,14 @@ export function OwnerEventForm({
       </label>
       <label className="grid gap-2 text-sm font-medium">
         {events("status")}
-        <select className={fieldClassName} name="status" defaultValue={defaults.status}>
+        <select
+          className={fieldClassName}
+          name="status"
+          value={status}
+          onChange={(event) => {
+            setStatus(event.target.value === "DISABLED" ? "DISABLED" : "ACTIVE");
+          }}
+        >
           <option value="ACTIVE">{events("active")}</option>
           <option value="DISABLED">{events("disabled")}</option>
         </select>
