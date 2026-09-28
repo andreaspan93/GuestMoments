@@ -9,6 +9,7 @@ import { getTranslations } from "next-intl/server";
 export async function SiteHeader() {
   const t = await getTranslations("auth");
   const events = await getTranslations("events");
+  const owner = await getTranslations("owner");
   const session = await getRequestSession();
 
   return (
@@ -19,6 +20,14 @@ export async function SiteHeader() {
       <div className="flex flex-wrap items-center gap-2">
         {session ? (
           <>
+            {session.user.role === "OWNER" ? (
+              <Link
+                href="/owner"
+                className={buttonVariants({ variant: "outline", size: "sm" })}
+              >
+                {owner("nav")}
+              </Link>
+            ) : null}
             <Link
               href="/events"
               className={buttonVariants({ variant: "outline", size: "sm" })}
