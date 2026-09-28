@@ -112,6 +112,7 @@ model Event {
   updatedAt            DateTime  @updatedAt
   uploadIntents        UploadIntent[]
   media                Media[]
+  albums               Album[]
 
   @@unique([uniqueCode])
   @@index([customerId])
@@ -155,13 +156,29 @@ model Media {
   guestMessage     String   @default("")
   isHidden         Boolean  @default(false)
   isFavorite       Boolean  @default(false)
+  albumId          String?
+  album            Album?   @relation(fields: [albumId], references: [id], onDelete: SetNull)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
   @@unique([storageKey])
   @@index([eventId, createdAt])
   @@index([eventId, guestToken])
+  @@index([albumId])
   @@map("media")
+}
+
+model Album {
+  id        String   @id
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  media     Media[]
+
+  @@index([eventId])
+  @@map("album")
 }
 
 model RateLimitHit {

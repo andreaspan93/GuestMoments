@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatStorage } from "@/lib/gallery/present";
+import { exceedsBulkCap, formatStorage, uniqueZipNames, BULK_DOWNLOAD_MAX_BYTES } from "@/lib/gallery/present";
 import { attachmentDisposition } from "@/lib/storage/disposition";
 import { storageSignature } from "@/lib/storage/signature";
 
@@ -26,5 +26,11 @@ describe("gallery presentation", () => {
     expect(named).not.toBe(other);
     expect(named).not.toBe(plain);
     expect(attachmentDisposition("../secret.jpg")).toContain('filename="secret.jpg"');
+  });
+
+  it("keeps zip names unique and rejects a selection over 200 MB", () => {
+    expect(uniqueZipNames(["../a.jpg", "a.jpg", "note"])).toEqual(["a.jpg", "a (2).jpg", "note"]);
+    expect(exceedsBulkCap(BULK_DOWNLOAD_MAX_BYTES)).toBe(false);
+    expect(exceedsBulkCap(BULK_DOWNLOAD_MAX_BYTES + BigInt(1))).toBe(true);
   });
 });

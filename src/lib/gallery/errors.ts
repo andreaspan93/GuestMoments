@@ -1,4 +1,4 @@
-export type GalleryErrorCode = "unauthorized" | "notFound" | "unavailable";
+export type GalleryErrorCode = "unauthorized" | "notFound" | "unavailable" | "oversize";
 
 export class GalleryError extends Error {
   readonly code: GalleryErrorCode;
@@ -16,6 +16,10 @@ export function galleryStatus(code: GalleryErrorCode) {
 
   if (code === "notFound") {
     return 404;
+  }
+
+  if (code === "oversize") {
+    return 413;
   }
 
   return 403;

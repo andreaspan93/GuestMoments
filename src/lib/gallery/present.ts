@@ -1,6 +1,7 @@
 export const GALLERY_PREVIEW_SECONDS = 15 * 60;
 export const GALLERY_DOWNLOAD_SECONDS = 60;
 export const GALLERY_REFRESH_MS = 15_000;
+export const BULK_DOWNLOAD_MAX_BYTES = BigInt(200) * BigInt(1024) * BigInt(1024);
 
 export type GalleryItem = {
   id: string;
@@ -18,6 +19,12 @@ export type GalleryItem = {
 export type CustomerGalleryItem = GalleryItem & {
   isHidden: boolean;
   isFavorite: boolean;
+  albumId: string | null;
+};
+
+export type AlbumSummary = {
+  id: string;
+  name: string;
 };
 
 type GallerySource = {
@@ -31,6 +38,7 @@ type GallerySource = {
   createdAt: Date;
   isHidden: boolean;
   isFavorite: boolean;
+  albumId: string | null;
 };
 
 export function mediaKind(type: string) {
@@ -89,5 +97,40 @@ export function toCustomerGalleryItem(
     ...toGalleryItem(row, urls),
     isHidden: row.isHidden,
     isFavorite: row.isFavorite,
+    albumId: row.albumId,
   };
+}
+
+export function exceedsBulkCap(totalBytes: bigint) {
+  return totalBytes > BULK_DOWNLOAD_MAX_BYTES;
+}
+
+export function uniqueZipNames(fileNames: string[]) {
+  const seen = new Map<string, number>();
+
+  return fileNames.map((fileName) => {
+    const safe = sanitizedZipName(fileName);
+    const count = seen.get(safe) ?? 0;
+    seen.set(safe, count + 1);
+
+    if (count === 0) {
+      return safe;
+    }
+
+    const dot = safe.lastIndexOf(".");
+    const suffix = ` (${count + 1})`;
+
+    if (dot <= 0) {
+      return `${safe}${suffix}`;
+    }
+
+    return `${safe.slice(0, dot)}${suffix}${safe.slice(dot)}`;
+  });
+}
+
+function sanitizedZipName(fileName: string) {
+  const base = fileName.split(/[/\\]/).pop() ?? "";
+  const cleaned = base.replace(/[\u0000-\u001f]/g, "").trim();
+
+  return cleaned.slice(0, 180) || "file";
 }

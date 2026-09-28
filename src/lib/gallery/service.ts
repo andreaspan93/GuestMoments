@@ -1,12 +1,16 @@
+import { randomUUID } from "node:crypto";
 import { decideGuestAccess, eventScope } from "@/lib/events/access";
 import { GalleryError } from "@/lib/gallery/errors";
 import {
+  exceedsBulkCap,
   formatStorage,
   GALLERY_DOWNLOAD_SECONDS,
   GALLERY_PREVIEW_SECONDS,
   mediaKind,
   toCustomerGalleryItem,
   toGalleryItem,
+  uniqueZipNames,
+  type AlbumSummary,
   type CustomerGalleryItem,
   type GalleryItem,
 } from "@/lib/gallery/present";
@@ -38,6 +42,7 @@ const mediaSelect = {
   createdAt: true,
   isHidden: true,
   isFavorite: true,
+  albumId: true,
   storageKey: true,
   thumbnailKey: true,
 } as const;
@@ -424,4 +429,182 @@ export async function mediaTotals(eventIds: string[]) {
   }
 
   return totals;
+}
+
+export async function listCustomerAlbums(actor: Actor, eventId: string, now = new Date()) {
+  const event = await requireCustomerEvent(actor, eventId, now);
+  const albums = await prisma.album.findMany({
+    where: { eventId: event.id },
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
+  });
+
+  return albums satisfies AlbumSummary[];
+}
+
+export async function createCustomerAlbum(
+  actor: Actor | null,
+  eventId: string,
+  name: string,
+  now = new Date(),
+) {
+  if (!actor) {
+    throw new GalleryError("unauthorized");
+  }
+
+  const event = await requireCustomerEvent(actor, eventId, now);
+  const album = await prisma.album.create({
+    data: {
+      id: randomUUID(),
+      eventId: event.id,
+      name,
+    },
+    select: { id: true, name: true },
+  });
+
+  return album;
+}
+
+export async function renameCustomerAlbum(
+  actor: Actor | null,
+  eventId: string,
+  albumId: string,
+  name: string,
+  now = new Date(),
+) {
+  if (!actor) {
+    throw new GalleryError("unauthorized");
+  }
+
+  const event = await requireCustomerEvent(actor, eventId, now);
+  const existing = await prisma.album.findFirst({
+    where: { id: albumId, eventId: event.id },
+    select: { id: true },
+  });
+
+  if (!existing) {
+    throw new GalleryError("notFound");
+  }
+
+  return prisma.album.update({
+    where: { id: existing.id },
+    data: { name },
+    select: { id: true, name: true },
+  });
+}
+
+export async function deleteCustomerAlbum(
+  actor: Actor | null,
+  eventId: string,
+  albumId: string,
+  now = new Date(),
+) {
+  if (!actor) {
+    throw new GalleryError("unauthorized");
+  }
+
+  const event = await requireCustomerEvent(actor, eventId, now);
+  const existing = await prisma.album.findFirst({
+    where: { id: albumId, eventId: event.id },
+    select: { id: true },
+  });
+
+  if (!existing) {
+    throw new GalleryError("notFound");
+  }
+
+  await prisma.album.delete({
+    where: { id: existing.id },
+  });
+
+  return { ok: true as const };
+}
+
+export async function assignCustomerMediaAlbum(
+  actor: Actor | null,
+  eventId: string,
+  mediaId: string,
+  albumId: string | null,
+  now = new Date(),
+) {
+  if (!actor) {
+    throw new GalleryError("unauthorized");
+  }
+
+  const media = await requireCustomerMedia(actor, eventId, mediaId, now);
+
+  if (albumId) {
+    const album = await prisma.album.findFirst({
+      where: { id: albumId, eventId: media.eventId },
+      select: { id: true },
+    });
+
+    if (!album) {
+      throw new GalleryError("notFound");
+    }
+  }
+
+  await prisma.media.update({
+    where: { id: media.id },
+    data: { albumId },
+  });
+
+  return { ok: true as const };
+}
+
+export async function prepareBulkDownload(
+  actor: Actor | null,
+  eventId: string,
+  mediaIds: string[],
+  storage?: IStorageService,
+  now = new Date(),
+) {
+  if (!actor) {
+    throw new GalleryError("unauthorized");
+  }
+
+  const event = await requireCustomerEvent(actor, eventId, now);
+  const ids = [...new Set(mediaIds)];
+  const rows = await prisma.media.findMany({
+    where: {
+      eventId: event.id,
+      id: { in: ids },
+    },
+  });
+  const byId = new Map(rows.map((row) => [row.id, row]));
+  const ordered = ids.map((id) => byId.get(id));
+
+  if (ordered.some((row) => !row)) {
+    throw new GalleryError("notFound");
+  }
+
+  const selected = ordered.filter((row) => row !== undefined);
+  const total = selected.reduce((sum, row) => sum + row.size, BigInt(0));
+
+  if (exceedsBulkCap(total)) {
+    throw new GalleryError("oversize");
+  }
+
+  const names = uniqueZipNames(selected.map((row) => row.originalFileName));
+  const files = storeOf(storage);
+  const downloads = [];
+
+  for (let index = 0; index < selected.length; index += 1) {
+    const row = selected[index];
+    const name = names[index];
+
+    if (!row || !name) {
+      throw new GalleryError("notFound");
+    }
+
+    const url = await signedUrl(files, row.storageKey, GALLERY_DOWNLOAD_SECONDS, name);
+
+    if (!url) {
+      throw new GalleryError("unavailable");
+    }
+
+    downloads.push({ name, url });
+  }
+
+  return { files: downloads };
 }
