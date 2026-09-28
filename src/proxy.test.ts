@@ -25,13 +25,32 @@ describe("locale proxy", () => {
     expect(response.headers.get("set-cookie")).not.toContain("gm-guest-token");
   });
 
-  it("keeps a valid guest token cookie", () => {
+  it("reissues a valid guest token as an httpOnly cookie", () => {
     const existing = new NextRequest(new URL("/e/demo", "http://localhost:3000"));
     const token = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
     existing.cookies.set("gm_guest_demo", token);
     const response = proxy(existing);
+    const cookie = response.cookies.get("gm_guest_demo");
 
-    expect(response.cookies.get("gm_guest_demo")).toBeUndefined();
+    expect(cookie?.value).toBe(token);
+    expect(cookie?.httpOnly).toBe(true);
+    expect(cookie?.secure).toBe(true);
+    expect(cookie?.sameSite).toBe("lax");
+  });
+
+  it("locks a legacy guest cookie from another event", () => {
+    const existing = request("/");
+    const token = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+    existing.cookies.set("gm_guest_VKRjholm-yGCI7jcQG5SLA", token);
+    const response = proxy(existing);
+    const cookie = response.cookies.get("gm_guest_VKRjholm-yGCI7jcQG5SLA");
+
+    expect(cookie?.value).toBe(token);
+    expect(cookie?.httpOnly).toBe(true);
+    expect(cookie?.secure).toBe(true);
+    expect(cookie?.sameSite).toBe("lax");
+    expect(response.headers.get("set-cookie")).toContain("Path=/e");
+    expect(response.headers.get("set-cookie")).not.toContain("HttpOnly=false");
   });
 
   it("keeps the default locale unprefixed", () => {

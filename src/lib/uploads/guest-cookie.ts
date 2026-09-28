@@ -8,29 +8,60 @@ export function guestEventCode(pathname: string) {
   return match?.[1] ?? null;
 }
 
-export function withGuestTokenCookie(request: NextRequest, response: NextResponse) {
-  const code = guestEventCode(request.nextUrl.pathname);
+const guestCookiePrefix = "gm_guest_";
+const guestCookieMaxAge = 60 * 60 * 24 * 365;
 
-  if (!code) {
-    return response;
-  }
-
-  const name = guestTokenCookieName(code);
-  const current = request.cookies.get(name)?.value;
-
-  if (current && isGuestToken(current)) {
-    return response;
-  }
-
+function lockGuestCookie(
+  response: NextResponse,
+  name: string,
+  value: string,
+  maxAge = guestCookieMaxAge,
+) {
   response.cookies.set({
     name,
-    value: createGuestToken(),
+    value,
     httpOnly: true,
     secure: true,
     sameSite: "lax",
     path: "/",
-    maxAge: 60 * 60 * 24 * 365,
+    maxAge,
   });
+
+  const code = name.startsWith(guestCookiePrefix) ? name.slice(guestCookiePrefix.length) : "";
+  const legacyPaths = ["/e", code ? `/e/${code}` : ""].filter(Boolean);
+
+  for (const path of legacyPaths) {
+    response.headers.append(
+      "set-cookie",
+      `${name}=; Path=${path}; Max-Age=0; SameSite=Lax`,
+    );
+  }
+}
+
+export function withGuestTokenCookie(request: NextRequest, response: NextResponse) {
+  const code = guestEventCode(request.nextUrl.pathname);
+  const currentName = code ? guestTokenCookieName(code) : null;
+
+  for (const cookie of request.cookies.getAll()) {
+    if (!cookie.name.startsWith(guestCookiePrefix) || cookie.name === currentName) {
+      continue;
+    }
+
+    lockGuestCookie(
+      response,
+      cookie.name,
+      isGuestToken(cookie.value) ? cookie.value : "",
+      isGuestToken(cookie.value) ? guestCookieMaxAge : 0,
+    );
+  }
+
+  if (!currentName) {
+    return response;
+  }
+
+  const current = request.cookies.get(currentName)?.value;
+  const value = current && isGuestToken(current) ? current : createGuestToken();
+  lockGuestCookie(response, currentName, value);
 
   return response;
 }

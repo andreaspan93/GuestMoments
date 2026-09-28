@@ -18,7 +18,7 @@ export function proxy(request: NextRequest) {
     );
   }
 
-  return handleI18n(request);
+  return withGuestTokenCookie(request, handleI18n(request));
 }
 
 export const config = {

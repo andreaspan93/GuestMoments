@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { GuestGallery } from "@/components/guest-gallery";
 import { GuestLanguageSwitch } from "@/components/guest-language-switch";
+import { GuestTokenCleanup } from "@/components/guest-token-cleanup";
 import { GuestUploader } from "@/components/guest-uploader";
 import { decideGuestAccess } from "@/lib/events/access";
 import { formatCalendarDate, calendarDateFromDb } from "@/lib/events/expiry";
@@ -69,6 +70,7 @@ export default async function GuestEventRoute({
       }}
     >
       <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col">
+        <GuestTokenCleanup />
         <div className="flex justify-end">
           <GuestLanguageSwitch locale={locale} accentColor={event.accentColor} />
         </div>
