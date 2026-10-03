@@ -6,12 +6,17 @@ import {
   listOwnerCustomers,
   listOwnerEvents,
   platformCounts,
+  activateCustomerAccess,
+  deleteCustomerPermanently,
+  getOwnerCustomer,
   setCustomerDisabled,
   updateOwnerEvent,
   updateOwnerSettings,
 } from "@/lib/owner/service";
 import {
   customerAccessSchema,
+  customerActivationSchema,
+  customerDeletionSchema,
   OwnerError,
   ownerCreateSchema,
   ownerSettingsSchema,
@@ -125,4 +130,25 @@ export function patchCustomerAccess(actor: Actor, userId: string, body: unknown)
   const parsed = customerAccessSchema.parse(body);
 
   return setCustomerDisabled(actor, userId, parsed.disabled).then(() => ({ ok: true }));
+}
+
+export function postCustomerActivation(actor: Actor, userId: string, body: unknown) {
+  return activateCustomerAccess(actor, userId, customerActivationSchema.parse(body)).then(
+    (result) => ({
+      ok: true,
+      accessExpiresAt: result.accessExpiresAt.toISOString(),
+    }),
+  );
+}
+
+export function readOwnerCustomer(actor: Actor, userId: string) {
+  return getOwnerCustomer(actor, userId);
+}
+
+export function removeOwnerCustomer(actor: Actor, userId: string, body: unknown) {
+  const parsed = customerDeletionSchema.parse(body);
+
+  return deleteCustomerPermanently(actor, userId, parsed.confirmEmail).then(() => ({
+    ok: true,
+  }));
 }

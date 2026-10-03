@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { customerHasServiceAccess } from "@/lib/access";
 import { eventScope } from "@/lib/events/access";
 import { createEventCode } from "@/lib/events/code";
 import { PLATFORM_SETTINGS_ID } from "@/lib/events/defaults";
@@ -74,11 +75,27 @@ async function insertEvent(data: {
   throw new EventError("invalid");
 }
 
+async function ensureCustomerService(
+  actor: Actor,
+  now: Date,
+  enforce = true,
+) {
+  if (!enforce || actor.role === "OWNER") {
+    return;
+  }
+
+  if (!(await customerHasServiceAccess(actor, now))) {
+    throw new EventError("inactive");
+  }
+}
+
 export async function createCustomerEvent(
   actor: Actor,
   input: EventFormValues,
   now = new Date(),
+  options?: { enforceServiceAccess?: boolean },
 ) {
+  await ensureCustomerService(actor, now, options?.enforceServiceAccess !== false);
   const settings = await platformSettings();
   const expiresAt = expiresAtFor(input.eventDate, settings.defaultRetentionDays);
 
@@ -110,6 +127,7 @@ export async function updateCustomerEvent(
   input: EventFormValues,
   now = new Date(),
 ) {
+  await ensureCustomerService(actor, now);
   const existing = await prisma.event.findFirst({
     where: {
       id: eventId,
@@ -150,6 +168,7 @@ export async function deleteCustomerEvent(
   eventId: string,
   storage?: IStorageService,
 ) {
+  await ensureCustomerService(actor, new Date());
   const existing = await prisma.event.findFirst({
     where: {
       id: eventId,

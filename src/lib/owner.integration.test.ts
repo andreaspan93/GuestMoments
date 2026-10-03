@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { grantCustomerService } from "@/lib/access";
 import { auth } from "@/lib/auth";
 import { decideGuestAccess } from "@/lib/events/access";
 import {
@@ -55,17 +56,25 @@ async function signUpCustomer(name: string) {
     },
   });
 
-  return prisma.user.findUniqueOrThrow({
+  const user = await prisma.user.findUniqueOrThrow({
     where: { email },
     select: { id: true, role: true, email: true },
   });
+  await grantCustomerService(user.id);
+  return user;
 }
 
 async function makeOwner(name: string) {
   const user = await signUpCustomer(name);
   await prisma.user.update({
     where: { id: user.id },
-    data: { role: "OWNER" },
+    data: {
+      role: "OWNER",
+      emailVerified: true,
+      accessStatus: "ACTIVE",
+      accessExpiresAt: null,
+      disabled: false,
+    },
   });
 
   return { id: user.id, role: "OWNER", email: user.email };

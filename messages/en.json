@@ -42,6 +42,9 @@
     "forgotSuccess": "If an account exists for this email, the reset link was sent. Without email delivery configured, the link is written to the server log.",
     "accountSuccess": "Your changes were saved.",
     "loginResetNotice": "Password updated. Log in with the new password.",
+    "verifiedNotice": "Your email address is verified. Service access is separate and starts when an administrator activates the account.",
+    "resendVerification": "Send the verification email again",
+    "verificationSent": "The verification email was sent.",
     "errors": {
       "invalid": "Check the details and try again.",
       "emailTaken": "An account with this email already exists.",
@@ -134,8 +137,15 @@
     "brandingFailed": "The image was not saved.",
     "errors": {
       "invalid": "Check the details and try again.",
-      "pastExpiry": "That date is already past the end of the retention period. Choose a later date."
+      "pastExpiry": "That date is already past the end of the retention period. Choose a later date.",
+      "inactive": "This account cannot use the service until access is active."
     }
+  },
+  "access": {
+    "unverified": "Please verify your email address to activate your account.",
+    "pending": "Your account is awaiting activation by the administrator.",
+    "expired": "Your access has expired. Please contact the administrator to renew your access.",
+    "disabled": "This account is disabled. Please contact the administrator."
   },
   "owner": {
     "nav": "Admin",
@@ -158,6 +168,39 @@
     "disabled": "Disabled",
     "disableConfirm": "Disable this customer? They are signed out, and guests cannot open their events until you enable them.",
     "eventsCount": "{count} events",
+    "viewCustomer": "View",
+    "emailVerified": "Email verified",
+    "emailUnverified": "Email not verified",
+    "accessPending": "Access pending",
+    "accessActive": "Access active",
+    "accessExpired": "Access expired",
+    "accessDisabled": "Access disabled",
+    "accessExpires": "Access until",
+    "accessNone": "No access date",
+    "created": "Created",
+    "activateLead": "Activate or renew service access. This does not change the customer's role.",
+    "duration": "Duration",
+    "customDate": "Custom end date",
+    "days30": "30 days",
+    "days60": "60 days",
+    "days90": "90 days",
+    "days180": "180 days",
+    "days365": "365 days",
+    "activate": "Activate access",
+    "deleteCustomer": "Delete customer",
+    "deleteCustomerLead": "This permanently deletes the customer. Disable only turns access off and keeps the account.",
+    "deleteCustomerAccount": "The customer account",
+    "deleteCustomerEvents": "All events belonging to the customer",
+    "deleteCustomerMedia": "All photos and videos belonging to those events",
+    "deleteCustomerAlbums": "Albums",
+    "deleteCustomerUploads": "Upload intents and related event data",
+    "deleteCustomerAuth": "The customer's sign-in sessions and account data",
+    "deleteCustomerConfirmLabel": "Type the customer's email address to confirm",
+    "deleteCustomerConfirm": "Permanently delete this customer, all of their events, and all photos and videos? This cannot be undone.",
+    "deleteCustomerSubmit": "Delete customer",
+    "deleteCustomerCancel": "Cancel",
+    "deleteCustomerFinal": "Delete permanently",
+    "deletedCustomer": "The customer and their events, photos, and videos were permanently deleted.",
     "customer": "Customer",
     "retention": "Retention (days)",
     "retentionValue": "{days} days",
@@ -185,7 +228,9 @@
     "errors": {
       "invalid": "Check the details and try again.",
       "pastExpiry": "That date is already past the end of the retention period. Choose a later date.",
-      "notFound": "That customer or event was not found."
+      "notFound": "That customer or event was not found.",
+      "confirmEmail": "Type the customer's email address before deleting.",
+      "storage": "Deletion did not complete because the stored files could not be removed. The customer is still in the system."
     }
   }
 }

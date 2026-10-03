@@ -47,7 +47,10 @@ export async function getActiveSession(source: HeaderSource) {
       email: true,
       role: true,
       disabled: true,
+      emailVerified: true,
       preferredLocale: true,
+      accessStatus: true,
+      accessExpiresAt: true,
     },
   });
 

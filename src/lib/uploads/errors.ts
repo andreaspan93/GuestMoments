@@ -7,7 +7,8 @@ export type UploadErrorCode =
   | "quota"
   | "intent"
   | "rate"
-  | "storage";
+  | "storage"
+  | "inactive";
 
 export class UploadError extends Error {
   readonly code: UploadErrorCode;
@@ -25,6 +26,7 @@ export function uploadStatus(code: UploadErrorCode) {
     case "notFound":
       return 404;
     case "unavailable":
+    case "inactive":
       return 403;
     case "type":
       return 415;

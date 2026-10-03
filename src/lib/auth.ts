@@ -1,7 +1,7 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
-import { sendPasswordResetEmail } from "@/lib/email";
+import { sendPasswordResetEmail, sendVerificationEmail } from "@/lib/email";
 import { prisma } from "@/lib/prisma";
 
 export const auth = betterAuth({
@@ -15,6 +15,19 @@ export const auth = betterAuth({
     revokeSessionsOnPasswordReset: true,
     sendResetPassword: async ({ user, url }) => {
       await sendPasswordResetEmail({
+        to: user.email,
+        url,
+        locale:
+          (user as { preferredLocale?: string }).preferredLocale === "en"
+            ? "en"
+            : "el",
+      });
+    },
+  },
+  emailVerification: {
+    sendOnSignUp: true,
+    sendVerificationEmail: async ({ user, url }) => {
+      await sendVerificationEmail({
         to: user.email,
         url,
         locale:
@@ -44,6 +57,12 @@ export const auth = betterAuth({
         defaultValue: "el",
         input: true,
       },
+      accessStatus: {
+        type: "string",
+        required: true,
+        defaultValue: "PENDING",
+        input: false,
+      },
     },
   },
   databaseHooks: {
@@ -58,6 +77,7 @@ export const auth = betterAuth({
               role: "CUSTOMER",
               disabled: false,
               preferredLocale,
+              accessStatus: "PENDING",
             },
           };
         },

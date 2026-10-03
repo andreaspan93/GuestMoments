@@ -51,7 +51,7 @@ export type IdentityErrorCode =
 
 export type IdentityFormState = {
   error?: IdentityErrorCode;
-  success?: "sent" | "saved";
+  success?: "sent" | "saved" | "verificationSent";
 } | null;
 
 export function preferredLocaleFromPage(locale: string): "el" | "en" {

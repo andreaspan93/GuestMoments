@@ -12,7 +12,7 @@ import { redirect } from "@/i18n/navigation";
 import { getRequestSession } from "@/lib/session";
 
 export type EventFormState = {
-  error?: "invalid" | "pastExpiry";
+  error?: "invalid" | "pastExpiry" | "inactive";
   success?: "saved";
 } | null;
 
@@ -39,6 +39,10 @@ function readEventForm(formData: FormData) {
 function formError(error: unknown): EventFormState {
   if (error instanceof EventError && error.code === "pastExpiry") {
     return { error: "pastExpiry" };
+  }
+
+  if (error instanceof EventError && error.code === "inactive") {
+    return { error: "inactive" };
   }
 
   return { error: "invalid" };

@@ -2,6 +2,8 @@ import { hasLocale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { EventForm } from "@/components/event-form";
+import { ServiceAccessNotice } from "@/components/service-access-notice";
+import { customerNotice } from "@/lib/access";
 import { redirect } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
 import { getRequestSession } from "@/lib/session";
@@ -34,9 +36,15 @@ export default async function NewEventPage({
         <p className="mt-3 max-w-xl text-sm leading-6 text-foreground/80">
           {t("createLead")}
         </p>
-        <div className="mt-8 max-w-xl">
-          <EventForm />
-        </div>
+        {customerNotice(session.user, new Date()) ? (
+          <div className="mt-8">
+            <ServiceAccessNotice user={session.user} />
+          </div>
+        ) : (
+          <div className="mt-8 max-w-xl">
+            <EventForm />
+          </div>
+        )}
       </section>
     </main>
   );

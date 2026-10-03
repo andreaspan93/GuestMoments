@@ -8,6 +8,7 @@ import {
   forgotPasswordAction,
   loginAction,
   registerAction,
+  resendVerificationAction,
   resetPasswordAction,
   updateAccountAction,
 } from "@/lib/identity-actions";
@@ -161,6 +162,23 @@ export function ForgotPasswordForm() {
           {t("backToLogin")}
         </Link>
       </p>
+    </form>
+  );
+}
+
+export function ResendVerificationForm() {
+  const t = useTranslations("auth");
+  const [state, action, pending] = useActionState(resendVerificationAction, null);
+
+  return (
+    <form action={action} className="mt-4 grid gap-3">
+      <FormError state={state} />
+      {state?.success === "verificationSent" ? (
+        <p role="status" className="text-sm leading-6 text-foreground/80">
+          {t("verificationSent")}
+        </p>
+      ) : null}
+      <SubmitButton label={t("resendVerification")} pending={pending} />
     </form>
   );
 }

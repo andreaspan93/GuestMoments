@@ -2,6 +2,7 @@ import { hasLocale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { CustomerGallery } from "@/components/customer-gallery";
+import { ServiceAccessNotice } from "@/components/service-access-notice";
 import { Link, redirect } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
 import { listCustomerAlbums, listCustomerGallery } from "@/lib/gallery/service";
@@ -40,6 +41,7 @@ export default async function EventGalleryPage({
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 pb-16">
+      <ServiceAccessNotice user={session.user} />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">{event.name}</h1>

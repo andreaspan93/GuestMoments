@@ -42,6 +42,9 @@ async function main() {
     data: {
       role: "OWNER",
       disabled: false,
+      emailVerified: true,
+      accessStatus: "ACTIVE",
+      accessExpiresAt: null,
       name,
     },
   });

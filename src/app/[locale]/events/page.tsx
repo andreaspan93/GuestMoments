@@ -1,7 +1,9 @@
 import { hasLocale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
+import { ServiceAccessNotice } from "@/components/service-access-notice";
 import { buttonVariants } from "@/components/ui/button";
+import { customerNotice } from "@/lib/access";
 import { Link } from "@/i18n/navigation";
 import { redirect } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
@@ -32,16 +34,20 @@ export default async function EventsPage({
   }
 
   const t = await getTranslations("events");
+  const blocked = customerNotice(session.user, new Date()) !== null;
   const events = await listCustomerEvents(session.user);
   const totals = await mediaTotals(events.map((event) => event.id));
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-6 pb-16">
+      <ServiceAccessNotice user={session.user} />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-3xl font-semibold tracking-tight">{t("title")}</h1>
-        <Link href="/events/new" className={buttonVariants()}>
-          {t("create")}
-        </Link>
+        {blocked ? null : (
+          <Link href="/events/new" className={buttonVariants()}>
+            {t("create")}
+          </Link>
+        )}
       </div>
       {events.length === 0 ? (
         <p className="rounded-3xl border border-border bg-card px-6 py-10 text-foreground/80">

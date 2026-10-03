@@ -69,12 +69,15 @@ export async function registerAction(
   }
 
   try {
+    const prefix = locale === "en" ? "/en" : "";
+
     await auth.api.signUpEmail({
       body: {
         name: parsed.data.name,
         email: parsed.data.email,
         password: parsed.data.password,
         preferredLocale: preferredLocaleFromPage(locale),
+        callbackURL: `${appOrigin()}${prefix}/account?verified=1`,
       },
       headers: await headers(),
     });
@@ -114,6 +117,39 @@ export async function loginAction(
 
   redirect({ href: "/account", locale });
   return null;
+}
+
+export async function resendVerificationAction(
+  state: IdentityFormState,
+): Promise<IdentityFormState> {
+  void state;
+  const locale = await getLocale();
+  const session = await getRequestSession();
+
+  if (!session) {
+    redirect({ href: "/login", locale });
+    return { error: "sessionExpired" };
+  }
+
+  if (session.user.role === "OWNER" || session.user.emailVerified) {
+    return { success: "verificationSent" };
+  }
+
+  const prefix = locale === "en" ? "/en" : "";
+
+  try {
+    await auth.api.sendVerificationEmail({
+      body: {
+        email: session.user.email,
+        callbackURL: `${appOrigin()}${prefix}/account?verified=1`,
+      },
+      headers: await headers(),
+    });
+  } catch (error) {
+    return formError(error);
+  }
+
+  return { success: "verificationSent" };
 }
 
 export async function logoutAction() {

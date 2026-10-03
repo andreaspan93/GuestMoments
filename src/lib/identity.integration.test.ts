@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { afterAll, describe, expect, it } from "vitest";
 import { applyAccountUpdateFromInput } from "./account";
 import { auth } from "./auth";
+import { verificationDeliveries } from "./email";
 import { IdentityError } from "./identity-schema";
 import { prisma } from "./prisma";
 import { getActiveSession } from "./session";
@@ -45,12 +46,16 @@ describe("identity", () => {
       preferredLocale: "en",
       role: "OWNER",
       disabled: true,
+      accessStatus: "ACTIVE",
     });
 
     const user = await prisma.user.findUnique({ where: { email } });
 
     expect(user?.role).toBe("CUSTOMER");
     expect(user?.disabled).toBe(false);
+    expect(user?.emailVerified).toBe(false);
+    expect(user?.accessStatus).toBe("PENDING");
+    expect(user?.accessExpiresAt).toBeNull();
     expect(user?.preferredLocale).toBe("en");
   });
 
@@ -144,6 +149,46 @@ describe("identity", () => {
     await expect(
       prisma.session.count({ where: { userId: user.id } }),
     ).resolves.toBe(0);
+  });
+
+  it("sends a verification link and verifies the email without activating service access", async () => {
+    verificationDeliveries.length = 0;
+    const email = emailAddress();
+    await signUp({
+      name: "Verify User",
+      email,
+      password: "password123",
+      preferredLocale: "en",
+    });
+    const sent = verificationDeliveries.filter((item) => item.to === email);
+    expect(sent.length).toBeGreaterThan(0);
+    expect(sent[0]?.locale).toBe("en");
+    expect(sent[0]?.url).toContain("/api/auth/verify-email");
+    expect(sent[0]?.url).not.toContain(email);
+    const token = new URL(sent[0]!.url).searchParams.get("token");
+    expect(token).toBeTruthy();
+
+    verificationDeliveries.length = 0;
+    const signedIn = await auth.api.signInEmail({
+      body: { email, password: "password123" },
+      asResponse: true,
+    });
+    await auth.api.sendVerificationEmail({
+      body: {
+        email,
+        callbackURL: "http://localhost:3000/account",
+      },
+      headers: cookieHeaderFrom(signedIn),
+    });
+    const resent = verificationDeliveries.filter((item) => item.to === email);
+    expect(resent.length).toBeGreaterThan(0);
+
+    await auth.api.verifyEmail({
+      query: { token: new URL(resent[0]!.url).searchParams.get("token")! },
+    });
+    const user = await prisma.user.findUniqueOrThrow({ where: { email } });
+    expect(user.emailVerified).toBe(true);
+    expect(user.accessStatus).toBe("PENDING");
   });
 
   it("resets the password and revokes existing sessions", async () => {

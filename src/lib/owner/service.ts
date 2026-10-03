@@ -1,5 +1,7 @@
+import { accessExpiryFromDays, accessStatusOf } from "@/lib/access";
 import { PLATFORM_SETTINGS_ID } from "@/lib/events/defaults";
 import {
+  athensEndOfDay,
   calendarDateToDb,
   expiresAtFor,
   isExpiryPast,
@@ -13,12 +15,15 @@ import { formatStorage } from "@/lib/gallery/present";
 import { mibToBytes } from "@/lib/owner/bytes";
 import {
   OwnerError,
+  type CustomerActivationValues,
   type OwnerCreateValues,
   type OwnerSettingsValues,
   type OwnerUpdateValues,
 } from "@/lib/owner/schema";
 import { prisma } from "@/lib/prisma";
+import { getStorage } from "@/lib/storage";
 import type { IStorageService } from "@/lib/storage/types";
+import { eventStoragePrefix } from "@/lib/uploads/policy";
 
 type Actor = {
   id: string;
@@ -56,21 +61,68 @@ async function requireCustomer(customerId: string) {
   return customer;
 }
 
-export async function listOwnerCustomers(actor: Actor | null) {
+export async function listOwnerCustomers(actor: Actor | null, now = new Date()) {
   requireOwner(actor);
+  await prisma.user.updateMany({
+    where: {
+      role: "CUSTOMER",
+      disabled: false,
+      accessStatus: "ACTIVE",
+      accessExpiresAt: { lte: now },
+    },
+    data: { accessStatus: "EXPIRED" },
+  });
 
-  return prisma.user.findMany({
+  const customers = await prisma.user.findMany({
     where: { role: "CUSTOMER" },
     orderBy: { name: "asc" },
     select: {
       id: true,
       name: true,
       email: true,
+      emailVerified: true,
       disabled: true,
+      accessStatus: true,
+      accessExpiresAt: true,
       createdAt: true,
       _count: { select: { events: true } },
     },
   });
+
+  return customers.map((customer) => ({
+    ...customer,
+    accessStatus: accessStatusOf({ ...customer, role: "CUSTOMER" }, now),
+  }));
+}
+
+export async function getOwnerCustomer(actor: Actor | null, userId: string, now = new Date()) {
+  requireOwner(actor);
+  await requireCustomer(userId);
+
+  const customer = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      emailVerified: true,
+      disabled: true,
+      accessStatus: true,
+      accessExpiresAt: true,
+      createdAt: true,
+      role: true,
+      _count: { select: { events: true } },
+    },
+  });
+
+  if (!customer || customer.role !== "CUSTOMER") {
+    throw new OwnerError("notFound");
+  }
+
+  return {
+    ...customer,
+    accessStatus: accessStatusOf(customer, now),
+  };
 }
 
 export async function setCustomerDisabled(
@@ -81,14 +133,152 @@ export async function setCustomerDisabled(
   requireOwner(actor);
   const customer = await requireCustomer(userId);
 
+  const current = await prisma.user.findUniqueOrThrow({
+    where: { id: customer.id },
+    select: { accessExpiresAt: true, accessStatus: true },
+  });
+  const now = new Date();
+  const restored =
+    current.accessExpiresAt && current.accessExpiresAt.getTime() > now.getTime()
+      ? "ACTIVE"
+      : current.accessExpiresAt
+        ? "EXPIRED"
+        : "PENDING";
+
   await prisma.$transaction([
     prisma.user.update({
       where: { id: customer.id },
-      data: { disabled },
+      data: disabled
+        ? { disabled: true, accessStatus: "DISABLED" }
+        : { disabled: false, accessStatus: restored },
     }),
     ...(disabled
       ? [prisma.session.deleteMany({ where: { userId: customer.id } })]
       : []),
+  ]);
+}
+
+export async function activateCustomerAccess(
+  actor: Actor | null,
+  userId: string,
+  input: CustomerActivationValues,
+  now = new Date(),
+) {
+  requireOwner(actor);
+  const customer = await requireCustomer(userId);
+  const current = await prisma.user.findUniqueOrThrow({
+    where: { id: customer.id },
+    select: { accessExpiresAt: true, disabled: true, accessStatus: true },
+  });
+  let accessExpiresAt: Date;
+
+  if (input.duration === "custom") {
+    accessExpiresAt = athensEndOfDay(input.expiresOn);
+
+    if (isExpiryPast(accessExpiresAt, now)) {
+      throw new OwnerError("invalid");
+    }
+  } else {
+    const base =
+      !current.disabled &&
+      current.accessStatus === "ACTIVE" &&
+      current.accessExpiresAt &&
+      current.accessExpiresAt.getTime() > now.getTime()
+        ? current.accessExpiresAt
+        : now;
+    accessExpiresAt = accessExpiryFromDays(Number(input.duration), base);
+  }
+
+  await prisma.user.update({
+    where: { id: customer.id },
+    data: {
+      disabled: false,
+      accessStatus: "ACTIVE",
+      accessExpiresAt,
+    },
+  });
+
+  return { accessExpiresAt };
+}
+
+export async function deleteCustomerPermanently(
+  actor: Actor | null,
+  userId: string,
+  confirmEmail: string,
+  storage?: IStorageService,
+) {
+  const owner = requireOwner(actor);
+
+  if (owner.id === userId) {
+    throw new OwnerError("forbidden");
+  }
+
+  const customer = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, email: true, role: true },
+  });
+
+  if (!customer) {
+    throw new OwnerError("notFound");
+  }
+
+  if (customer.role !== "CUSTOMER") {
+    throw new OwnerError("forbidden");
+  }
+
+  if (customer.email.trim().toLowerCase() !== confirmEmail.trim().toLowerCase()) {
+    throw new OwnerError("confirmEmail");
+  }
+
+  const events = await prisma.event.findMany({
+    where: { customerId: customer.id },
+    select: { id: true },
+  });
+
+  if (events.length > 0) {
+    const store = storage ?? getStorage();
+
+    try {
+      for (const event of events) {
+        await store.deletePrefix(eventStoragePrefix(event.id));
+      }
+    } catch (error) {
+      if (error instanceof OwnerError) {
+        throw error;
+      }
+
+      throw new OwnerError("storage");
+    }
+  }
+
+  const eventIds = events.map((event) => event.id);
+
+  await prisma.$transaction([
+    prisma.verification.deleteMany({
+      where: {
+        OR: [{ value: customer.id }, { identifier: customer.email }],
+      },
+    }),
+    prisma.rateLimitHit.deleteMany({
+      where: {
+        OR: [
+          { bucket: { startsWith: `branding:${customer.id}:` } },
+          ...eventIds.map((eventId) => ({ bucket: { contains: eventId } })),
+        ],
+      },
+    }),
+    prisma.event.deleteMany({
+      where: { customerId: customer.id },
+    }),
+    prisma.session.deleteMany({
+      where: { userId: customer.id },
+    }),
+    prisma.account.deleteMany({
+      where: { userId: customer.id },
+    }),
+    prisma.user.delete({
+      where: { id: customer.id },
+    }),
   ]);
 }
 
@@ -136,6 +326,8 @@ export async function createOwnerEvent(actor: Actor | null, input: OwnerCreateVa
       privacyMode: input.privacyMode,
       status: input.status,
     },
+    new Date(),
+    { enforceServiceAccess: false },
   );
 }
 

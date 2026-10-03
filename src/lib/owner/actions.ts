@@ -5,7 +5,9 @@ import { revalidatePath } from "next/cache";
 import { getLocale } from "next-intl/server";
 import { redirect } from "@/i18n/navigation";
 import {
+  activateCustomerAccess,
   createOwnerEvent,
+  deleteCustomerPermanently,
   deleteOwnerEvent,
   setCustomerDisabled,
   updateOwnerEvent,
@@ -13,6 +15,8 @@ import {
 } from "@/lib/owner/service";
 import {
   OwnerError,
+  customerActivationSchema,
+  customerDeletionSchema,
   ownerCreateSchema,
   ownerSettingsSchema,
   ownerUpdateSchema,
@@ -20,8 +24,8 @@ import {
 import { getRequestSession } from "@/lib/session";
 
 export type OwnerFormState = {
-  error?: "invalid" | "pastExpiry" | "notFound";
-  success?: "saved";
+  error?: "invalid" | "pastExpiry" | "notFound" | "confirmEmail" | "storage";
+  success?: "saved" | "deleted";
 } | null;
 
 function field(formData: FormData, name: string) {
@@ -56,6 +60,14 @@ function formError(error: unknown): OwnerFormState {
 
   if (error instanceof OwnerError && error.code === "notFound") {
     return { error: "notFound" };
+  }
+
+  if (error instanceof OwnerError && error.code === "confirmEmail") {
+    return { error: "confirmEmail" };
+  }
+
+  if (error instanceof OwnerError && error.code === "storage") {
+    return { error: "storage" };
   }
 
   return { error: "invalid" };
@@ -186,6 +198,70 @@ export async function setCustomerAccessAction(userId: string, disabled: boolean)
   }
 
   revalidatePath("/[locale]/owner/customers", "page");
+  revalidatePath("/[locale]/owner/customers/[id]", "page");
+}
+
+export async function activateCustomerAction(
+  userId: string,
+  _state: OwnerFormState,
+  formData: FormData,
+): Promise<OwnerFormState> {
+  const locale = await getLocale();
+  const actor = await actorOrRedirect(locale);
+
+  if (!actor) {
+    return { error: "invalid" };
+  }
+
+  const parsed = customerActivationSchema.safeParse({
+    duration: field(formData, "duration"),
+    expiresOn: field(formData, "expiresOn"),
+  });
+
+  if (!parsed.success) {
+    return { error: "invalid" };
+  }
+
+  try {
+    await activateCustomerAccess(actor, userId, parsed.data);
+  } catch (error) {
+    return formError(error);
+  }
+
+  revalidatePath("/[locale]/owner/customers", "page");
+  revalidatePath("/[locale]/owner/customers/[id]", "page");
+  return { success: "saved" };
+}
+
+export async function deleteCustomerAction(
+  userId: string,
+  _state: OwnerFormState,
+  formData: FormData,
+): Promise<OwnerFormState> {
+  const locale = await getLocale();
+  const actor = await actorOrRedirect(locale);
+
+  if (!actor) {
+    return { error: "invalid" };
+  }
+
+  const parsed = customerDeletionSchema.safeParse({
+    confirmEmail: field(formData, "confirmEmail"),
+  });
+
+  if (!parsed.success) {
+    return { error: "confirmEmail" };
+  }
+
+  try {
+    await deleteCustomerPermanently(actor, userId, parsed.data.confirmEmail);
+  } catch (error) {
+    return formError(error);
+  }
+
+  revalidatePath("/[locale]/owner/customers", "page");
+  redirect({ href: "/owner/customers?deleted=1", locale });
+  return null;
 }
 
 export async function deleteOwnerEventAction(eventId: string) {

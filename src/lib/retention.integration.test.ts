@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { GET } from "@/app/api/cron/retention/route";
+import { grantCustomerService } from "@/lib/access";
 import { auth } from "@/lib/auth";
 import {
   DEFAULT_MAX_PHOTO_BYTES,
@@ -36,10 +37,12 @@ async function signUpCustomer(name: string) {
     },
   });
 
-  return prisma.user.findUniqueOrThrow({
+  const user = await prisma.user.findUniqueOrThrow({
     where: { email },
     select: { id: true, role: true },
   });
+  await grantCustomerService(user.id);
+  return user;
 }
 
 function form(name: string): EventFormValues {

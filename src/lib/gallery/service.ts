@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { decideGuestAccess, eventScope } from "@/lib/events/access";
+import { customerHasServiceAccess } from "@/lib/access";
 import { GalleryError } from "@/lib/gallery/errors";
 import {
   exceedsBulkCap,
@@ -23,6 +24,16 @@ type Actor = {
   id: string;
   role: string;
 };
+
+async function ensureCustomerService(actor: Actor, now: Date) {
+  if (actor.role === "OWNER") {
+    return;
+  }
+
+  if (!(await customerHasServiceAccess(actor, now))) {
+    throw new GalleryError("inactive");
+  }
+}
 
 type GalleryEvent = {
   id: string;
@@ -254,6 +265,7 @@ export async function mutateCustomerMedia(
     throw new GalleryError("unauthorized");
   }
 
+  await ensureCustomerService(actor, now);
   const media = await requireCustomerMedia(actor, eventId, mediaId, now);
 
   if (action === "delete") {
@@ -380,6 +392,7 @@ export async function downloadCustomerMedia(
     throw new GalleryError("unauthorized");
   }
 
+  await ensureCustomerService(actor, now);
   const media = await requireCustomerMedia(actor, eventId, mediaId, now);
 
   return downloadUrl(storeOf(storage), media);
@@ -452,6 +465,7 @@ export async function createCustomerAlbum(
     throw new GalleryError("unauthorized");
   }
 
+  await ensureCustomerService(actor, now);
   const event = await requireCustomerEvent(actor, eventId, now);
   const album = await prisma.album.create({
     data: {
@@ -476,6 +490,7 @@ export async function renameCustomerAlbum(
     throw new GalleryError("unauthorized");
   }
 
+  await ensureCustomerService(actor, now);
   const event = await requireCustomerEvent(actor, eventId, now);
   const existing = await prisma.album.findFirst({
     where: { id: albumId, eventId: event.id },
@@ -503,6 +518,7 @@ export async function deleteCustomerAlbum(
     throw new GalleryError("unauthorized");
   }
 
+  await ensureCustomerService(actor, now);
   const event = await requireCustomerEvent(actor, eventId, now);
   const existing = await prisma.album.findFirst({
     where: { id: albumId, eventId: event.id },
@@ -531,6 +547,7 @@ export async function assignCustomerMediaAlbum(
     throw new GalleryError("unauthorized");
   }
 
+  await ensureCustomerService(actor, now);
   const media = await requireCustomerMedia(actor, eventId, mediaId, now);
 
   if (albumId) {
@@ -563,6 +580,7 @@ export async function prepareBulkDownload(
     throw new GalleryError("unauthorized");
   }
 
+  await ensureCustomerService(actor, now);
   const event = await requireCustomerEvent(actor, eventId, now);
   const ids = [...new Set(mediaIds)];
   const rows = await prisma.media.findMany({

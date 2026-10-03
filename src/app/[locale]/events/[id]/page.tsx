@@ -1,7 +1,9 @@
 import { hasLocale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
+import { customerNotice } from "@/lib/access";
 import { BrandingUploads } from "@/components/branding-uploads";
+import { ServiceAccessNotice } from "@/components/service-access-notice";
 import { DeleteEventButton } from "@/components/delete-event-button";
 import { EventForm } from "@/components/event-form";
 import { Link, redirect } from "@/i18n/navigation";
@@ -65,6 +67,12 @@ export default async function EditEventPage({
             </Link>
           </div>
         </div>
+        {customerNotice(session.user, new Date()) ? (
+          <div className="mt-8">
+            <ServiceAccessNotice user={session.user} />
+          </div>
+        ) : (
+        <>
         <div className="mt-8 max-w-xl">
           <EventForm
             eventId={event.id}
@@ -94,6 +102,8 @@ export default async function EditEventPage({
             confirm={t("deleteConfirm")}
           />
         </div>
+        </>
+        )}
       </section>
     </main>
   );

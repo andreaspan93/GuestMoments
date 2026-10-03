@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { grantCustomerService } from "@/lib/access";
 import { auth } from "@/lib/auth";
 import { decideGuestAccess } from "@/lib/events/access";
 import {
@@ -43,6 +44,7 @@ async function signUpCustomer(name: string) {
     select: { id: true, role: true },
   });
 
+  await grantCustomerService(user.id);
   return user;
 }
 

@@ -19,6 +19,8 @@ model User {
   role            String    @default("CUSTOMER")
   disabled        Boolean   @default(false)
   preferredLocale String    @default("el")
+  accessStatus    String    @default("PENDING")
+  accessExpiresAt DateTime?
   sessions        Session[]
   accounts        Account[]
   events          Event[]

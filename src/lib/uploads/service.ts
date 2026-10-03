@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { customerHasServiceAccess } from "@/lib/access";
 import { decideGuestAccess, eventScope } from "@/lib/events/access";
 import { PLATFORM_SETTINGS_ID } from "@/lib/events/defaults";
 import { loadGuestEvent } from "@/lib/events/service";
@@ -331,6 +332,13 @@ export async function createBrandingIntent(input: {
     throw new UploadError("unauthorized");
   }
 
+  if (
+    input.actor.role !== "OWNER" &&
+    !(await customerHasServiceAccess(input.actor, now))
+  ) {
+    throw new UploadError("inactive");
+  }
+
   await consumeUploadRateLimit(`branding:${input.actor.id}:${input.eventId}`, now);
 
   const event = await prisma.event.findFirst({
@@ -384,6 +392,13 @@ export async function completeBrandingUpload(input: {
 
   if (!input.actor) {
     throw new UploadError("unauthorized");
+  }
+
+  if (
+    input.actor.role !== "OWNER" &&
+    !(await customerHasServiceAccess(input.actor, now))
+  ) {
+    throw new UploadError("inactive");
   }
 
   const event = await prisma.event.findFirst({
