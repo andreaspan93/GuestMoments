@@ -5,6 +5,16 @@ import { zip } from "fflate";
 import { useTranslations } from "next-intl";
 import { GalleryViewer } from "@/components/gallery-viewer";
 import type { AlbumSummary, CustomerGalleryItem } from "@/lib/gallery/present";
+import { cn } from "@/lib/utils";
+
+function toolbarChip(selected: boolean) {
+  return cn(
+    "inline-flex h-10 max-w-full items-center justify-center truncate rounded-full px-3 text-sm font-medium",
+    selected
+      ? "bg-primary text-primary-foreground"
+      : "border border-border bg-card text-foreground hover:bg-muted",
+  );
+}
 
 export function CustomerGallery({
   eventId,
@@ -299,110 +309,132 @@ export function CustomerGallery({
   }
 
   return (
-    <section>
-      <form className="flex flex-wrap items-center gap-2" onSubmit={(event) => void createAlbum(event)}>
-        <label className="text-sm font-medium" htmlFor="album-name">
-          {t("albums")}
-        </label>
-        <input
-          id="album-name"
-          className="h-10 rounded-full border border-border bg-background px-4 text-sm"
-          value={albumName}
-          maxLength={80}
-          onChange={(event) => setAlbumName(event.target.value)}
-        />
-        <button type="submit" className="rounded-full border border-border px-3 py-2 text-sm">
-          {t("createAlbum")}
-        </button>
-      </form>
-      <div className="mt-3 flex flex-wrap gap-2">
-        <button
-          type="button"
-          className="rounded-full border border-border px-3 py-2 text-sm"
-          aria-pressed={albumFilter === "all"}
-          onClick={() => setAlbumFilter("all")}
+    <section className="grid gap-4">
+      <div className="grid gap-3">
+        <form
+          className="flex flex-col gap-2 sm:flex-row sm:items-end"
+          onSubmit={(event) => void createAlbum(event)}
         >
-          {t("allAlbums")}
-        </button>
-        <button
-          type="button"
-          className="rounded-full border border-border px-3 py-2 text-sm"
-          aria-pressed={albumFilter === "none"}
-          onClick={() => setAlbumFilter("none")}
-        >
-          {t("unassigned")}
-        </button>
-        {albums.map((album) => (
-          <span key={album.id} className="inline-flex items-center gap-1">
-            {editingId === album.id ? (
-              <form
-                className="inline-flex gap-1"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  void renameAlbum(album.id);
-                }}
-              >
-                <input
-                  className="h-8 rounded-full border border-border bg-background px-3 text-sm"
-                  value={editingName}
-                  maxLength={80}
-                  aria-label={t("renameAlbum")}
-                  onChange={(event) => setEditingName(event.target.value)}
-                />
-                <button type="submit" className="rounded-full border border-border px-3 py-1 text-sm">
-                  {t("save")}
+          <label className="grid min-w-0 flex-1 gap-2 text-sm font-medium" htmlFor="album-name">
+            {t("albums")}
+            <input
+              id="album-name"
+              className="h-10 w-full min-w-0 rounded-full border border-border bg-background px-4 text-sm"
+              value={albumName}
+              maxLength={80}
+              onChange={(event) => setAlbumName(event.target.value)}
+            />
+          </label>
+          <button
+            type="submit"
+            className="h-10 shrink-0 rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground"
+          >
+            {t("createAlbum")}
+          </button>
+        </form>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            className={toolbarChip(albumFilter === "all")}
+            aria-pressed={albumFilter === "all"}
+            onClick={() => setAlbumFilter("all")}
+          >
+            {t("allAlbums")}
+          </button>
+          <button
+            type="button"
+            className={toolbarChip(albumFilter === "none")}
+            aria-pressed={albumFilter === "none"}
+            onClick={() => setAlbumFilter("none")}
+          >
+            {t("unassigned")}
+          </button>
+          {albums.map((album) => (
+            <span
+              key={album.id}
+              className="flex max-w-full flex-wrap items-center gap-1 rounded-2xl border border-border bg-card p-1"
+            >
+              {editingId === album.id ? (
+                <form
+                  className="flex min-w-0 flex-1 flex-wrap gap-1"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    void renameAlbum(album.id);
+                  }}
+                >
+                  <input
+                    className="h-10 min-w-0 flex-1 rounded-full border border-border bg-background px-3 text-sm"
+                    value={editingName}
+                    maxLength={80}
+                    aria-label={t("renameAlbum")}
+                    onChange={(event) => setEditingName(event.target.value)}
+                  />
+                  <button
+                    type="submit"
+                    className="h-10 shrink-0 rounded-full bg-primary px-3 text-sm font-medium text-primary-foreground"
+                  >
+                    {t("save")}
+                  </button>
+                </form>
+              ) : (
+                <button
+                  type="button"
+                  className={cn(toolbarChip(albumFilter === album.id), "min-w-0 flex-1 border-0")}
+                  aria-pressed={albumFilter === album.id}
+                  onClick={() => setAlbumFilter(album.id)}
+                >
+                  {album.name}
                 </button>
-              </form>
-            ) : (
+              )}
               <button
                 type="button"
-                className="rounded-full border border-border px-3 py-2 text-sm"
-                aria-pressed={albumFilter === album.id}
-                onClick={() => setAlbumFilter(album.id)}
+                className="h-10 shrink-0 rounded-full px-3 text-sm text-foreground/80 hover:bg-muted"
+                onClick={() => {
+                  setEditingId(album.id);
+                  setEditingName(album.name);
+                }}
               >
-                {album.name}
+                {t("renameAlbum")}
               </button>
-            )}
-            <button
-              type="button"
-              className="rounded-full px-2 py-2 text-sm"
-              onClick={() => {
-                setEditingId(album.id);
-                setEditingName(album.name);
-              }}
-            >
-              {t("renameAlbum")}
-            </button>
-            <button
-              type="button"
-              className="rounded-full px-2 py-2 text-sm"
-              onClick={() => void removeAlbum(album.id)}
-            >
-              {t("deleteAlbum")}
-            </button>
-          </span>
-        ))}
+              <button
+                type="button"
+                className="h-10 shrink-0 rounded-full px-3 text-sm text-foreground/80 hover:bg-muted"
+                onClick={() => void removeAlbum(album.id)}
+              >
+                {t("deleteAlbum")}
+              </button>
+            </span>
+          ))}
+        </div>
       </div>
-      <div className="mt-4 flex flex-wrap gap-2">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="grid grid-cols-2 gap-1 rounded-full border border-border bg-card p-1 sm:inline-grid sm:w-auto">
+          <button
+            type="button"
+            className={cn(toolbarChip(sort === "newest"), "w-full border-0")}
+            aria-pressed={sort === "newest"}
+            onClick={() => void chooseSort("newest")}
+          >
+            {t("newest")}
+          </button>
+          <button
+            type="button"
+            className={cn(toolbarChip(sort === "oldest"), "w-full border-0")}
+            aria-pressed={sort === "oldest"}
+            onClick={() => void chooseSort("oldest")}
+          >
+            {t("oldest")}
+          </button>
+        </div>
         <button
           type="button"
-          className="rounded-full border border-border px-3 py-2 text-sm"
-          aria-pressed={sort === "newest"}
-          onClick={() => void chooseSort("newest")}
-        >
-          {t("newest")}
-        </button>
-        <button
-          type="button"
-          className="rounded-full border border-border px-3 py-2 text-sm"
-          aria-pressed={sort === "oldest"}
-          onClick={() => void chooseSort("oldest")}
-        >
-          {t("oldest")}
-        </button>
-        <button
-          type="button"
-          className="rounded-full border border-border px-3 py-2 text-sm"
+          className={cn(
+            "h-10 w-full rounded-full px-4 text-sm font-medium sm:w-auto",
+            selected.length > 0
+              ? "bg-primary text-primary-foreground"
+              : "border border-border bg-card text-foreground/55",
+            "disabled:cursor-not-allowed disabled:opacity-60",
+          )}
           disabled={selected.length === 0 || zipping}
           onClick={() => void downloadSelection()}
         >
@@ -410,43 +442,70 @@ export function CustomerGallery({
         </button>
       </div>
       {error ? (
-        <p role="alert" className="mt-4 text-sm">
+        <p role="alert" className="text-sm">
           {error}
         </p>
       ) : null}
       {visible.length === 0 ? (
-        <p className="mt-6 text-foreground/80">
+        <p className="text-foreground/80">
           {items.length === 0 ? t("galleryEmpty") : t("albumEmpty")}
         </p>
       ) : (
-        <div className="mt-6 columns-2 gap-3 sm:columns-3 lg:columns-4">
+        <div className="columns-2 gap-3 sm:columns-3 lg:columns-4">
           {visible.map((item) => {
             const album = albums.find((entry) => entry.id === item.albumId);
+            const isSelected = selected.includes(item.id);
 
             return (
               <div
                 key={item.id}
-                className={`mb-3 break-inside-avoid overflow-hidden rounded-2xl border border-border bg-card ${item.isHidden ? "opacity-60" : ""}`}
+                className={cn(
+                  "relative mb-3 break-inside-avoid overflow-hidden rounded-2xl border bg-card",
+                  isSelected ? "border-primary ring-2 ring-primary" : "border-border",
+                  item.isHidden && "opacity-60",
+                )}
               >
-                <label className="flex items-center gap-2 px-3 pt-3 text-sm">
+                {isSelected ? (
+                  <span className="pointer-events-none absolute inset-0 z-[1] bg-primary/15" />
+                ) : null}
+                <label className="absolute top-2 left-2 z-10">
                   <input
                     type="checkbox"
-                    checked={selected.includes(item.id)}
+                    className="peer sr-only"
+                    checked={isSelected}
+                    aria-label={t("select")}
                     onChange={() => toggleSelected(item.id)}
                   />
-                  {t("select")}
+                  <span
+                    className={cn(
+                      "flex size-10 items-center justify-center rounded-full border text-transparent shadow-sm",
+                      "border-white/90 bg-black/35 peer-checked:border-primary peer-checked:bg-primary peer-checked:text-primary-foreground",
+                      "peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2",
+                    )}
+                  >
+                    <svg viewBox="0 0 16 16" className="size-4" aria-hidden="true">
+                      <path
+                        d="M3.5 8.5 6.5 11.5 12.5 4.5"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </span>
                 </label>
                 <button type="button" className="block w-full text-left" onClick={() => setOpenId(item.id)}>
                   {item.previewUrl ? (
                     // Signed storage URL; the image optimizer is not used.
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img className="w-full object-cover" src={item.previewUrl} alt="" />
+                    <img className="min-h-32 w-full object-cover" src={item.previewUrl} alt="" />
                   ) : (
-                    <span className="flex h-32 items-center justify-center px-3 text-sm">
+                    <span className="flex h-32 items-center justify-center px-3 text-center text-sm break-words">
                       {item.type === "video" ? t("video") : item.originalFileName}
                     </span>
                   )}
-                  <span className="block px-3 py-2 text-sm">
+                  <span className="block px-3 py-2 text-sm break-words">
                     {item.guestName || item.originalFileName}
                     {album ? ` · ${album.name}` : ""}
                     {item.isHidden ? ` · ${t("hidden")}` : ""}

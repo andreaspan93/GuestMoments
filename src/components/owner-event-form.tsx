@@ -226,7 +226,7 @@ export function OwnerEventForm({
         <label className="grid gap-2 text-sm font-medium">
           {events("background")}
           <input
-            className="h-10 w-full rounded-full border border-border bg-background px-2"
+            className="color-well"
             name="backgroundColor"
             type="color"
             defaultValue={defaults.backgroundColor}
@@ -235,7 +235,7 @@ export function OwnerEventForm({
         <label className="grid gap-2 text-sm font-medium">
           {events("accent")}
           <input
-            className="h-10 w-full rounded-full border border-border bg-background px-2"
+            className="color-well"
             name="accentColor"
             type="color"
             defaultValue={defaults.accentColor}

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="8 0 368 128" fill="none" role="img" aria-labelledby="stigmidrop-title stigmidrop-desc">
+  <title id="stigmidrop-title">StigmiDrop</title>
+  <desc id="stigmidrop-desc">StigmiDrop logo. A drop-shaped mark with a lens, beside the StigmiDrop wordmark.</desc>
+  <style>
+    .drop { fill: #2f62e6; }
+    .lens { fill: #f6f8fc; }
+    .spark { fill: #e6a23c; }
+    .wordmark {
+      fill: #2f62e6;
+      font-family: Inter, "Segoe UI", Helvetica, Arial, sans-serif;
+      font-size: 46px;
+      font-weight: 600;
+      letter-spacing: -0.045em;
+    }
+  </style>
+  <g id="symbol">
+    <path class="drop" d="M64 12C64 12 22 44 22 74c0 26 18 42 42 42s42-16 42-42C106 44 64 12 64 12Z"/>
+    <circle class="lens" cx="64" cy="80" r="14"/>
+    <circle class="spark" cx="71" cy="74" r="4"/>
+  </g>
+  <text id="wordmark" class="wordmark" x="136" y="72" dominant-baseline="central">StigmiDrop</text>
+</svg>

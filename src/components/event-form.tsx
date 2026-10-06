@@ -182,7 +182,7 @@ export function EventForm({
         <label className="grid gap-2 text-sm font-medium">
           {t("background")}
           <input
-            className="h-10 w-full rounded-full border border-border bg-background px-2"
+            className="color-well"
             name="backgroundColor"
             type="color"
             defaultValue={values.backgroundColor}
@@ -191,7 +191,7 @@ export function EventForm({
         <label className="grid gap-2 text-sm font-medium">
           {t("accent")}
           <input
-            className="h-10 w-full rounded-full border border-border bg-background px-2"
+            className="color-well"
             name="accentColor"
             type="color"
             defaultValue={values.accentColor}

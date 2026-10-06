@@ -43,8 +43,8 @@ export default async function EventGalleryPage({
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 pb-16">
       <ServiceAccessNotice user={session.user} />
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight">{event.name}</h1>
+        <div className="min-w-0">
+          <h1 className="text-3xl font-semibold tracking-tight break-words">{event.name}</h1>
           <p className="mt-2 text-sm text-foreground/80">{t("galleryTitle")}</p>
         </div>
         <Link href={`/events/${event.id}`} className="text-sm text-primary underline-offset-4 hover:underline">

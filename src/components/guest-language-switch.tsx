@@ -1,5 +1,7 @@
+import { LocaleFlag } from "@/components/locale-flag";
 import { setGuestLocale } from "@/lib/events/guest-actions";
 import { guestChrome, type GuestLocale } from "@/lib/events/text";
+import { cn } from "@/lib/utils";
 
 export function GuestLanguageSwitch({
   locale,
@@ -11,23 +13,29 @@ export function GuestLanguageSwitch({
   const copy = guestChrome[locale];
 
   return (
-    <nav aria-label={copy.language} className="flex gap-2">
+    <nav
+      aria-label={copy.language}
+      className="inline-flex rounded-full border border-border bg-card p-0.5 shadow-sm"
+    >
       {(["el", "en"] as const).map((item) => {
         const selected = item === locale;
+        const label = item === "el" ? copy.greek : copy.english;
 
         return (
           <form key={item} action={setGuestLocale.bind(null, item)}>
             <button
               type="submit"
+              aria-label={label}
+              title={label}
               aria-current={selected ? "true" : undefined}
-              className="inline-flex h-8 items-center rounded-full border px-3 text-xs font-medium"
-              style={{
-                backgroundColor: selected ? accentColor : "transparent",
-                borderColor: accentColor,
-                color: selected ? "#fffaf6" : accentColor,
-              }}
+              className={cn(
+                "inline-flex size-8 items-center justify-center rounded-full transition-colors",
+                selected ? "bg-muted" : "hover:bg-muted/80",
+              )}
+              style={selected ? { boxShadow: `inset 0 0 0 1px ${accentColor}` } : undefined}
             >
-              {item === "el" ? copy.greek : copy.english}
+              <LocaleFlag locale={item} />
+              <span className="sr-only">{label}</span>
             </button>
           </form>
         );
