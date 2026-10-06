@@ -1,5 +1,6 @@
 import { hasLocale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import { Pencil } from "lucide-react";
 import { notFound } from "next/navigation";
 import { ServiceAccessNotice } from "@/components/service-access-notice";
 import { buttonVariants } from "@/components/ui/button";
@@ -7,6 +8,7 @@ import { customerNotice } from "@/lib/access";
 import { Link } from "@/i18n/navigation";
 import { redirect } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
+import { cn } from "@/lib/utils";
 import { formatAthensDateTime, formatCalendarDate, calendarDateFromDb } from "@/lib/events/expiry";
 import { eventStatusLabelKey } from "@/lib/events/status";
 import { guestEventUrl } from "@/lib/events/code";
@@ -58,9 +60,20 @@ export default async function EventsPage({
           {events.map((event) => (
             <li
               key={event.id}
-              className="rounded-3xl border border-border bg-card px-6 py-6 shadow-sm"
+              className="relative rounded-3xl border border-border bg-card px-6 py-6 shadow-sm"
             >
-              <h2 className="text-xl font-semibold">{event.name}</h2>
+              <Link
+                href={`/events/${event.id}`}
+                aria-label={t("edit")}
+                title={t("edit")}
+                className={cn(
+                  buttonVariants({ variant: "outline", size: "sm" }),
+                  "absolute top-4 right-4 size-8 p-0",
+                )}
+              >
+                <Pencil className="size-4" aria-hidden="true" />
+              </Link>
+              <h2 className="pr-10 text-xl font-semibold break-words">{event.name}</h2>
               <p className="mt-2 text-sm text-foreground/80">
                 {formatCalendarDate(calendarDateFromDb(event.eventDate), locale)}
                 {" · "}
@@ -86,12 +99,6 @@ export default async function EventsPage({
                   className={buttonVariants({ variant: "outline", size: "sm" })}
                 >
                   {t("gallery")}
-                </Link>
-                <Link
-                  href={`/events/${event.id}`}
-                  className={buttonVariants({ variant: "outline", size: "sm" })}
-                >
-                  {t("edit")}
                 </Link>
                 <Link
                   href={`/events/${event.id}/qr`}
