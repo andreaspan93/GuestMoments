@@ -18,7 +18,7 @@ export function LanguageSwitcher() {
   return (
     <nav
       aria-label={t("languageLabel")}
-      className="inline-flex rounded-full border border-border bg-card p-0.5"
+      className="inline-flex rounded-full border border-border bg-card p-px min-[340px]:p-0.5"
     >
       {routing.locales.map((item) => {
         const selected = item === locale;
@@ -33,7 +33,7 @@ export function LanguageSwitcher() {
             title={labels[item]}
             aria-current={selected ? "true" : undefined}
             className={cn(
-              "inline-flex size-8 items-center justify-center rounded-full transition-colors",
+              "inline-flex size-7 items-center justify-center rounded-full transition-colors min-[340px]:size-8",
               selected ? "bg-muted ring-1 ring-primary" : "hover:bg-muted/80",
             )}
           >
