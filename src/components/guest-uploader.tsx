@@ -4,6 +4,7 @@ import { useState } from "react";
 import { guestChrome, type GuestLocale } from "@/lib/events/text";
 import { createThumbnail, normalizeUploadFile } from "@/lib/uploads/browser-file";
 import { putBytesWithRetry } from "@/lib/uploads/transfer";
+import { FilePicker } from "@/components/file-picker";
 import { Button } from "@/components/ui/button";
 
 type UploadCopy = (typeof guestChrome)[GuestLocale];
@@ -221,18 +222,20 @@ export function GuestUploader({
           onChange={(event) => setGuestMessage(event.target.value)}
         />
       </label>
-      <label className="grid gap-2 text-sm font-medium">
-        {copy.uploadPick}
-        <input
-          id="guest-files"
-          className="text-sm"
+      <div className="grid gap-2">
+        <p className="text-sm font-medium">{copy.uploadPick}</p>
+        <FilePicker
           name="files"
-          type="file"
           multiple
+          buttonLabel={copy.uploadChoose}
+          emptyLabel={copy.uploadEmpty}
           accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif,video/mp4,video/quicktime,.mp4,.mov"
-          onChange={(event) => onFiles(event.target.files)}
+          formatSelection={(files) =>
+            files.length === 1 ? files[0].name : `${files.length} ${copy.uploadCount}`
+          }
+          onFiles={onFiles}
         />
-      </label>
+      </div>
       <ul className="grid gap-3">
         {items.map((item) => (
           <li key={item.id} className="rounded-2xl border border-border bg-background p-3">

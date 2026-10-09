@@ -3,7 +3,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { CustomerGallery } from "@/components/customer-gallery";
 import { ServiceAccessNotice } from "@/components/service-access-notice";
-import { Link, redirect } from "@/i18n/navigation";
+import { redirect } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
 import { listCustomerAlbums, listCustomerGallery } from "@/lib/gallery/service";
 import { getCustomerEvent } from "@/lib/events/service";
@@ -47,9 +47,6 @@ export default async function EventGalleryPage({
           <h1 className="text-3xl font-semibold tracking-tight break-words">{event.name}</h1>
           <p className="mt-2 text-sm text-foreground/80">{t("galleryTitle")}</p>
         </div>
-        <Link href={`/events/${event.id}`} className="text-sm text-primary underline-offset-4 hover:underline">
-          {t("edit")}
-        </Link>
       </div>
       {closed ? (
         <p className="rounded-3xl border border-border bg-card px-6 py-10 text-foreground/80">

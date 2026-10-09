@@ -83,6 +83,7 @@ model PlatformSettings {
   maxPhotoBytes          BigInt
   maxVideoBytes          BigInt
   defaultMaxStorageBytes BigInt
+  maxEventsPerCustomer   Int      @default(10)
   updatedAt              DateTime @updatedAt
 
   @@map("platform_settings")

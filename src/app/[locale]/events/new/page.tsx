@@ -6,6 +6,7 @@ import { ServiceAccessNotice } from "@/components/service-access-notice";
 import { customerNotice } from "@/lib/access";
 import { redirect } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
+import { customerEventAllowance } from "@/lib/events/service";
 import { getRequestSession } from "@/lib/session";
 
 export default async function NewEventPage({
@@ -28,6 +29,7 @@ export default async function NewEventPage({
   }
 
   const t = await getTranslations("events");
+  const allowance = await customerEventAllowance(session.user);
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 pb-16">
@@ -42,6 +44,11 @@ export default async function NewEventPage({
           </div>
         ) : (
           <div className="mt-8 max-w-xl">
+            {allowance.atLimit ? (
+              <p role="status" className="mb-4 text-sm leading-6 text-foreground/80">
+                {t("eventLimit")}
+              </p>
+            ) : null}
             <EventForm />
           </div>
         )}

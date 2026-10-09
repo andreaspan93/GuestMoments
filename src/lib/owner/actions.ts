@@ -163,6 +163,7 @@ export async function updateOwnerSettingsAction(
     defaultQuotaMib: field(formData, "defaultQuotaMib"),
     maxPhotoMib: field(formData, "maxPhotoMib"),
     maxVideoMib: field(formData, "maxVideoMib"),
+    maxEventsPerCustomer: field(formData, "maxEventsPerCustomer"),
   });
 
   if (!parsed.success) {

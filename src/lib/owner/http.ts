@@ -86,6 +86,7 @@ export function readOwnerSettings(actor: Actor) {
     defaultMaxStorageBytes: settings.defaultMaxStorageBytes.toString(),
     maxPhotoBytes: settings.maxPhotoBytes.toString(),
     maxVideoBytes: settings.maxVideoBytes.toString(),
+    maxEventsPerCustomer: settings.maxEventsPerCustomer,
   }));
 }
 
@@ -123,6 +124,7 @@ export function patchOwnerSettings(actor: Actor, body: unknown) {
     defaultMaxStorageBytes: settings.defaultMaxStorageBytes.toString(),
     maxPhotoBytes: settings.maxPhotoBytes.toString(),
     maxVideoBytes: settings.maxVideoBytes.toString(),
+    maxEventsPerCustomer: settings.maxEventsPerCustomer,
   }));
 }
 

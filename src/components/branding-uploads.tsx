@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { FilePicker } from "@/components/file-picker";
 import { putBytesWithRetry } from "@/lib/uploads/transfer";
 
 const slots = ["cover", "logo", "background"] as const;
@@ -92,12 +93,14 @@ export function BrandingUploads({
               // eslint-disable-next-line @next/next/no-img-element
               <img className="max-h-40 w-full rounded-2xl object-cover" src={preview} alt="" />
             ) : null}
-            <input
-              type="file"
+            <FilePicker
               accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
               disabled={pendingSlot !== null}
-              onChange={(event) => {
-                const file = event.target.files?.[0];
+              buttonLabel={t("chooseFile")}
+              emptyLabel={t("noFileSelected")}
+              formatSelection={(files) => files[0]?.name ?? t("noFileSelected")}
+              onFiles={(files) => {
+                const file = files?.[0];
 
                 if (file) {
                   void upload(slot, file);

@@ -89,11 +89,24 @@ async function ensureCustomerService(
   }
 }
 
+export async function customerEventAllowance(actor: Actor) {
+  const settings = await platformSettings();
+  const eventCount = await prisma.event.count({
+    where: { customerId: actor.id },
+  });
+
+  return {
+    maxEvents: settings.maxEventsPerCustomer,
+    eventCount,
+    atLimit: actor.role !== "OWNER" && eventCount >= settings.maxEventsPerCustomer,
+  };
+}
+
 export async function createCustomerEvent(
   actor: Actor,
   input: EventFormValues,
   now = new Date(),
-  options?: { enforceServiceAccess?: boolean },
+  options?: { enforceServiceAccess?: boolean; enforceEventLimit?: boolean },
 ) {
   await ensureCustomerService(actor, now, options?.enforceServiceAccess !== false);
   const settings = await platformSettings();
@@ -101,6 +114,16 @@ export async function createCustomerEvent(
 
   if (isExpiryPast(expiresAt, now)) {
     throw new EventError("pastExpiry");
+  }
+
+  if (options?.enforceEventLimit !== false && actor.role !== "OWNER") {
+    const eventCount = await prisma.event.count({
+      where: { customerId: actor.id },
+    });
+
+    if (eventCount >= settings.maxEventsPerCustomer) {
+      throw new EventError("eventLimit");
+    }
   }
 
   return insertEvent({

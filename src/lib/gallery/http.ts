@@ -2,6 +2,7 @@ import { z } from "zod";
 import { GalleryError, galleryStatus } from "@/lib/gallery/errors";
 import {
   assignCustomerMediaAlbum,
+  assignCustomerMediaAlbums,
   createCustomerAlbum,
   deleteCustomerAlbum,
   downloadCustomerMedia,
@@ -30,6 +31,11 @@ const assignAlbumRequest = z.strictObject({
 
 const bulkDownloadRequest = z.strictObject({
   mediaIds: z.array(z.string().uuid()).min(1).max(500),
+});
+
+const bulkAssignRequest = z.strictObject({
+  mediaIds: z.array(z.string().uuid()).min(1).max(500),
+  albumId: z.string().uuid(),
 });
 
 export function galleryJson(body: unknown, status = 200) {
@@ -135,6 +141,17 @@ export async function postMediaAlbum(eventId: string, mediaId: string, request: 
   const body = assignAlbumRequest.parse(await request.json().catch(() => null));
 
   return assignCustomerMediaAlbum(await customerActor(), eventId, mediaId, body.albumId);
+}
+
+export async function postBulkAlbum(eventId: string, request: Request) {
+  const body = bulkAssignRequest.parse(await request.json().catch(() => null));
+
+  return assignCustomerMediaAlbums(
+    await customerActor(),
+    eventId,
+    body.mediaIds,
+    body.albumId,
+  );
 }
 
 export async function postBulkDownload(eventId: string, request: Request) {

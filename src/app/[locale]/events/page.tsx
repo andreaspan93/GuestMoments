@@ -13,7 +13,7 @@ import { formatAthensDateTime, formatCalendarDate, calendarDateFromDb } from "@/
 import { eventStatusLabelKey } from "@/lib/events/status";
 import { guestEventUrl } from "@/lib/events/code";
 import { mediaTotals } from "@/lib/gallery/service";
-import { listCustomerEvents } from "@/lib/events/service";
+import { customerEventAllowance, listCustomerEvents } from "@/lib/events/service";
 import { getRequestSession } from "@/lib/session";
 
 export default async function EventsPage({
@@ -38,6 +38,7 @@ export default async function EventsPage({
   const t = await getTranslations("events");
   const blocked = customerNotice(session.user, new Date()) !== null;
   const events = await listCustomerEvents(session.user);
+  const allowance = await customerEventAllowance(session.user);
   const totals = await mediaTotals(events.map((event) => event.id));
 
   return (
@@ -51,6 +52,11 @@ export default async function EventsPage({
           </Link>
         )}
       </div>
+      {allowance.atLimit ? (
+        <p role="status" className="rounded-3xl border border-border bg-card px-6 py-4 text-sm leading-6 text-foreground/80">
+          {t("eventLimit")}
+        </p>
+      ) : null}
       {events.length === 0 ? (
         <p className="rounded-3xl border border-border bg-card px-6 py-10 text-foreground/80">
           {t("empty")}

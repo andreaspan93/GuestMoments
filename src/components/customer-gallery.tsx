@@ -2,9 +2,15 @@
 
 import { useState } from "react";
 import { zip } from "fflate";
+import { Eye, EyeOff, FolderPlus, Heart, Pencil, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { GalleryViewer } from "@/components/gallery-viewer";
-import type { AlbumSummary, CustomerGalleryItem } from "@/lib/gallery/present";
+import { GalleryViewer, ViewerIconButton } from "@/components/gallery-viewer";
+import {
+  FAVORITES_COLLECTION,
+  matchesCollection,
+  type AlbumSummary,
+  type CustomerGalleryItem,
+} from "@/lib/gallery/present";
 import { cn } from "@/lib/utils";
 
 function toolbarChip(selected: boolean) {
@@ -37,18 +43,16 @@ export function CustomerGallery({
   const [editingName, setEditingName] = useState("");
   const [zipping, setZipping] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [albumMenu, setAlbumMenu] = useState<"bulk" | "viewer" | null>(null);
+  const [bulkAlbumId, setBulkAlbumId] = useState("");
 
-  const visible = items.filter((item) => {
-    if (albumFilter === "all") {
-      return true;
-    }
+  function reportError(text = t("galleryFailed")) {
+    setSuccess("");
+    setError(text);
+  }
 
-    if (albumFilter === "none") {
-      return item.albumId === null;
-    }
-
-    return item.albumId === albumFilter;
-  });
+  const visible = items.filter((item) => matchesCollection(item, albumFilter));
   const openIndex = visible.findIndex((item) => item.id === openId);
   const current = openIndex >= 0 ? visible[openIndex] : null;
 
@@ -58,8 +62,8 @@ export function CustomerGallery({
     });
 
     if (!response.ok) {
-      setError(t("galleryFailed"));
-      return;
+      reportError();
+      return false;
     }
 
     const body = (await response.json()) as { items?: CustomerGalleryItem[] };
@@ -68,6 +72,8 @@ export function CustomerGallery({
       setItems(body.items);
       setError("");
     }
+
+    return true;
   }
 
   async function loadAlbums() {
@@ -76,7 +82,7 @@ export function CustomerGallery({
     });
 
     if (!response.ok) {
-      setError(t("galleryFailed"));
+      reportError();
       return;
     }
 
@@ -102,7 +108,7 @@ export function CustomerGallery({
     });
 
     if (!response.ok) {
-      setError(t("galleryFailed"));
+      reportError();
       return;
     }
 
@@ -120,7 +126,7 @@ export function CustomerGallery({
     });
 
     if (!response.ok) {
-      setError(t("galleryFailed"));
+      reportError();
       return;
     }
 
@@ -135,7 +141,7 @@ export function CustomerGallery({
     });
 
     if (!response.ok) {
-      setError(t("galleryFailed"));
+      reportError();
       return;
     }
 
@@ -167,7 +173,7 @@ export function CustomerGallery({
     });
 
     if (!response.ok) {
-      setError(t("galleryFailed"));
+      reportError();
       return;
     }
 
@@ -190,7 +196,7 @@ export function CustomerGallery({
     });
 
     if (!response.ok) {
-      setError(t("galleryFailed"));
+      reportError();
       return;
     }
 
@@ -209,7 +215,7 @@ export function CustomerGallery({
     });
 
     if (!response.ok) {
-      setError(t("galleryFailed"));
+      reportError();
       return;
     }
 
@@ -230,11 +236,37 @@ export function CustomerGallery({
     });
 
     if (!response.ok) {
-      setError(t("galleryFailed"));
+      reportError();
       return;
     }
 
-    await load();
+    if (await load()) {
+      setSuccess(albumId ? t("photoAssigned") : "");
+      setAlbumMenu(null);
+    }
+  }
+
+  async function assignSelected() {
+    if (!bulkAlbumId || selected.length === 0) {
+      return;
+    }
+
+    const response = await fetch(`/api/events/${eventId}/media/assign-album`, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mediaIds: selected, albumId: bulkAlbumId }),
+    });
+
+    if (!response.ok) {
+      reportError();
+      return;
+    }
+
+    if (await load()) {
+      setSuccess(t("albumAssigned"));
+      setAlbumMenu(null);
+    }
   }
 
   function toggleSelected(id: string) {
@@ -343,6 +375,14 @@ export function CustomerGallery({
           </button>
           <button
             type="button"
+            className={toolbarChip(albumFilter === FAVORITES_COLLECTION)}
+            aria-pressed={albumFilter === FAVORITES_COLLECTION}
+            onClick={() => setAlbumFilter(FAVORITES_COLLECTION)}
+          >
+            {t("favorites")}
+          </button>
+          <button
+            type="button"
             className={toolbarChip(albumFilter === "none")}
             aria-pressed={albumFilter === "none"}
             onClick={() => setAlbumFilter("none")}
@@ -388,30 +428,34 @@ export function CustomerGallery({
               )}
               <button
                 type="button"
-                className="h-10 shrink-0 rounded-full px-3 text-sm text-foreground/80 hover:bg-muted"
+                className="inline-flex size-10 shrink-0 items-center justify-center rounded-full text-foreground/80 hover:bg-muted"
+                aria-label={t("renameAlbum")}
+                title={t("renameAlbum")}
                 onClick={() => {
                   setEditingId(album.id);
                   setEditingName(album.name);
                 }}
               >
-                {t("renameAlbum")}
+                <Pencil className="size-4" aria-hidden="true" />
               </button>
               <button
                 type="button"
-                className="h-10 shrink-0 rounded-full px-3 text-sm text-foreground/80 hover:bg-muted"
+                className="inline-flex size-10 shrink-0 items-center justify-center rounded-full text-primary hover:bg-muted"
+                aria-label={t("deleteAlbum")}
+                title={t("deleteAlbum")}
                 onClick={() => void removeAlbum(album.id)}
               >
-                {t("deleteAlbum")}
+                <Trash2 className="size-4" aria-hidden="true" />
               </button>
             </span>
           ))}
         </div>
       </div>
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div className="grid grid-cols-2 gap-1 rounded-full border border-border bg-card p-1 sm:inline-grid sm:w-auto">
+      <div className="grid grid-cols-2 gap-2">
+        <div className="grid min-w-0 grid-cols-2 gap-1 rounded-full border border-border bg-card p-1">
           <button
             type="button"
-            className={cn(toolbarChip(sort === "newest"), "w-full border-0")}
+            className={cn(toolbarChip(sort === "newest"), "w-full min-w-0 border-0 px-2")}
             aria-pressed={sort === "newest"}
             onClick={() => void chooseSort("newest")}
           >
@@ -419,7 +463,7 @@ export function CustomerGallery({
           </button>
           <button
             type="button"
-            className={cn(toolbarChip(sort === "oldest"), "w-full border-0")}
+            className={cn(toolbarChip(sort === "oldest"), "w-full min-w-0 border-0 px-2")}
             aria-pressed={sort === "oldest"}
             onClick={() => void chooseSort("oldest")}
           >
@@ -429,7 +473,7 @@ export function CustomerGallery({
         <button
           type="button"
           className={cn(
-            "h-10 w-full rounded-full px-4 text-sm font-medium sm:w-auto",
+            "h-10 min-w-0 rounded-full px-3 text-center text-sm font-medium break-words",
             selected.length > 0
               ? "bg-primary text-primary-foreground"
               : "border border-border bg-card text-foreground/55",
@@ -441,9 +485,63 @@ export function CustomerGallery({
           {zipping ? t("bulkPending") : t("bulkDownload")}
         </button>
       </div>
+      {selected.length > 0 ? (
+        <div className="grid gap-2">
+          <button
+            type="button"
+            className="inline-flex h-10 w-fit max-w-full items-center gap-2 rounded-full border border-border bg-card px-4 text-sm font-medium"
+            aria-expanded={albumMenu === "bulk"}
+            onClick={() => setAlbumMenu((current) => (current === "bulk" ? null : "bulk"))}
+          >
+            <FolderPlus className="size-4" aria-hidden="true" />
+            {t("addToAlbum")}
+          </button>
+          {albumMenu === "bulk" ? (
+            albums.length === 0 ? (
+              <p className="text-sm text-foreground/80">{t("noAlbumsYet")}</p>
+            ) : (
+              <form
+                className="flex flex-col gap-2 sm:flex-row sm:items-center"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void assignSelected();
+                }}
+              >
+                <label className="grid min-w-0 flex-1 gap-1 text-sm font-medium">
+                  {t("album")}
+                  <select
+                    className="h-10 w-full rounded-full border border-border bg-background px-3 text-sm"
+                    value={bulkAlbumId}
+                    onChange={(event) => setBulkAlbumId(event.target.value)}
+                  >
+                    <option value="">{t("addToAlbum")}</option>
+                    {albums.map((album) => (
+                      <option key={album.id} value={album.id}>
+                        {album.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <button
+                  type="submit"
+                  className="h-10 shrink-0 rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground disabled:opacity-60"
+                  disabled={!bulkAlbumId}
+                >
+                  {t("applyAlbum")}
+                </button>
+              </form>
+            )
+          ) : null}
+        </div>
+      ) : null}
       {error ? (
         <p role="alert" className="text-sm">
           {error}
+        </p>
+      ) : null}
+      {success ? (
+        <p role="status" className="text-sm text-foreground/80">
+          {success}
         </p>
       ) : null}
       {visible.length === 0 ? (
@@ -533,44 +631,71 @@ export function CustomerGallery({
           onDownload={(id) => void download(id)}
           actions={
             <>
-              <label className="inline-flex items-center gap-2 text-sm">
-                {t("album")}
-                <select
-                  className="h-9 rounded-full bg-white px-3 text-sm text-black"
-                  value={current.albumId ?? ""}
-                  onChange={(event) => void assignAlbum(current.id, event.target.value || null)}
+              <div className="relative">
+                <ViewerIconButton
+                  label={t("addToAlbum")}
+                  pressed={albumMenu === "viewer"}
+                  onClick={() => setAlbumMenu((currentMenu) => (currentMenu === "viewer" ? null : "viewer"))}
                 >
-                  <option value="">{t("noAlbum")}</option>
-                  {albums.map((album) => (
-                    <option key={album.id} value={album.id}>
-                      {album.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <button
-                type="button"
-                className="rounded-full border border-white/40 px-3 py-2 text-sm"
+                  <FolderPlus className="size-5" aria-hidden="true" />
+                </ViewerIconButton>
+                {albumMenu === "viewer" ? (
+                  <div className="absolute bottom-12 left-1/2 z-10 w-56 -translate-x-1/2 rounded-2xl bg-white p-3 text-left text-sm text-black shadow-lg">
+                    {albums.length === 0 ? (
+                      <p>{t("noAlbumsYet")}</p>
+                    ) : (
+                      <label className="grid gap-1 font-medium">
+                        {t("addToAlbum")}
+                        <select
+                          className="h-10 w-full rounded-full border border-border bg-white px-3 text-sm"
+                          value={current.albumId ?? ""}
+                          aria-label={t("addToAlbum")}
+                          onChange={(event) =>
+                            void assignAlbum(current.id, event.target.value || null)
+                          }
+                        >
+                          <option value="">{t("noAlbum")}</option>
+                          {albums.map((album) => (
+                            <option key={album.id} value={album.id}>
+                              {album.name}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    )}
+                  </div>
+                ) : null}
+              </div>
+              <ViewerIconButton
+                label={current.isHidden ? t("unhide") : t("hide")}
+                pressed={current.isHidden}
                 onClick={() => void mutate(current.id, current.isHidden ? "unhide" : "hide")}
               >
-                {current.isHidden ? t("unhide") : t("hide")}
-              </button>
-              <button
-                type="button"
-                className="rounded-full border border-white/40 px-3 py-2 text-sm"
+                {current.isHidden ? (
+                  <EyeOff className="size-5" aria-hidden="true" />
+                ) : (
+                  <Eye className="size-5" aria-hidden="true" />
+                )}
+              </ViewerIconButton>
+              <ViewerIconButton
+                label={current.isFavorite ? t("unfavorite") : t("favorite")}
+                pressed={current.isFavorite}
                 onClick={() =>
                   void mutate(current.id, current.isFavorite ? "unfavorite" : "favorite")
                 }
               >
-                {current.isFavorite ? t("unfavorite") : t("favorite")}
-              </button>
-              <button
-                type="button"
-                className="rounded-full border border-white/40 px-3 py-2 text-sm"
+                <Heart
+                  className={cn("size-5", current.isFavorite && "fill-current")}
+                  aria-hidden="true"
+                />
+              </ViewerIconButton>
+              <ViewerIconButton
+                label={t("deleteMedia")}
+                destructive
                 onClick={() => void remove(current.id)}
               >
-                {t("deleteMedia")}
-              </button>
+                <Trash2 className="size-5" aria-hidden="true" />
+              </ViewerIconButton>
             </>
           }
         />

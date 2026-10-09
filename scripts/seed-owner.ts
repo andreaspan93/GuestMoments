@@ -1,5 +1,6 @@
 import { auth } from "../src/lib/auth";
 import {
+  DEFAULT_MAX_EVENTS_PER_CUSTOMER,
   DEFAULT_MAX_PHOTO_BYTES,
   DEFAULT_MAX_STORAGE_BYTES,
   DEFAULT_MAX_VIDEO_BYTES,
@@ -59,6 +60,7 @@ async function main() {
       maxPhotoBytes: DEFAULT_MAX_PHOTO_BYTES,
       maxVideoBytes: DEFAULT_MAX_VIDEO_BYTES,
       defaultMaxStorageBytes: DEFAULT_MAX_STORAGE_BYTES,
+      maxEventsPerCustomer: DEFAULT_MAX_EVENTS_PER_CUSTOMER,
     },
     update: {},
   });

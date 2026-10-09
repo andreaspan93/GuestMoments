@@ -327,7 +327,7 @@ export async function createOwnerEvent(actor: Actor | null, input: OwnerCreateVa
       status: input.status,
     },
     new Date(),
-    { enforceServiceAccess: false },
+    { enforceServiceAccess: false, enforceEventLimit: false },
   );
 }
 
@@ -416,6 +416,7 @@ export async function updateOwnerSettings(actor: Actor | null, input: OwnerSetti
       defaultMaxStorageBytes: mibToBytes(input.defaultQuotaMib),
       maxPhotoBytes: mibToBytes(input.maxPhotoMib),
       maxVideoBytes: mibToBytes(input.maxVideoMib),
+      maxEventsPerCustomer: input.maxEventsPerCustomer,
     },
   });
 }

@@ -13,12 +13,16 @@ import type { EventFormValues } from "@/lib/events/schema";
 import { GalleryError } from "@/lib/gallery/errors";
 import {
   assignCustomerMediaAlbum,
+  assignCustomerMediaAlbums,
   createCustomerAlbum,
   deleteCustomerAlbum,
+  listCustomerAlbums,
+  listCustomerGallery,
+  mutateCustomerMedia,
   prepareBulkDownload,
   renameCustomerAlbum,
 } from "@/lib/gallery/service";
-import { BULK_DOWNLOAD_MAX_BYTES } from "@/lib/gallery/present";
+import { BULK_DOWNLOAD_MAX_BYTES, FAVORITES_COLLECTION, matchesCollection } from "@/lib/gallery/present";
 import { prisma } from "@/lib/prisma";
 import type { IStorageService } from "@/lib/storage/types";
 import { createGuestToken } from "@/lib/uploads/token";
@@ -195,5 +199,49 @@ describe("albums and bulk download", () => {
     await expect(prepareBulkDownload(null, event.id, [photo], storage)).rejects.toMatchObject({
       code: "unauthorized",
     });
+  });
+
+  it("assigns selected photos only when they belong to the same event", async () => {
+    const customer = await signUpCustomer("Bulk album owner");
+    const other = await signUpCustomer("Bulk album other");
+    const event = await createCustomerEvent(customer, form("Bulk wedding"));
+    const otherEvent = await createCustomerEvent(other, form("Other bulk wedding"));
+    const first = await addMedia(event.id, "one.jpg", BigInt(10));
+    const second = await addMedia(event.id, "two.jpg", BigInt(10));
+    const foreign = await addMedia(otherEvent.id, "theirs.jpg", BigInt(10));
+    const album = await createCustomerAlbum(customer, event.id, "Ceremony");
+
+    await assignCustomerMediaAlbums(customer, event.id, [first, second], album.id);
+    await expect(prisma.media.findUnique({ where: { id: first } })).resolves.toMatchObject({
+      albumId: album.id,
+    });
+    await expect(prisma.media.findUnique({ where: { id: second } })).resolves.toMatchObject({
+      albumId: album.id,
+    });
+    await expect(
+      assignCustomerMediaAlbums(customer, event.id, [first, foreign], album.id),
+    ).rejects.toBeInstanceOf(GalleryError);
+    await expect(prisma.media.findUnique({ where: { id: foreign } })).resolves.toMatchObject({
+      albumId: null,
+    });
+    await expect(assignCustomerMediaAlbums(null, event.id, [first], album.id)).rejects.toMatchObject({
+      code: "unauthorized",
+    });
+  });
+
+  it("keeps favorites as a collection without creating a stored album", async () => {
+    const customer = await signUpCustomer("Favorites owner");
+    const event = await createCustomerEvent(customer, form("Favorites wedding"));
+    const mediaId = await addMedia(event.id, "moment.jpg", BigInt(10));
+
+    await expect(listCustomerAlbums(customer, event.id)).resolves.toEqual([]);
+    await mutateCustomerMedia(customer, event.id, mediaId, "favorite");
+    const favorited = await listCustomerGallery(customer, event.id);
+    expect(favorited.filter((item) => matchesCollection(item, FAVORITES_COLLECTION))).toHaveLength(1);
+
+    await mutateCustomerMedia(customer, event.id, mediaId, "unfavorite");
+    const cleared = await listCustomerGallery(customer, event.id);
+    expect(cleared.filter((item) => matchesCollection(item, FAVORITES_COLLECTION))).toHaveLength(0);
+    await expect(listCustomerAlbums(customer, event.id)).resolves.toEqual([]);
   });
 });

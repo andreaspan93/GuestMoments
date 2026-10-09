@@ -19,6 +19,7 @@ export default async function OwnerSettingsPage() {
           defaultQuotaMib={bytesToMib(settings.defaultMaxStorageBytes)}
           maxPhotoMib={bytesToMib(settings.maxPhotoBytes)}
           maxVideoMib={bytesToMib(settings.maxVideoBytes)}
+          maxEventsPerCustomer={settings.maxEventsPerCustomer}
         />
       </div>
     </main>

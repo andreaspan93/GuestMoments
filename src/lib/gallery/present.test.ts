@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { exceedsBulkCap, formatStorage, uniqueZipNames, BULK_DOWNLOAD_MAX_BYTES } from "@/lib/gallery/present";
+import {
+  exceedsBulkCap,
+  FAVORITES_COLLECTION,
+  formatStorage,
+  matchesCollection,
+  uniqueZipNames,
+  BULK_DOWNLOAD_MAX_BYTES,
+} from "@/lib/gallery/present";
 import { attachmentDisposition } from "@/lib/storage/disposition";
 import { storageSignature } from "@/lib/storage/signature";
 
@@ -26,6 +33,18 @@ describe("gallery presentation", () => {
     expect(named).not.toBe(other);
     expect(named).not.toBe(plain);
     expect(attachmentDisposition("../secret.jpg")).toContain('filename="secret.jpg"');
+  });
+
+  it("treats favorites as a collection beside album membership", () => {
+    const favorite = { albumId: "album-1", isFavorite: true };
+    const plain = { albumId: null, isFavorite: false };
+
+    expect(matchesCollection(favorite, "all")).toBe(true);
+    expect(matchesCollection(favorite, FAVORITES_COLLECTION)).toBe(true);
+    expect(matchesCollection(plain, FAVORITES_COLLECTION)).toBe(false);
+    expect(matchesCollection(favorite, "album-1")).toBe(true);
+    expect(matchesCollection(plain, "none")).toBe(true);
+    expect(matchesCollection(favorite, "none")).toBe(false);
   });
 
   it("keeps zip names unique and rejects a selection over 200 MB", () => {

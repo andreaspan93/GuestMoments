@@ -569,6 +569,46 @@ export async function assignCustomerMediaAlbum(
   return { ok: true as const };
 }
 
+export async function assignCustomerMediaAlbums(
+  actor: Actor | null,
+  eventId: string,
+  mediaIds: string[],
+  albumId: string,
+  now = new Date(),
+) {
+  if (!actor) {
+    throw new GalleryError("unauthorized");
+  }
+
+  await ensureCustomerService(actor, now);
+  const event = await requireCustomerEvent(actor, eventId, now);
+  const ids = [...new Set(mediaIds)];
+  const album = await prisma.album.findFirst({
+    where: { id: albumId, eventId: event.id },
+    select: { id: true },
+  });
+
+  if (!album) {
+    throw new GalleryError("notFound");
+  }
+
+  const found = await prisma.media.findMany({
+    where: { eventId: event.id, id: { in: ids } },
+    select: { id: true },
+  });
+
+  if (found.length !== ids.length) {
+    throw new GalleryError("notFound");
+  }
+
+  await prisma.media.updateMany({
+    where: { id: { in: ids } },
+    data: { albumId: album.id },
+  });
+
+  return { ok: true as const, count: ids.length };
+}
+
 export async function prepareBulkDownload(
   actor: Actor | null,
   eventId: string,

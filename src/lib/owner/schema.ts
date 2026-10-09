@@ -24,6 +24,7 @@ export const ownerSettingsSchema = z.strictObject({
   defaultQuotaMib: quotaMib,
   maxPhotoMib: z.coerce.number().int().min(1).max(2048),
   maxVideoMib: z.coerce.number().int().min(1).max(10_240),
+  maxEventsPerCustomer: z.coerce.number().int().min(1).max(1000),
 });
 
 export const customerAccessSchema = z.strictObject({

@@ -2,6 +2,7 @@ export const GALLERY_PREVIEW_SECONDS = 15 * 60;
 export const GALLERY_DOWNLOAD_SECONDS = 60;
 export const GALLERY_REFRESH_MS = 15_000;
 export const BULK_DOWNLOAD_MAX_BYTES = BigInt(200) * BigInt(1024) * BigInt(1024);
+export const FAVORITES_COLLECTION = "favorites";
 
 export type GalleryItem = {
   id: string;
@@ -99,6 +100,25 @@ export function toCustomerGalleryItem(
     isFavorite: row.isFavorite,
     albumId: row.albumId,
   };
+}
+
+export function matchesCollection(
+  item: { albumId: string | null; isFavorite: boolean },
+  filter: string,
+) {
+  if (filter === "all") {
+    return true;
+  }
+
+  if (filter === FAVORITES_COLLECTION) {
+    return item.isFavorite;
+  }
+
+  if (filter === "none") {
+    return item.albumId === null;
+  }
+
+  return item.albumId === filter;
 }
 
 export function exceedsBulkCap(totalBytes: bigint) {

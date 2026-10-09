@@ -251,6 +251,7 @@ describe("owner administration", () => {
       defaultQuotaMib: bytesToMib(DEFAULT_MAX_STORAGE_BYTES),
       maxPhotoMib: bytesToMib(DEFAULT_MAX_PHOTO_BYTES),
       maxVideoMib: bytesToMib(DEFAULT_MAX_VIDEO_BYTES),
+      maxEventsPerCustomer: 10,
     });
 
     const stored = await prisma.event.findUniqueOrThrow({ where: { id: event.id } });

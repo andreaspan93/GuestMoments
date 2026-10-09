@@ -22,9 +22,9 @@ export const eventFormSchema = z.strictObject({
 export type EventFormValues = z.infer<typeof eventFormSchema>;
 
 export class EventError extends Error {
-  readonly code: "invalid" | "pastExpiry" | "notFound" | "inactive";
+  readonly code: "invalid" | "pastExpiry" | "notFound" | "inactive" | "eventLimit";
 
-  constructor(code: "invalid" | "pastExpiry" | "notFound" | "inactive") {
+  constructor(code: "invalid" | "pastExpiry" | "notFound" | "inactive" | "eventLimit") {
     super(code);
     this.code = code;
   }

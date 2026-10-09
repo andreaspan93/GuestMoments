@@ -151,6 +151,39 @@ describe("events", () => {
     ).resolves.toBe(0);
   });
 
+  it("stops a customer at the event limit without deleting events they already have", async () => {
+    const customer = await signUpCustomer("Limit Customer");
+
+    try {
+      await prisma.platformSettings.update({
+        where: { id: PLATFORM_SETTINGS_ID },
+        data: { maxEventsPerCustomer: 2 },
+      });
+      await createCustomerEvent(customer, form({ name: "First wedding" }));
+      await createCustomerEvent(customer, form({ name: "Second wedding" }));
+      await prisma.platformSettings.update({
+        where: { id: PLATFORM_SETTINGS_ID },
+        data: { maxEventsPerCustomer: 1 },
+      });
+
+      await expect(prisma.event.count({ where: { customerId: customer.id } })).resolves.toBe(2);
+      await expect(createCustomerEvent(customer, form({ name: "Third wedding" }))).rejects.toMatchObject({
+        code: "eventLimit",
+      });
+      await expect(prisma.event.count({ where: { customerId: customer.id } })).resolves.toBe(2);
+      await expect(
+        createCustomerEvent(customer, form({ name: "Admin wedding" }), new Date(), {
+          enforceEventLimit: false,
+        }),
+      ).resolves.toMatchObject({ name: "Admin wedding" });
+    } finally {
+      await prisma.platformSettings.update({
+        where: { id: PLATFORM_SETTINGS_ID },
+        data: { maxEventsPerCustomer: 10 },
+      });
+    }
+  });
+
   it("hides one customer's event from another customer", async () => {
     const first = await signUpCustomer("Customer A");
     const second = await signUpCustomer("Customer B");

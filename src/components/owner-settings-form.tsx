@@ -38,11 +38,13 @@ export function OwnerSettingsForm({
   defaultQuotaMib,
   maxPhotoMib,
   maxVideoMib,
+  maxEventsPerCustomer,
 }: {
   defaultRetentionDays: number;
   defaultQuotaMib: number;
   maxPhotoMib: number;
   maxVideoMib: number;
+  maxEventsPerCustomer: number;
 }) {
   const t = useTranslations("owner");
   const [state, formAction, pending] = useActionState(updateOwnerSettingsAction, null);
@@ -99,6 +101,19 @@ export function OwnerSettingsForm({
           max={10240}
           step={1}
           defaultValue={maxVideoMib}
+        />
+      </label>
+      <label className="grid gap-2 text-sm font-medium">
+        {t("maxEvents")}
+        <input
+          className={fieldClassName}
+          name="maxEventsPerCustomer"
+          type="number"
+          required
+          min={1}
+          max={1000}
+          step={1}
+          defaultValue={maxEventsPerCustomer}
         />
       </label>
       <FormMessage state={state} />

@@ -12,7 +12,7 @@ import { redirect } from "@/i18n/navigation";
 import { getRequestSession } from "@/lib/session";
 
 export type EventFormState = {
-  error?: "invalid" | "pastExpiry" | "inactive";
+  error?: "invalid" | "pastExpiry" | "inactive" | "eventLimit";
   success?: "saved";
 } | null;
 
@@ -43,6 +43,10 @@ function formError(error: unknown): EventFormState {
 
   if (error instanceof EventError && error.code === "inactive") {
     return { error: "inactive" };
+  }
+
+  if (error instanceof EventError && error.code === "eventLimit") {
+    return { error: "eventLimit" };
   }
 
   return { error: "invalid" };

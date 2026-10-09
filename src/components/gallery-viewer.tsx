@@ -1,7 +1,40 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { ChevronLeft, ChevronRight, Download } from "lucide-react";
 import type { GalleryItem } from "@/lib/gallery/present";
+import { cn } from "@/lib/utils";
+
+export function ViewerIconButton({
+  label,
+  onClick,
+  children,
+  pressed,
+  destructive = false,
+}: {
+  label: string;
+  onClick: () => void;
+  children: ReactNode;
+  pressed?: boolean;
+  destructive?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      aria-pressed={pressed}
+      onClick={onClick}
+      className={cn(
+        "inline-flex size-11 shrink-0 items-center justify-center rounded-full border border-white/40 text-white",
+        destructive && "border-red-300 text-red-200",
+        pressed && "bg-white text-black",
+      )}
+    >
+      {children}
+    </button>
+  );
+}
 
 type ViewerLabels = {
   close: string;
@@ -137,31 +170,25 @@ export function GalleryViewer({
       ) : null}
       <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
         {items.length > 1 ? (
-          <button
-            type="button"
-            className="rounded-full border border-white/40 px-3 py-2 text-sm"
-            onClick={() => onIndex((index - 1 + items.length) % items.length)}
-          >
-            {labels.previous}
-          </button>
+          <div className="inline-flex gap-1">
+            <ViewerIconButton
+              label={labels.previous}
+              onClick={() => onIndex((index - 1 + items.length) % items.length)}
+            >
+              <ChevronLeft className="size-5" aria-hidden="true" />
+            </ViewerIconButton>
+            <ViewerIconButton
+              label={labels.next}
+              onClick={() => onIndex((index + 1) % items.length)}
+            >
+              <ChevronRight className="size-5" aria-hidden="true" />
+            </ViewerIconButton>
+          </div>
         ) : null}
-        <button
-          type="button"
-          className="rounded-full border border-white/40 px-3 py-2 text-sm"
-          onClick={() => onDownload(item.id)}
-        >
-          {labels.download}
-        </button>
+        <ViewerIconButton label={labels.download} onClick={() => onDownload(item.id)}>
+          <Download className="size-5" aria-hidden="true" />
+        </ViewerIconButton>
         {actions}
-        {items.length > 1 ? (
-          <button
-            type="button"
-            className="rounded-full border border-white/40 px-3 py-2 text-sm"
-            onClick={() => onIndex((index + 1) % items.length)}
-          >
-            {labels.next}
-          </button>
-        ) : null}
       </div>
     </div>
   );
