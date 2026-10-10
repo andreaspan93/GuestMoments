@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { zip } from "fflate";
-import { Ellipsis, Eye, EyeOff, FolderPlus, Heart, Trash2 } from "lucide-react";
+import { Eye, EyeOff, FolderPlus, Heart, Pencil, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { GalleryViewer, ViewerIconButton } from "@/components/gallery-viewer";
 import {
@@ -40,6 +40,7 @@ export function CustomerGallery({
   const t = useTranslations("events");
   const albumNameId = useId();
   const albumErrorId = useId();
+  const albumPanelId = useId();
   const albumInputRef = useRef<HTMLInputElement>(null);
   const actionsRef = useRef<HTMLDivElement>(null);
   const [items, setItems] = useState(initialItems);
@@ -87,15 +88,20 @@ export function CustomerGallery({
       return;
     }
 
+    function closeActions() {
+      setActionsOpen(false);
+      setEditingId(null);
+    }
+
     function onPointerDown(event: MouseEvent) {
       if (!actionsRef.current?.contains(event.target as Node)) {
-        setActionsOpen(false);
+        closeActions();
       }
     }
 
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
-        setActionsOpen(false);
+        closeActions();
       }
     }
 
@@ -345,6 +351,7 @@ export function CustomerGallery({
     }
 
     setEditingId(null);
+    setActionsOpen(false);
     await Promise.all([loadAlbums(), load()]);
   }
 
@@ -537,11 +544,32 @@ export function CustomerGallery({
             ) : null}
           </form>
         ) : null}
-        <div className="grid min-w-0 grid-cols-2 items-start gap-2">
-          <div className="grid min-w-0 gap-2">
+        <div ref={actionsRef} className="grid min-w-0 gap-2">
+          <div className="grid min-w-0 grid-cols-2 items-start gap-2">
+            <label className="grid min-w-0 gap-1 text-sm font-medium">
+              {t("filter")}
+              <select
+                className={cn(controlClass, "w-full max-w-full")}
+                value={collectionFilter}
+                onChange={(event) => {
+                  const value = event.target.value;
+
+                  if (value === "all" || value === FAVORITES_COLLECTION || value === "none") {
+                    setAlbumFilter(value);
+                    setActionsOpen(false);
+                    setEditingId(null);
+                  }
+                }}
+              >
+                {collectionFilter === "" ? <option value="">{t("filter")}</option> : null}
+                <option value="all">{t("allAlbums")}</option>
+                <option value={FAVORITES_COLLECTION}>{t("favorites")}</option>
+                <option value="none">{t("unassigned")}</option>
+              </select>
+            </label>
             <div className="grid min-w-0 gap-1">
               <span className="text-sm font-medium">{t("albums")}</span>
-              <div className="flex min-w-0 gap-2">
+              <div className="flex min-w-0 items-center gap-2">
                 <select
                   className={cn(controlClass, "w-full min-w-0 flex-1")}
                   aria-label={t("albums")}
@@ -559,113 +587,103 @@ export function CustomerGallery({
                     </option>
                   ))}
                 </select>
-                <div ref={actionsRef} className="relative shrink-0">
-                  <button
-                    type="button"
-                    className="inline-flex size-10 items-center justify-center rounded-full border border-border bg-card text-foreground disabled:cursor-not-allowed disabled:opacity-60"
-                    aria-label={t("albumActions")}
-                    title={t("albumActions")}
-                    aria-haspopup="menu"
-                    aria-expanded={actionsOpen}
-                    disabled={!activeAlbum}
-                    onClick={() => setActionsOpen((open) => !open)}
-                  >
-                    <Ellipsis className="size-4" aria-hidden="true" />
-                  </button>
-                  {actionsOpen && activeAlbum ? (
-                    <div
-                      role="menu"
-                      className="absolute left-0 z-20 mt-1 w-48 max-w-[calc(100vw-2rem)] rounded-2xl border border-border bg-card p-1 shadow-sm sm:right-0 sm:left-auto"
-                    >
-                      <button
-                        type="button"
-                        role="menuitem"
-                        className="flex h-10 w-full items-center rounded-xl px-3 text-left text-sm hover:bg-muted"
-                        onClick={() => {
-                          setEditingId(activeAlbum.id);
-                          setEditingName(activeAlbum.name);
-                          setActionsOpen(false);
-                        }}
-                      >
-                        {t("renameAlbum")}
-                      </button>
-                      <button
-                        type="button"
-                        role="menuitem"
-                        className="flex h-10 w-full items-center rounded-xl px-3 text-left text-sm text-primary hover:bg-muted"
-                        onClick={() => {
-                          setActionsOpen(false);
-                          void removeAlbum(activeAlbum.id);
-                        }}
-                      >
-                        {t("deleteAlbum")}
-                      </button>
-                    </div>
-                  ) : null}
-                </div>
+                <button
+                  type="button"
+                  className="inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-border bg-card text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
+                  aria-label={t("editAlbum")}
+                  title={t("editAlbum")}
+                  aria-expanded={actionsOpen}
+                  aria-controls={albumPanelId}
+                  disabled={!activeAlbum}
+                  onClick={() => {
+                    setActionsOpen((open) => {
+                      if (open) {
+                        setEditingId(null);
+                      }
+
+                      return !open;
+                    });
+                  }}
+                >
+                  <Pencil className="size-4" aria-hidden="true" />
+                </button>
               </div>
             </div>
-            {editingId && activeAlbum && editingId === activeAlbum.id ? (
-              <form
-                className="grid min-w-0 gap-2"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  void renameAlbum(activeAlbum.id);
-                }}
-                onKeyDown={(event) => {
-                  if (event.key === "Escape") {
+          </div>
+          {actionsOpen && activeAlbum ? (
+            <div
+              id={albumPanelId}
+              role="region"
+              aria-label={t("albumActions")}
+              className="grid min-w-0 gap-2 rounded-2xl border border-border bg-card p-3"
+            >
+              <p className="truncate text-sm font-medium" title={activeAlbum.name}>
+                {activeAlbum.name}
+              </p>
+              {editingId === activeAlbum.id ? (
+                <form
+                  className="grid min-w-0 gap-2"
+                  onSubmit={(event) => {
                     event.preventDefault();
-                    cancelRename();
-                  }
+                    void renameAlbum(activeAlbum.id);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Escape") {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      cancelRename();
+                    }
+                  }}
+                >
+                  <input
+                    className={cn(controlClass, "text-base")}
+                    value={editingName}
+                    maxLength={80}
+                    disabled={renamePending}
+                    autoFocus
+                    enterKeyHint="done"
+                    aria-label={t("renameAlbum")}
+                    onChange={(event) => setEditingName(event.target.value)}
+                  />
+                  <div className="flex min-w-0 flex-wrap items-center gap-2">
+                    <button type="submit" className={cn(primaryClass, "max-w-full shrink")} disabled={renamePending} aria-busy={renamePending}>
+                      {renamePending ? t("pending") : t("save")}
+                    </button>
+                    <button
+                      type="button"
+                      className={cn(controlClass, "w-auto bg-card px-4")}
+                      disabled={renamePending}
+                      onClick={cancelRename}
+                    >
+                      {t("cancel")}
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <button
+                  type="button"
+                  className="inline-flex h-10 min-w-0 items-center gap-2 rounded-full border border-border bg-background px-4 text-sm font-medium"
+                  onClick={() => {
+                    setEditingId(activeAlbum.id);
+                    setEditingName(activeAlbum.name);
+                  }}
+                >
+                  <Pencil className="size-4 shrink-0" aria-hidden="true" />
+                  {t("renameAlbum")}
+                </button>
+              )}
+              <button
+                type="button"
+                className="inline-flex h-10 min-w-0 items-center gap-2 rounded-full px-4 text-sm font-medium text-primary hover:bg-muted"
+                onClick={() => {
+                  void removeAlbum(activeAlbum.id);
                 }}
               >
-                <input
-                  className={cn(controlClass, "text-base")}
-                  value={editingName}
-                  maxLength={80}
-                  disabled={renamePending}
-                  autoFocus
-                  enterKeyHint="done"
-                  aria-label={t("renameAlbum")}
-                  onChange={(event) => setEditingName(event.target.value)}
-                />
-                <div className="flex min-w-0 flex-wrap items-center gap-2">
-                  <button type="submit" className={cn(primaryClass, "max-w-full shrink")} disabled={renamePending} aria-busy={renamePending}>
-                    {renamePending ? t("pending") : t("save")}
-                  </button>
-                  <button
-                    type="button"
-                    className={cn(controlClass, "bg-card px-4")}
-                    disabled={renamePending}
-                    onClick={cancelRename}
-                  >
-                    {t("cancel")}
-                  </button>
-                </div>
-              </form>
-            ) : null}
-          </div>
-          <label className="grid min-w-0 gap-1 text-sm font-medium">
-            {t("filter")}
-            <select
-              className={cn(controlClass, "w-full max-w-full")}
-              value={collectionFilter}
-              onChange={(event) => {
-                const value = event.target.value;
-
-                if (value === "all" || value === FAVORITES_COLLECTION || value === "none") {
-                  setAlbumFilter(value);
-                  setActionsOpen(false);
-                  setEditingId(null);
-                }
-              }}
-            >
-              {collectionFilter === "" ? <option value="">{t("filter")}</option> : null}
-              <option value="all">{t("allAlbums")}</option>
-              <option value={FAVORITES_COLLECTION}>{t("favorites")}</option>
-              <option value="none">{t("unassigned")}</option>
-            </select>
-          </label>
+                <Trash2 className="size-4 shrink-0" aria-hidden="true" />
+                {t("deleteAlbum")}
+              </button>
+            </div>
+          ) : null}
         </div>
       </div>
       <div className="grid gap-2 sm:grid-cols-2">

@@ -124,6 +124,7 @@
     "cancel": "Cancel",
     "filter": "Filter",
     "albumActions": "Album actions",
+    "editAlbum": "Edit album",
     "renameAlbum": "Rename",
     "deleteAlbum": "Delete album",
     "deleteAlbumConfirm": "Delete this album? The photos stay in the gallery.",
