@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { zip } from "fflate";
-import { Ellipsis, Eye, EyeOff, FolderPlus, Heart, Plus, Trash2 } from "lucide-react";
+import { Ellipsis, Eye, EyeOff, FolderPlus, Heart, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { GalleryViewer, ViewerIconButton } from "@/components/gallery-viewer";
 import {
@@ -481,7 +481,7 @@ export function CustomerGallery({
               setAlbumError("");
             }}
           >
-            <Plus className="size-4" aria-hidden="true" />
+            <FolderPlus className="size-4" aria-hidden="true" />
           </button>
         </div>
         <p className="mt-2 text-sm text-foreground/80">{t("galleryTitle")}</p>
@@ -504,10 +504,11 @@ export function CustomerGallery({
               <input
                 ref={albumInputRef}
                 id={albumNameId}
-                className={controlClass}
+                className={cn(controlClass, "text-base")}
                 value={albumName}
                 maxLength={80}
                 disabled={albumPending}
+                enterKeyHint="done"
                 aria-invalid={albumError ? true : undefined}
                 aria-describedby={albumError ? albumErrorId : undefined}
                 onChange={(event) => {
@@ -516,7 +517,7 @@ export function CustomerGallery({
                 }}
               />
             </label>
-            <div className="grid grid-cols-2 gap-2 sm:flex">
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
               <button type="submit" className={primaryClass} disabled={albumPending} aria-busy={albumPending}>
                 {albumPending ? t("pending") : t("add")}
               </button>
@@ -536,7 +537,7 @@ export function CustomerGallery({
             ) : null}
           </form>
         ) : null}
-        <div className="grid min-w-0 gap-2 sm:grid-cols-2">
+        <div className="grid min-w-0 grid-cols-2 items-start gap-2">
           <div className="grid min-w-0 gap-2">
             <div className="grid min-w-0 gap-1">
               <span className="text-sm font-medium">{t("albums")}</span>
@@ -574,7 +575,7 @@ export function CustomerGallery({
                   {actionsOpen && activeAlbum ? (
                     <div
                       role="menu"
-                      className="absolute right-0 z-20 mt-1 w-48 max-w-[calc(100vw-2rem)] rounded-2xl border border-border bg-card p-1 shadow-sm"
+                      className="absolute left-0 z-20 mt-1 w-48 max-w-[calc(100vw-2rem)] rounded-2xl border border-border bg-card p-1 shadow-sm sm:right-0 sm:left-auto"
                     >
                       <button
                         type="button"
@@ -606,7 +607,7 @@ export function CustomerGallery({
             </div>
             {editingId && activeAlbum && editingId === activeAlbum.id ? (
               <form
-                className="grid gap-2"
+                className="grid min-w-0 gap-2"
                 onSubmit={(event) => {
                   event.preventDefault();
                   void renameAlbum(activeAlbum.id);
@@ -619,16 +620,17 @@ export function CustomerGallery({
                 }}
               >
                 <input
-                  className={controlClass}
+                  className={cn(controlClass, "text-base")}
                   value={editingName}
                   maxLength={80}
                   disabled={renamePending}
                   autoFocus
+                  enterKeyHint="done"
                   aria-label={t("renameAlbum")}
                   onChange={(event) => setEditingName(event.target.value)}
                 />
-                <div className="grid grid-cols-2 gap-2 sm:flex">
-                  <button type="submit" className={primaryClass} disabled={renamePending} aria-busy={renamePending}>
+                <div className="flex min-w-0 flex-wrap items-center gap-2">
+                  <button type="submit" className={cn(primaryClass, "max-w-full shrink")} disabled={renamePending} aria-busy={renamePending}>
                     {renamePending ? t("pending") : t("save")}
                   </button>
                   <button
@@ -646,7 +648,7 @@ export function CustomerGallery({
           <label className="grid min-w-0 gap-1 text-sm font-medium">
             {t("filter")}
             <select
-              className={controlClass}
+              className={cn(controlClass, "w-full max-w-full")}
               value={collectionFilter}
               onChange={(event) => {
                 const value = event.target.value;
