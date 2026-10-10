@@ -40,7 +40,7 @@ export default async function EventGalleryPage({
   const albums = closed ? [] : await listCustomerAlbums(session.user, event.id);
 
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 pb-16">
+    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 pb-16 sm:px-6">
       <ServiceAccessNotice user={session.user} />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
