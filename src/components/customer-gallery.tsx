@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { zip } from "fflate";
-import { Ellipsis, Eye, EyeOff, FolderPlus, Heart, Trash2 } from "lucide-react";
+import { Ellipsis, Eye, EyeOff, FolderPlus, Heart, Plus, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { GalleryViewer, ViewerIconButton } from "@/components/gallery-viewer";
 import {
@@ -28,10 +28,12 @@ function sortChip(selected: boolean) {
 
 export function CustomerGallery({
   eventId,
+  eventName,
   initialItems,
   initialAlbums,
 }: {
   eventId: string;
+  eventName: string;
   initialItems: CustomerGalleryItem[];
   initialAlbums: AlbumSummary[];
 }) {
@@ -460,71 +462,80 @@ export function CustomerGallery({
   }
 
   return (
-    <section className="grid min-w-0 gap-4">
-      <div className="grid min-w-0 gap-2">
-        <div className="flex min-w-0 justify-end">
-          {creatingAlbum ? (
-            <form
-              className="grid w-full min-w-0 gap-2"
-              onSubmit={(event) => void createAlbum(event)}
-              onKeyDown={(event) => {
-                if (event.key === "Escape") {
-                  event.preventDefault();
-                  cancelCreate();
-                }
-              }}
-            >
-              <label className="grid min-w-0 gap-1 text-sm font-medium" htmlFor={albumNameId}>
-                {t("albumName")}
-                <input
-                  ref={albumInputRef}
-                  id={albumNameId}
-                  className={controlClass}
-                  value={albumName}
-                  maxLength={80}
-                  disabled={albumPending}
-                  aria-invalid={albumError ? true : undefined}
-                  aria-describedby={albumError ? albumErrorId : undefined}
-                  onChange={(event) => {
-                    setAlbumName(event.target.value);
-                    setAlbumError("");
-                  }}
-                />
-              </label>
-              <div className="grid grid-cols-2 gap-2 sm:flex">
-                <button type="submit" className={primaryClass} disabled={albumPending} aria-busy={albumPending}>
-                  {albumPending ? t("pending") : t("add")}
-                </button>
-                <button
-                  type="button"
-                  className={cn(controlClass, "bg-card px-4")}
-                  disabled={albumPending}
-                  onClick={cancelCreate}
-                >
-                  {t("cancel")}
-                </button>
-              </div>
-              {albumError ? (
-                <p id={albumErrorId} role="alert" className="text-sm">
-                  {albumError}
-                </p>
-              ) : null}
-            </form>
-          ) : (
-            <button
-              type="button"
-              className="inline-flex h-9 max-w-full min-w-0 items-center justify-center truncate rounded-full border border-border bg-card px-3 text-sm font-medium whitespace-nowrap text-foreground"
-              onClick={() => {
-                setCreatingAlbum(true);
-                setActionsOpen(false);
-                setEditingId(null);
-                setAlbumError("");
-              }}
-            >
-              {t("createAlbum")}
-            </button>
-          )}
+    <>
+      <div className="min-w-0">
+        <div className="flex min-w-0 items-center gap-2">
+          <h1 className="min-w-0 truncate text-3xl font-semibold tracking-tight" title={eventName}>
+            {eventName}
+          </h1>
+          <button
+            type="button"
+            className="inline-flex size-9 shrink-0 items-center justify-center rounded-full border border-border bg-card text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            aria-label={t("createAlbum")}
+            title={t("createAlbum")}
+            aria-expanded={creatingAlbum}
+            onClick={() => {
+              setCreatingAlbum(true);
+              setActionsOpen(false);
+              setEditingId(null);
+              setAlbumError("");
+            }}
+          >
+            <Plus className="size-4" aria-hidden="true" />
+          </button>
         </div>
+        <p className="mt-2 text-sm text-foreground/80">{t("galleryTitle")}</p>
+      </div>
+      <section className="grid min-w-0 gap-4">
+      <div className="grid min-w-0 gap-2">
+        {creatingAlbum ? (
+          <form
+            className="grid min-w-0 gap-2"
+            onSubmit={(event) => void createAlbum(event)}
+            onKeyDown={(event) => {
+              if (event.key === "Escape") {
+                event.preventDefault();
+                cancelCreate();
+              }
+            }}
+          >
+            <label className="grid min-w-0 gap-1 text-sm font-medium" htmlFor={albumNameId}>
+              {t("albumName")}
+              <input
+                ref={albumInputRef}
+                id={albumNameId}
+                className={controlClass}
+                value={albumName}
+                maxLength={80}
+                disabled={albumPending}
+                aria-invalid={albumError ? true : undefined}
+                aria-describedby={albumError ? albumErrorId : undefined}
+                onChange={(event) => {
+                  setAlbumName(event.target.value);
+                  setAlbumError("");
+                }}
+              />
+            </label>
+            <div className="grid grid-cols-2 gap-2 sm:flex">
+              <button type="submit" className={primaryClass} disabled={albumPending} aria-busy={albumPending}>
+                {albumPending ? t("pending") : t("add")}
+              </button>
+              <button
+                type="button"
+                className={cn(controlClass, "bg-card px-4")}
+                disabled={albumPending}
+                onClick={cancelCreate}
+              >
+                {t("cancel")}
+              </button>
+            </div>
+            {albumError ? (
+              <p id={albumErrorId} role="alert" className="text-sm">
+                {albumError}
+              </p>
+            ) : null}
+          </form>
+        ) : null}
         <div className="grid min-w-0 gap-2 sm:grid-cols-2">
           <div className="grid min-w-0 gap-2">
             <div className="grid min-w-0 gap-1">
@@ -913,6 +924,7 @@ export function CustomerGallery({
           }
         />
       ) : null}
-    </section>
+      </section>
+    </>
   );
 }

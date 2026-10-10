@@ -42,18 +42,23 @@ export default async function EventGalleryPage({
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 pb-16 sm:px-6">
       <ServiceAccessNotice user={session.user} />
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="text-3xl font-semibold tracking-tight break-words">{event.name}</h1>
-          <p className="mt-2 text-sm text-foreground/80">{t("galleryTitle")}</p>
-        </div>
-      </div>
       {closed ? (
-        <p className="rounded-3xl border border-border bg-card px-6 py-10 text-foreground/80">
-          {t("galleryClosed")}
-        </p>
+        <>
+          <div className="min-w-0">
+            <h1 className="text-3xl font-semibold tracking-tight break-words">{event.name}</h1>
+            <p className="mt-2 text-sm text-foreground/80">{t("galleryTitle")}</p>
+          </div>
+          <p className="rounded-3xl border border-border bg-card px-6 py-10 text-foreground/80">
+            {t("galleryClosed")}
+          </p>
+        </>
       ) : (
-        <CustomerGallery eventId={event.id} initialItems={items} initialAlbums={albums} />
+        <CustomerGallery
+          eventId={event.id}
+          eventName={event.name}
+          initialItems={items}
+          initialAlbums={albums}
+        />
       )}
     </main>
   );
