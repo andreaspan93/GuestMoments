@@ -462,67 +462,69 @@ export function CustomerGallery({
   return (
     <section className="grid min-w-0 gap-4">
       <div className="grid min-w-0 gap-2">
-        {creatingAlbum ? (
-          <form
-            className="grid gap-2"
-            onSubmit={(event) => void createAlbum(event)}
-            onKeyDown={(event) => {
-              if (event.key === "Escape") {
-                event.preventDefault();
-                cancelCreate();
-              }
-            }}
-          >
-            <label className="grid min-w-0 gap-1 text-sm font-medium" htmlFor={albumNameId}>
-              {t("albumName")}
-              <input
-                ref={albumInputRef}
-                id={albumNameId}
-                className={controlClass}
-                value={albumName}
-                maxLength={80}
-                disabled={albumPending}
-                aria-invalid={albumError ? true : undefined}
-                aria-describedby={albumError ? albumErrorId : undefined}
-                onChange={(event) => {
-                  setAlbumName(event.target.value);
-                  setAlbumError("");
-                }}
-              />
-            </label>
-            <div className="grid grid-cols-2 gap-2 sm:flex">
-              <button type="submit" className={primaryClass} disabled={albumPending} aria-busy={albumPending}>
-                {albumPending ? t("pending") : t("add")}
-              </button>
-              <button
-                type="button"
-                className={cn(controlClass, "bg-card px-4")}
-                disabled={albumPending}
-                onClick={cancelCreate}
-              >
-                {t("cancel")}
-              </button>
-            </div>
-            {albumError ? (
-              <p id={albumErrorId} role="alert" className="text-sm">
-                {albumError}
-              </p>
-            ) : null}
-          </form>
-        ) : (
-          <button
-            type="button"
-            className={cn(primaryClass, "w-full sm:w-fit")}
-            onClick={() => {
-              setCreatingAlbum(true);
-              setActionsOpen(false);
-              setEditingId(null);
-              setAlbumError("");
-            }}
-          >
-            {t("createAlbum")}
-          </button>
-        )}
+        <div className="flex min-w-0 justify-end">
+          {creatingAlbum ? (
+            <form
+              className="grid w-full min-w-0 gap-2"
+              onSubmit={(event) => void createAlbum(event)}
+              onKeyDown={(event) => {
+                if (event.key === "Escape") {
+                  event.preventDefault();
+                  cancelCreate();
+                }
+              }}
+            >
+              <label className="grid min-w-0 gap-1 text-sm font-medium" htmlFor={albumNameId}>
+                {t("albumName")}
+                <input
+                  ref={albumInputRef}
+                  id={albumNameId}
+                  className={controlClass}
+                  value={albumName}
+                  maxLength={80}
+                  disabled={albumPending}
+                  aria-invalid={albumError ? true : undefined}
+                  aria-describedby={albumError ? albumErrorId : undefined}
+                  onChange={(event) => {
+                    setAlbumName(event.target.value);
+                    setAlbumError("");
+                  }}
+                />
+              </label>
+              <div className="grid grid-cols-2 gap-2 sm:flex">
+                <button type="submit" className={primaryClass} disabled={albumPending} aria-busy={albumPending}>
+                  {albumPending ? t("pending") : t("add")}
+                </button>
+                <button
+                  type="button"
+                  className={cn(controlClass, "bg-card px-4")}
+                  disabled={albumPending}
+                  onClick={cancelCreate}
+                >
+                  {t("cancel")}
+                </button>
+              </div>
+              {albumError ? (
+                <p id={albumErrorId} role="alert" className="text-sm">
+                  {albumError}
+                </p>
+              ) : null}
+            </form>
+          ) : (
+            <button
+              type="button"
+              className="inline-flex h-9 max-w-full min-w-0 items-center justify-center truncate rounded-full border border-border bg-card px-3 text-sm font-medium whitespace-nowrap text-foreground"
+              onClick={() => {
+                setCreatingAlbum(true);
+                setActionsOpen(false);
+                setEditingId(null);
+                setAlbumError("");
+              }}
+            >
+              {t("createAlbum")}
+            </button>
+          )}
+        </div>
         <div className="grid min-w-0 gap-2 sm:grid-cols-2">
           <div className="grid min-w-0 gap-2">
             <div className="grid min-w-0 gap-1">
