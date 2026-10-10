@@ -1,5 +1,4 @@
 import {
-  CalendarDays,
   CircleUser,
   LayoutDashboard,
   LogIn,
@@ -71,13 +70,10 @@ export async function SiteHeader() {
               title={events("nav")}
               className={cn(
                 buttonVariants({ variant: "outline", size: "sm" }),
-                headerActionClass,
+                "h-8 w-auto px-2 md:px-3",
               )}
             >
-              <HeaderActionLabel
-                label={events("nav")}
-                icon={<CalendarDays className="size-4" />}
-              />
+              {events("nav")}
             </Link>
             <Link
               href="/account"

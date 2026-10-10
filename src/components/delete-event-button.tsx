@@ -13,15 +13,16 @@ export function DeleteEventButton({
   confirm: string;
 }) {
   return (
-    <form
-      action={deleteEventAction.bind(null, eventId)}
-      onSubmit={(event) => {
-        if (!window.confirm(confirm)) {
-          event.preventDefault();
-        }
-      }}
-    >
-      <Button type="submit" variant="outline">
+    <form action={deleteEventAction.bind(null, eventId)}>
+      <Button
+        type="submit"
+        variant="outline"
+        onClick={(event) => {
+          if (!window.confirm(confirm)) {
+            event.preventDefault();
+          }
+        }}
+      >
         {label}
       </Button>
     </form>
