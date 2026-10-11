@@ -1,10 +1,11 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
 import {
+  changePasswordAction,
   forgotPasswordAction,
   loginAction,
   registerAction,
@@ -12,7 +13,13 @@ import {
   resetPasswordAction,
   updateAccountAction,
 } from "@/lib/identity-actions";
-import type { IdentityFormState } from "@/lib/identity-schema";
+import {
+  passwordMeetsRules,
+  type IdentityErrorCode,
+  type IdentityFormState,
+} from "@/lib/identity-schema";
+
+const passwordPattern = "(?=.*[A-Za-z])(?=.*\\d)(?=.*[^A-Za-z0-9]).{10,128}";
 
 const fieldClassName =
   "h-10 rounded-full border border-border bg-background px-4 text-base text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring";
@@ -27,6 +34,16 @@ function FormError({ state }: { state: IdentityFormState }) {
   return (
     <p role="alert" className="text-sm text-primary">
       {t(`errors.${state.error}`)}
+    </p>
+  );
+}
+
+function PasswordRules({ id }: { id: string }) {
+  const t = useTranslations("auth");
+
+  return (
+    <p id={id} className="text-sm leading-6 text-foreground/80">
+      {t("passwordRules")}
     </p>
   );
 }
@@ -52,7 +69,19 @@ export function RegisterForm() {
         <input
           className={fieldClassName}
           name="name"
-          autoComplete="name"
+          autoComplete="given-name"
+          placeholder={t("namePlaceholder")}
+          required
+          maxLength={120}
+        />
+      </label>
+      <label className="grid gap-2 text-sm font-medium">
+        {t("surname")}
+        <input
+          className={fieldClassName}
+          name="surname"
+          autoComplete="family-name"
+          placeholder={t("surnamePlaceholder")}
           required
           maxLength={120}
         />
@@ -74,11 +103,15 @@ export function RegisterForm() {
           name="password"
           type="password"
           autoComplete="new-password"
+          aria-describedby="register-password-rules"
           required
-          minLength={8}
+          minLength={10}
           maxLength={128}
+          pattern={passwordPattern}
+          title={t("passwordRules")}
         />
       </label>
+      <PasswordRules id="register-password-rules" />
       <FormError state={state} />
       <SubmitButton label={t("submitRegister")} pending={pending} />
       <p className="text-sm text-foreground/80">
@@ -197,74 +230,206 @@ export function ResetPasswordForm({ token }: { token: string }) {
           name="newPassword"
           type="password"
           autoComplete="new-password"
+          aria-describedby="reset-password-rules"
           required
-          minLength={8}
+          minLength={10}
           maxLength={128}
+          pattern={passwordPattern}
+          title={t("passwordRules")}
         />
       </label>
+      <PasswordRules id="reset-password-rules" />
       <FormError state={state} />
       <SubmitButton label={t("submitReset")} pending={pending} />
     </form>
   );
 }
 
-export function AccountForm({ name, email }: { name: string; email: string }) {
+export function AccountForm({
+  name,
+  surname,
+  email,
+}: {
+  name: string;
+  surname: string;
+  email: string;
+}) {
   const t = useTranslations("auth");
   const [state, action, pending] = useActionState(updateAccountAction, null);
+  const [passwordOpen, setPasswordOpen] = useState(false);
+  const [passwordState, passwordAction, passwordPending] = useActionState(
+    changePasswordAction,
+    null,
+  );
+  const [fields, setFields] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [clientError, setClientError] = useState<IdentityErrorCode | null>(null);
+  const [handledSuccess, setHandledSuccess] = useState(false);
+  const passwordChanged = passwordState?.success === "passwordChanged";
+
+  if (passwordChanged && !handledSuccess) {
+    setHandledSuccess(true);
+    setFields({ currentPassword: "", newPassword: "", confirmPassword: "" });
+    setClientError(null);
+  } else if (!passwordChanged && handledSuccess) {
+    setHandledSuccess(false);
+  }
+
+  function closePasswordForm() {
+    setPasswordOpen(false);
+    setFields({ currentPassword: "", newPassword: "", confirmPassword: "" });
+    setClientError(null);
+  }
+
+  function onPasswordSubmit(event: FormEvent<HTMLFormElement>) {
+    if (!passwordMeetsRules(fields.newPassword)) {
+      event.preventDefault();
+      setClientError("weakPassword");
+      return;
+    }
+
+    if (fields.newPassword !== fields.confirmPassword) {
+      event.preventDefault();
+      setClientError("passwordMismatch");
+      return;
+    }
+
+    setClientError(null);
+  }
+
+  const passwordError = clientError
+    ? ({ error: clientError } satisfies IdentityFormState)
+    : passwordState;
 
   return (
-    <form action={action} className="grid gap-4">
-      <label className="grid gap-2 text-sm font-medium">
-        {t("name")}
-        <input
-          className={fieldClassName}
-          name="name"
-          autoComplete="name"
-          required
-          maxLength={120}
-          defaultValue={name}
-        />
-      </label>
-      <label className="grid gap-2 text-sm font-medium">
-        {t("email")}
-        <input
-          className={fieldClassName}
-          name="email"
-          type="email"
-          autoComplete="email"
-          required
-          defaultValue={email}
-        />
-      </label>
-      <label className="grid gap-2 text-sm font-medium">
-        {t("currentPassword")}
-        <input
-          className={fieldClassName}
-          name="currentPassword"
-          type="password"
-          autoComplete="current-password"
-          maxLength={128}
-        />
-      </label>
-      <label className="grid gap-2 text-sm font-medium">
-        {t("newPassword")}
-        <input
-          className={fieldClassName}
-          name="newPassword"
-          type="password"
-          autoComplete="new-password"
-          minLength={8}
-          maxLength={128}
-        />
-      </label>
-      <p className="text-sm leading-6 text-foreground/80">{t("accountHint")}</p>
-      <FormError state={state} />
-      {state?.success === "saved" ? (
-        <p role="status" className="text-sm text-foreground/80">
-          {t("accountSuccess")}
-        </p>
-      ) : null}
-      <SubmitButton label={t("submitAccount")} pending={pending} />
-    </form>
+    <div className="grid gap-8">
+      <form action={action} className="grid gap-4">
+        <label className="grid gap-2 text-sm font-medium">
+          {t("name")}
+          <input
+            className={fieldClassName}
+            name="name"
+            autoComplete="given-name"
+            placeholder={t("namePlaceholder")}
+            required
+            maxLength={120}
+            defaultValue={name}
+          />
+        </label>
+        <label className="grid gap-2 text-sm font-medium">
+          {t("surname")}
+          <input
+            className={fieldClassName}
+            name="surname"
+            autoComplete="family-name"
+            placeholder={t("surnamePlaceholder")}
+            maxLength={120}
+            defaultValue={surname}
+          />
+        </label>
+        <label className="grid gap-2 text-sm font-medium">
+          {t("email")}
+          <input
+            className={`${fieldClassName} text-foreground/80`}
+            type="email"
+            autoComplete="email"
+            readOnly
+            aria-readonly="true"
+            value={email}
+          />
+        </label>
+        <FormError state={state} />
+        {state?.success === "saved" ? (
+          <p role="status" className="text-sm text-foreground/80">
+            {t("accountSuccess")}
+          </p>
+        ) : null}
+        <SubmitButton label={t("submitAccount")} pending={pending} />
+      </form>
+
+      {passwordOpen ? (
+        <form action={passwordAction} onSubmit={onPasswordSubmit} className="grid gap-4">
+          <label className="grid gap-2 text-sm font-medium">
+            {t("currentPassword")}
+            <input
+              className={fieldClassName}
+              name="currentPassword"
+              type="password"
+              autoComplete="current-password"
+              required
+              maxLength={128}
+              value={fields.currentPassword}
+              onChange={(event) =>
+                setFields((current) => ({
+                  ...current,
+                  currentPassword: event.target.value,
+                }))
+              }
+            />
+          </label>
+          <label className="grid gap-2 text-sm font-medium">
+            {t("newPassword")}
+            <input
+              className={fieldClassName}
+              name="newPassword"
+              type="password"
+              autoComplete="new-password"
+              aria-describedby="account-password-rules"
+              required
+              minLength={10}
+              maxLength={128}
+              pattern={passwordPattern}
+              title={t("passwordRules")}
+              value={fields.newPassword}
+              onChange={(event) =>
+                setFields((current) => ({
+                  ...current,
+                  newPassword: event.target.value,
+                }))
+              }
+            />
+          </label>
+          <PasswordRules id="account-password-rules" />
+          <label className="grid gap-2 text-sm font-medium">
+            {t("confirmPassword")}
+            <input
+              className={fieldClassName}
+              name="confirmPassword"
+              type="password"
+              autoComplete="new-password"
+              aria-invalid={clientError === "passwordMismatch"}
+              required
+              maxLength={128}
+              value={fields.confirmPassword}
+              onChange={(event) =>
+                setFields((current) => ({
+                  ...current,
+                  confirmPassword: event.target.value,
+                }))
+              }
+            />
+          </label>
+          <FormError state={passwordError} />
+          {passwordState?.success === "passwordChanged" && !clientError ? (
+            <p role="status" className="text-sm text-foreground/80">
+              {t("passwordChanged")}
+            </p>
+          ) : null}
+          <div className="flex flex-wrap gap-3">
+            <SubmitButton label={t("submitPassword")} pending={passwordPending} />
+            <Button type="button" variant="outline" onClick={closePasswordForm}>
+              {t("cancel")}
+            </Button>
+          </div>
+        </form>
+      ) : (
+        <Button type="button" variant="outline" onClick={() => setPasswordOpen(true)}>
+          {t("changePassword")}
+        </Button>
+      )}
+    </div>
   );
 }

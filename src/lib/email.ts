@@ -36,19 +36,34 @@ const verificationCopy = {
 
 export const verificationDeliveries: VerificationEmail[] = [];
 
+const emailDeliveryUnavailable = "Email delivery is not configured";
+
+function skipEmailDelivery(kind: "password-reset" | "email-verification") {
+  const diagnostic = `[${kind}] ${emailDeliveryUnavailable}`;
+
+  if (process.env.NODE_ENV === "development") {
+    console.info(diagnostic);
+    return;
+  }
+
+  if (process.env.NODE_ENV === "test") {
+    return;
+  }
+
+  console.error(diagnostic);
+  throw new Error(emailDeliveryUnavailable);
+}
+
 export async function sendVerificationEmail({ to, url, locale }: VerificationEmail) {
   const message = verificationCopy[locale];
-  const apiKey = process.env.RESEND_API_KEY;
+  const apiKey = process.env.RESEND_API_KEY?.trim();
 
   if (process.env.NODE_ENV === "test") {
     verificationDeliveries.push({ to, url, locale });
   }
 
   if (!apiKey) {
-    if (process.env.NODE_ENV === "development") {
-      console.info(`[email-verification] ${to} ${url}`);
-    }
-
+    skipEmailDelivery("email-verification");
     return;
   }
 
@@ -67,10 +82,10 @@ export async function sendVerificationEmail({ to, url, locale }: VerificationEma
 
 export async function sendPasswordResetEmail({ to, url, locale }: ResetEmail) {
   const message = copy[locale];
-  const apiKey = process.env.RESEND_API_KEY;
+  const apiKey = process.env.RESEND_API_KEY?.trim();
 
   if (!apiKey) {
-    console.info(`[password-reset] ${to} ${url}`);
+    skipEmailDelivery("password-reset");
     return;
   }
 

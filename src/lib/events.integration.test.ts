@@ -34,7 +34,7 @@ async function signUpCustomer(name: string) {
     body: {
       name,
       email,
-      password: "password123",
+      password: "Password123!",
       preferredLocale: "el",
     },
   });

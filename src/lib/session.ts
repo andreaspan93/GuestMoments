@@ -44,6 +44,7 @@ export async function getActiveSession(source: HeaderSource) {
     select: {
       id: true,
       name: true,
+      surname: true,
       email: true,
       role: true,
       disabled: true,

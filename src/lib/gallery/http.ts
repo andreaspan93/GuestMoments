@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { GalleryError, galleryStatus } from "@/lib/gallery/errors";
+import { recordUnexpectedError } from "@/lib/logging/logger";
 import {
   assignCustomerMediaAlbum,
   assignCustomerMediaAlbums,
@@ -42,7 +43,7 @@ export function galleryJson(body: unknown, status = 200) {
   return Response.json(body, { status });
 }
 
-export function galleryErrorResponse(error: unknown) {
+export async function galleryErrorResponse(error: unknown) {
   if (error instanceof GalleryError) {
     return galleryJson({ error: error.code }, galleryStatus(error.code));
   }
@@ -51,6 +52,7 @@ export function galleryErrorResponse(error: unknown) {
     return galleryJson({ error: "notFound" }, 400);
   }
 
+  await recordUnexpectedError();
   throw error;
 }
 

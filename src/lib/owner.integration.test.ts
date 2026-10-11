@@ -51,7 +51,7 @@ async function signUpCustomer(name: string) {
     body: {
       name,
       email,
-      password: "password123",
+      password: "Password123!",
       preferredLocale: "el",
     },
   });
@@ -289,7 +289,7 @@ describe("owner administration", () => {
       customerId: customer.id,
     });
     const signedIn = await auth.api.signInEmail({
-      body: { email: customer.email, password: "password123" },
+      body: { email: customer.email, password: "Password123!" },
       asResponse: true,
     });
     const headers = new Headers({
@@ -309,7 +309,7 @@ describe("owner administration", () => {
     ).resolves.toBe(0);
     await expect(
       auth.api.signInEmail({
-        body: { email: customer.email, password: "password123" },
+        body: { email: customer.email, password: "Password123!" },
       }),
     ).rejects.toThrow();
     await expect(listGuestGallery(event.uniqueCode, token)).rejects.toBeInstanceOf(
@@ -361,7 +361,7 @@ describe("owner administration", () => {
     ).resolves.toMatchObject({ url: "memory://put" });
     await expect(
       auth.api.signInEmail({
-        body: { email: customer.email, password: "password123" },
+        body: { email: customer.email, password: "Password123!" },
       }),
     ).resolves.toBeTruthy();
   });

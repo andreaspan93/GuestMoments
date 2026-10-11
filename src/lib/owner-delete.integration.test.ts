@@ -42,7 +42,7 @@ async function signUpCustomer(name: string) {
     body: {
       name,
       email,
-      password: "password123",
+      password: "Password123!",
       preferredLocale: "en",
     },
   });
@@ -212,7 +212,7 @@ describe("owner customer deletion", () => {
     const customer = await signUpCustomer("Delete Me");
     const other = await signUpCustomer("Keep Me");
     const signedIn = await auth.api.signInEmail({
-      body: { email: customer.email, password: "password123" },
+      body: { email: customer.email, password: "Password123!" },
       asResponse: true,
     });
     const sessionHeaders = cookieHeaderFrom(signedIn);

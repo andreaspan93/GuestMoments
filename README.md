@@ -14,4 +14,4 @@ Phase 2 identity: accounts, sessions, and password reset. Greek is the default l
 
 Registration, login, password reset, and account details are at `/register`, `/login`, `/forgot-password`, `/reset-password`, and `/account`. English uses the same paths under `/en`. Guest links stay at `/e/{code}` with no language prefix.
 
-Without `RESEND_API_KEY`, password reset links are printed in the server log. The reset email follows the account's saved language.
+Without `RESEND_API_KEY`, password-reset and verification emails are not sent. The server records only that delivery is not configured, and it does not print the address, link, or token. When delivery is configured, the reset email follows the account's saved language.

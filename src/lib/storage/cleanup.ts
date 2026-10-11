@@ -1,3 +1,4 @@
+import { deleteExpiredApplicationLogs } from "@/lib/logging/retention";
 import { prisma } from "@/lib/prisma";
 import type { IStorageService } from "@/lib/storage/types";
 import { eventStoragePrefix } from "@/lib/uploads/policy";
@@ -71,6 +72,13 @@ export async function runStorageCleanup(
 ) {
   const abandonedIntents = await cleanupAbandonedUploads(storage, now);
   const purgedEvents = await purgeExpiredEvents(storage, now);
+  let expiredLogs = { operational: 0, security: 0, authFailure: 0 };
 
-  return { abandonedIntents, purgedEvents };
+  try {
+    expiredLogs = await deleteExpiredApplicationLogs(now);
+  } catch {
+    expiredLogs = { operational: 0, security: 0, authFailure: 0 };
+  }
+
+  return { abandonedIntents, purgedEvents, expiredLogs };
 }

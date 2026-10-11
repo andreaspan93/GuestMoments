@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { cookies } from "next/headers";
 import { getStorage } from "@/lib/storage";
+import { recordUnexpectedError } from "@/lib/logging/logger";
 import { UploadError, uploadStatus } from "@/lib/uploads/errors";
 import { guestTokenCookieName, guestTokenFromRequest } from "@/lib/uploads/policy";
 import {
@@ -44,7 +45,7 @@ export function uploadJson(body: unknown, status = 200) {
   return Response.json(body, { status });
 }
 
-export function uploadErrorResponse(error: unknown) {
+export async function uploadErrorResponse(error: unknown) {
   if (error instanceof UploadError) {
     return uploadJson({ error: error.code }, uploadStatus(error.code));
   }
@@ -53,6 +54,7 @@ export function uploadErrorResponse(error: unknown) {
     return uploadJson({ error: "type" }, 415);
   }
 
+  await recordUnexpectedError();
   throw error;
 }
 

@@ -8,6 +8,7 @@ import { auth } from "@/lib/auth";
 import {
   IdentityError,
   accountUpdateSchema,
+  changePasswordSchema,
   forgotPasswordSchema,
   loginSchema,
   preferredLocaleFromPage,
@@ -16,6 +17,9 @@ import {
   type IdentityErrorCode,
   type IdentityFormState,
 } from "@/lib/identity-schema";
+import { actorTypeForRole, safeRequestId } from "@/lib/logging/catalog";
+import { recordApplicationLog, recordUnexpectedError } from "@/lib/logging/logger";
+import { prisma } from "@/lib/prisma";
 import { getRequestSession } from "@/lib/session";
 import { redirect } from "@/i18n/navigation";
 
@@ -39,6 +43,9 @@ function formError(error: unknown): IdentityFormState {
     USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL: "emailTaken",
     INVALID_EMAIL_OR_PASSWORD: "invalidCredentials",
     INVALID_PASSWORD: "invalidPassword",
+    PASSWORD_TOO_SHORT: "weakPassword",
+    PASSWORD_TOO_LONG: "weakPassword",
+    CREDENTIAL_ACCOUNT_NOT_FOUND: "noPassword",
     INVALID_TOKEN: "resetInvalid",
     TOKEN_EXPIRED: "resetInvalid",
     SESSION_NOT_FRESH: "sessionExpired",
@@ -46,6 +53,14 @@ function formError(error: unknown): IdentityFormState {
   };
 
   return { error: mapped[code] ?? "invalid" };
+}
+
+async function requestCorrelationId() {
+  try {
+    return safeRequestId((await headers()).get("x-request-id"));
+  } catch {
+    return null;
+  }
 }
 
 function field(formData: FormData, name: string) {
@@ -60,12 +75,16 @@ export async function registerAction(
   const locale = await getLocale();
   const parsed = registerSchema.safeParse({
     name: field(formData, "name"),
+    surname: field(formData, "surname"),
     email: field(formData, "email"),
     password: field(formData, "password"),
   });
 
   if (!parsed.success) {
-    return { error: "invalid" };
+    const weakPassword = parsed.error.issues.some(
+      (issue) => issue.path[0] === "password",
+    );
+    return { error: weakPassword ? "weakPassword" : "invalid" };
   }
 
   try {
@@ -74,6 +93,7 @@ export async function registerAction(
     await auth.api.signUpEmail({
       body: {
         name: parsed.data.name,
+        surname: parsed.data.surname,
         email: parsed.data.email,
         password: parsed.data.password,
         preferredLocale: preferredLocaleFromPage(locale),
@@ -82,6 +102,30 @@ export async function registerAction(
       headers: await headers(),
     });
   } catch (error) {
+    const code = error instanceof APIError ? String(error.body?.code ?? "") : "";
+
+    if (
+      code === "USER_ALREADY_EXISTS" ||
+      code === "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL" ||
+      code === "PASSWORD_TOO_SHORT" ||
+      code === "PASSWORD_TOO_LONG"
+    ) {
+      await recordApplicationLog({
+        eventType: "account.created",
+        actorType: "anonymous",
+        result: "failure",
+        requestId: await requestCorrelationId(),
+        metadata: {
+          reason:
+            code === "PASSWORD_TOO_SHORT" || code === "PASSWORD_TOO_LONG"
+              ? "weak_password"
+              : "email_taken",
+        },
+      });
+    } else {
+      await recordUnexpectedError();
+    }
+
     return formError(error);
   }
 
@@ -111,7 +155,28 @@ export async function loginAction(
       },
       headers: await headers(),
     });
+    const user = await prisma.user.findUnique({
+      where: { email: parsed.data.email },
+      select: { id: true, role: true },
+    });
+
+    await recordApplicationLog({
+      eventType: "auth.login.succeeded",
+      actorType: actorTypeForRole(user?.role),
+      actorId: user?.id,
+      targetType: "user",
+      targetId: user?.id,
+      result: "success",
+      requestId: await requestCorrelationId(),
+    });
   } catch (error) {
+    await recordApplicationLog({
+      eventType: "auth.login.failed",
+      actorType: "anonymous",
+      result: "failure",
+      requestId: await requestCorrelationId(),
+      metadata: { reason: "invalid_credentials" },
+    });
     return formError(error);
   }
 
@@ -185,8 +250,8 @@ export async function forgotPasswordAction(
       },
       headers: await headers(),
     });
-  } catch (error) {
-    console.error(error);
+  } catch {
+    await recordUnexpectedError();
   }
 
   return { success: "sent" };
@@ -203,10 +268,21 @@ export async function resetPasswordAction(
   });
 
   if (!parsed.success) {
-    return { error: "invalid" };
+    const weakPassword = parsed.error.issues.some(
+      (issue) => issue.path[0] === "newPassword",
+    );
+    return { error: weakPassword ? "weakPassword" : "invalid" };
   }
 
+  let resetUserId: string | null = null;
+
   try {
+    const verification = await prisma.verification.findFirst({
+      where: { identifier: `reset-password:${parsed.data.token}` },
+      select: { value: true },
+    });
+    resetUserId = verification?.value ?? null;
+
     await auth.api.resetPassword({
       body: {
         newPassword: parsed.data.newPassword,
@@ -217,6 +293,16 @@ export async function resetPasswordAction(
   } catch (error) {
     return formError(error);
   }
+
+  await recordApplicationLog({
+    eventType: "auth.password.reset",
+    actorType: "customer",
+    actorId: resetUserId,
+    targetType: "user",
+    targetId: resetUserId,
+    result: "success",
+    requestId: await requestCorrelationId(),
+  });
 
   redirect({ href: "/login?reset=1", locale });
   return null;
@@ -236,40 +322,37 @@ export async function updateAccountAction(
 
   const parsed = accountUpdateSchema.safeParse({
     name: field(formData, "name"),
-    email: field(formData, "email"),
-    currentPassword: field(formData, "currentPassword"),
-    newPassword: field(formData, "newPassword"),
+    surname: field(formData, "surname"),
   });
 
   if (!parsed.success) {
     return { error: "invalid" };
   }
 
-  const emailChanged = parsed.data.email !== session.user.email;
-  const passwordChanged = parsed.data.newPassword.length > 0;
-
-  if ((emailChanged || passwordChanged) && !parsed.data.currentPassword) {
-    return { error: "passwordRequired" };
-  }
-
   try {
-    if (parsed.data.name !== session.user.name || emailChanged) {
+    if (
+      parsed.data.name !== session.user.name ||
+      parsed.data.surname !== session.user.surname
+    ) {
       await applyAccountUpdate({
         userId: session.user.id,
         name: parsed.data.name,
-        email: parsed.data.email,
-        currentPassword: parsed.data.currentPassword,
+        surname: parsed.data.surname,
       });
-    }
+      const fields = [
+        ...(parsed.data.name !== session.user.name ? ["name" as const] : []),
+        ...(parsed.data.surname !== session.user.surname ? ["surname" as const] : []),
+      ];
 
-    if (passwordChanged) {
-      await auth.api.changePassword({
-        body: {
-          currentPassword: parsed.data.currentPassword,
-          newPassword: parsed.data.newPassword,
-          revokeOtherSessions: true,
-        },
-        headers: await headers(),
+      await recordApplicationLog({
+        eventType: "account.updated",
+        actorType: actorTypeForRole(session.user.role),
+        actorId: session.user.id,
+        targetType: "user",
+        targetId: session.user.id,
+        result: "success",
+        requestId: await requestCorrelationId(),
+        metadata: { fields },
       });
     }
   } catch (error) {
@@ -277,4 +360,76 @@ export async function updateAccountAction(
   }
 
   return { success: "saved" };
+}
+
+export async function changePasswordAction(
+  _state: IdentityFormState,
+  formData: FormData,
+): Promise<IdentityFormState> {
+  const locale = await getLocale();
+  const session = await getRequestSession();
+
+  if (!session) {
+    redirect({ href: "/login", locale });
+    return { error: "sessionExpired" };
+  }
+
+  const parsed = changePasswordSchema.safeParse({
+    currentPassword: field(formData, "currentPassword"),
+    newPassword: field(formData, "newPassword"),
+    confirmPassword: field(formData, "confirmPassword"),
+  });
+
+  if (!parsed.success) {
+    if (parsed.error.issues.some((issue) => issue.path[0] === "newPassword")) {
+      return { error: "weakPassword" };
+    }
+
+    if (
+      parsed.error.issues.some((issue) => issue.path[0] === "confirmPassword")
+    ) {
+      return { error: "passwordMismatch" };
+    }
+
+    return { error: "invalid" };
+  }
+
+  try {
+    await auth.api.changePassword({
+      body: {
+        currentPassword: parsed.data.currentPassword,
+        newPassword: parsed.data.newPassword,
+        revokeOtherSessions: true,
+      },
+      headers: await headers(),
+    });
+  } catch (error) {
+    const code = error instanceof APIError ? String(error.body?.code ?? "") : "";
+
+    await recordApplicationLog({
+      eventType: "auth.password.changed",
+      actorType: actorTypeForRole(session.user.role),
+      actorId: session.user.id,
+      targetType: "user",
+      targetId: session.user.id,
+      result: "failure",
+      requestId: await requestCorrelationId(),
+      metadata: {
+        reason: code === "INVALID_PASSWORD" ? "invalid_password" : "unexpected",
+      },
+    });
+    return formError(error);
+  }
+
+  await recordApplicationLog({
+    eventType: "auth.password.changed",
+    actorType: actorTypeForRole(session.user.role),
+    actorId: session.user.id,
+    targetType: "user",
+    targetId: session.user.id,
+    result: "success",
+    requestId: await requestCorrelationId(),
+  });
+
+  return { success: "passwordChanged" };
 }

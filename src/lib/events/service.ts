@@ -10,6 +10,9 @@ import {
   isExpiryPast,
 } from "@/lib/events/expiry";
 import { EventError, type EventFormValues } from "@/lib/events/schema";
+import { actorTypeForRole } from "@/lib/logging/catalog";
+import { recordCrossCustomerEventAccess } from "@/lib/logging/access";
+import { recordApplicationLog } from "@/lib/logging/logger";
 import { prisma } from "@/lib/prisma";
 import { getStorage } from "@/lib/storage";
 import type { IStorageService } from "@/lib/storage/types";
@@ -85,6 +88,13 @@ async function ensureCustomerService(
   }
 
   if (!(await customerHasServiceAccess(actor, now))) {
+    await recordApplicationLog({
+      eventType: "access.denied",
+      actorType: actorTypeForRole(actor.role),
+      actorId: actor.id,
+      result: "denied",
+      metadata: { reason: "inactive" },
+    });
     throw new EventError("inactive");
   }
 }
@@ -106,7 +116,11 @@ export async function createCustomerEvent(
   actor: Actor,
   input: EventFormValues,
   now = new Date(),
-  options?: { enforceServiceAccess?: boolean; enforceEventLimit?: boolean },
+  options?: {
+    enforceServiceAccess?: boolean;
+    enforceEventLimit?: boolean;
+    performedBy?: Actor;
+  },
 ) {
   await ensureCustomerService(actor, now, options?.enforceServiceAccess !== false);
   const settings = await platformSettings();
@@ -126,7 +140,7 @@ export async function createCustomerEvent(
     }
   }
 
-  return insertEvent({
+  const created = await insertEvent({
     customerId: actor.id,
     name: input.name,
     eventDate: calendarDateToDb(input.eventDate),
@@ -142,6 +156,22 @@ export async function createCustomerEvent(
     maxStorageBytes: settings.defaultMaxStorageBytes,
     expiresAt,
   });
+  const performedBy = options?.performedBy ?? actor;
+
+  await recordApplicationLog({
+    eventType: "event.created",
+    actorType: actorTypeForRole(performedBy.role),
+    actorId: performedBy.id,
+    targetType: "event",
+    targetId: created.id,
+    result: "success",
+    metadata: {
+      privacyMode: created.privacyMode,
+      eventStatus: created.status,
+    },
+  });
+
+  return created;
 }
 
 export async function updateCustomerEvent(
@@ -159,6 +189,7 @@ export async function updateCustomerEvent(
   });
 
   if (!existing) {
+    await recordCrossCustomerEventAccess(actor, eventId);
     throw new EventError("notFound");
   }
 
@@ -168,7 +199,7 @@ export async function updateCustomerEvent(
     throw new EventError("pastExpiry");
   }
 
-  return prisma.event.update({
+  const updated = await prisma.event.update({
     where: { id: existing.id },
     data: {
       name: input.name,
@@ -184,6 +215,28 @@ export async function updateCustomerEvent(
       expiresAt,
     },
   });
+  const fields = [
+    ...(existing.privacyMode !== input.privacyMode ? ["privacyMode" as const] : []),
+    ...(existing.status !== input.status ? ["status" as const] : []),
+  ];
+
+  if (fields.length > 0) {
+    await recordApplicationLog({
+      eventType: "event.updated",
+      actorType: actorTypeForRole(actor.role),
+      actorId: actor.id,
+      targetType: "event",
+      targetId: updated.id,
+      result: "success",
+      metadata: {
+        fields,
+        ...(fields.includes("privacyMode") ? { privacyMode: input.privacyMode } : {}),
+        ...(fields.includes("status") ? { eventStatus: input.status } : {}),
+      },
+    });
+  }
+
+  return updated;
 }
 
 export async function deleteCustomerEvent(
@@ -201,12 +254,21 @@ export async function deleteCustomerEvent(
   });
 
   if (!existing) {
+    await recordCrossCustomerEventAccess(actor, eventId);
     throw new EventError("notFound");
   }
 
   await (storage ?? getStorage()).deletePrefix(eventStoragePrefix(existing.id));
   await prisma.event.delete({
     where: { id: existing.id },
+  });
+  await recordApplicationLog({
+    eventType: "event.deleted",
+    actorType: actorTypeForRole(actor.role),
+    actorId: actor.id,
+    targetType: "event",
+    targetId: existing.id,
+    result: "success",
   });
 }
 

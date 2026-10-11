@@ -30,7 +30,7 @@ async function signUpCustomer(name: string) {
     body: {
       name,
       email,
-      password: "password123",
+      password: "Password123!",
       preferredLocale: "el",
     },
   });
@@ -151,7 +151,7 @@ describe("customer service access", () => {
       },
     });
     const signedIn = await auth.api.signInEmail({
-      body: { email: customer.email, password: "password123" },
+      body: { email: customer.email, password: "Password123!" },
       asResponse: true,
     });
     expect(signedIn.status).toBe(200);

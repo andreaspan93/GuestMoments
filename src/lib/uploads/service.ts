@@ -5,7 +5,9 @@ import { PLATFORM_SETTINGS_ID } from "@/lib/events/defaults";
 import { loadGuestEvent } from "@/lib/events/service";
 import { prisma } from "@/lib/prisma";
 import type { IStorageService } from "@/lib/storage/types";
-import { UploadError } from "@/lib/uploads/errors";
+import { actorTypeForRole } from "@/lib/logging/catalog";
+import { recordApplicationLog, recordUnexpectedError } from "@/lib/logging/logger";
+import { UploadError, type UploadErrorCode } from "@/lib/uploads/errors";
 import {
   brandingObjectKey,
   classifyUpload,
@@ -33,6 +35,7 @@ async function uploadCaps() {
   });
 
   if (!settings) {
+    await recordUnexpectedError();
     throw new UploadError("storage");
   }
 
@@ -76,11 +79,15 @@ async function requireOpenEvent(code: string, now: Date) {
   );
 
   if (decision.state === "not_found" || !loaded) {
-    throw new UploadError("notFound");
+    throw await rejectUpload("notFound", { actorType: "guest", purpose: "guest" });
   }
 
   if (decision.state === "unavailable") {
-    throw new UploadError("unavailable");
+    throw await rejectUpload("unavailable", {
+      actorType: "guest",
+      purpose: "guest",
+      eventId: loaded?.event.id,
+    });
   }
 
   return loaded.event;
@@ -100,6 +107,42 @@ function objectMatches(
   }
 
   return true;
+}
+
+async function rejectUpload(
+  code: UploadErrorCode,
+  context: {
+    actorType: "guest" | "customer" | "owner" | "anonymous";
+    actorId?: string | null;
+    eventId?: string | null;
+    purpose: "guest" | "branding";
+  },
+): Promise<UploadError> {
+  const reason =
+    code === "notFound"
+      ? "not_found"
+      : code === "unavailable" || code === "inactive"
+        ? "inactive"
+        : code === "unauthorized"
+          ? "unauthorized"
+          : code === "type" || code === "oversize" || code === "quota" || code === "intent"
+            ? code
+            : "unexpected";
+
+  await recordApplicationLog({
+    eventType: code === "rate" ? "rate.limited" : "media.upload.rejected",
+    actorType: context.actorType,
+    actorId: context.actorId,
+    targetType: context.eventId ? "event" : undefined,
+    targetId: context.eventId,
+    result: "denied",
+    metadata: {
+      reason: code === "rate" ? "upload" : reason,
+      uploadPurpose: context.purpose,
+      ...(context.eventId ? { eventId: context.eventId } : {}),
+    },
+  });
+  return new UploadError(code);
 }
 
 async function presignIntent(input: {
@@ -155,10 +198,26 @@ export async function createGuestUploadIntent(input: {
 }) {
   const now = input.now ?? new Date();
 
-  await consumeUploadRateLimit(`guest:${input.ip}:${input.code}`, now);
+  try {
+    await consumeUploadRateLimit(`guest:${input.ip}:${input.code}`, now);
+  } catch (error) {
+    if (error instanceof UploadError && error.code === "rate") {
+      const event = await prisma.event.findUnique({
+        where: { uniqueCode: input.code },
+        select: { id: true },
+      });
+      throw await rejectUpload("rate", {
+        actorType: "guest",
+        purpose: "guest",
+        eventId: event?.id,
+      });
+    }
+
+    throw error;
+  }
 
   if (!input.cookieToken) {
-    throw new UploadError("unauthorized");
+    throw await rejectUpload("unauthorized", { actorType: "guest", purpose: "guest" });
   }
 
   const event = await requireOpenEvent(input.code, now);
@@ -166,20 +225,32 @@ export async function createGuestUploadIntent(input: {
   const classified = classifyUpload(input.contentType, fileName);
 
   if (!classified || (input.kind === "thumbnail" && classified !== "photo")) {
-    throw new UploadError("type");
+    throw await rejectUpload("type", {
+      actorType: "guest",
+      purpose: "guest",
+      eventId: event.id,
+    });
   }
 
   const caps = await uploadCaps();
 
   if (exceedsUploadCap(classified, input.contentLength, caps)) {
-    throw new UploadError("oversize");
+    throw await rejectUpload("oversize", {
+      actorType: "guest",
+      purpose: "guest",
+      eventId: event.id,
+    });
   }
 
   if (input.kind === "original") {
     const reserved = await reservedBytes(event.id, now);
 
     if (reserved + input.contentLength > event.maxStorageBytes) {
-      throw new UploadError("quota");
+      throw await rejectUpload("quota", {
+        actorType: "guest",
+        purpose: "guest",
+        eventId: event.id,
+      });
     }
   }
 
@@ -215,7 +286,11 @@ export async function completeGuestUpload(input: {
   const guestToken = input.cookieToken;
 
   if (!guestToken) {
-    throw new UploadError("unauthorized");
+    throw await rejectUpload("unauthorized", {
+      actorType: "guest",
+      purpose: "guest",
+      eventId: event.id,
+    });
   }
 
   const intent = await prisma.uploadIntent.findFirst({
@@ -233,13 +308,21 @@ export async function completeGuestUpload(input: {
     intent.guestToken !== guestToken ||
     !keysMatch(intent.storageKey, input.claimedKey)
   ) {
-    throw new UploadError("intent");
+    throw await rejectUpload("intent", {
+      actorType: "guest",
+      purpose: "guest",
+      eventId: event.id,
+    });
   }
 
   const head = await input.storage.headObject(intent.storageKey);
 
   if (!head || !objectMatches(head, intent.contentType, intent.contentLength)) {
-    throw new UploadError("intent");
+    throw await rejectUpload("intent", {
+      actorType: "guest",
+      purpose: "guest",
+      eventId: event.id,
+    });
   }
 
   let thumbnailKey: string | null = null;
@@ -279,7 +362,11 @@ export async function completeGuestUpload(input: {
     const current = used._sum.size ?? BigInt(0);
 
     if (current + intent.contentLength > event.maxStorageBytes) {
-      throw new UploadError("quota");
+      throw await rejectUpload("quota", {
+        actorType: "guest",
+        purpose: "guest",
+        eventId: event.id,
+      });
     }
 
     const created = await tx.media.create({
@@ -313,6 +400,19 @@ export async function completeGuestUpload(input: {
     return created;
   });
 
+  await recordApplicationLog({
+    eventType: "media.upload.succeeded",
+    actorType: "guest",
+    targetType: "media",
+    targetId: media.id,
+    result: "success",
+    metadata: {
+      eventId: event.id,
+      mediaKind: media.type === "VIDEO" ? "video" : "photo",
+      uploadPurpose: "guest",
+    },
+  });
+
   return { mediaId: media.id };
 }
 
@@ -329,17 +429,35 @@ export async function createBrandingIntent(input: {
   const now = input.now ?? new Date();
 
   if (!input.actor) {
-    throw new UploadError("unauthorized");
+    throw await rejectUpload("unauthorized", { actorType: "anonymous", purpose: "branding" });
   }
 
   if (
     input.actor.role !== "OWNER" &&
     !(await customerHasServiceAccess(input.actor, now))
   ) {
-    throw new UploadError("inactive");
+    throw await rejectUpload("inactive", {
+      actorType: actorTypeForRole(input.actor.role),
+      actorId: input.actor.id,
+      purpose: "branding",
+      eventId: input.eventId,
+    });
   }
 
-  await consumeUploadRateLimit(`branding:${input.actor.id}:${input.eventId}`, now);
+  try {
+    await consumeUploadRateLimit(`branding:${input.actor.id}:${input.eventId}`, now);
+  } catch (error) {
+    if (error instanceof UploadError && error.code === "rate") {
+      throw await rejectUpload("rate", {
+        actorType: actorTypeForRole(input.actor.role),
+        actorId: input.actor.id,
+        purpose: "branding",
+        eventId: input.eventId,
+      });
+    }
+
+    throw error;
+  }
 
   const event = await prisma.event.findFirst({
     where: {
@@ -350,20 +468,35 @@ export async function createBrandingIntent(input: {
   });
 
   if (!event) {
-    throw new UploadError("notFound");
+    throw await rejectUpload("notFound", {
+      actorType: actorTypeForRole(input.actor.role),
+      actorId: input.actor.id,
+      purpose: "branding",
+      eventId: input.eventId,
+    });
   }
 
   const fileName = sanitizeFileName(input.fileName);
   const classified = classifyUpload(input.contentType, fileName);
 
   if (classified !== "photo") {
-    throw new UploadError("type");
+    throw await rejectUpload("type", {
+      actorType: actorTypeForRole(input.actor.role),
+      actorId: input.actor.id,
+      purpose: "branding",
+      eventId: event.id,
+    });
   }
 
   const caps = await uploadCaps();
 
   if (exceedsUploadCap("photo", input.contentLength, caps)) {
-    throw new UploadError("oversize");
+    throw await rejectUpload("oversize", {
+      actorType: actorTypeForRole(input.actor.role),
+      actorId: input.actor.id,
+      purpose: "branding",
+      eventId: event.id,
+    });
   }
 
   return presignIntent({
@@ -391,14 +524,19 @@ export async function completeBrandingUpload(input: {
   const now = input.now ?? new Date();
 
   if (!input.actor) {
-    throw new UploadError("unauthorized");
+    throw await rejectUpload("unauthorized", { actorType: "anonymous", purpose: "branding" });
   }
 
   if (
     input.actor.role !== "OWNER" &&
     !(await customerHasServiceAccess(input.actor, now))
   ) {
-    throw new UploadError("inactive");
+    throw await rejectUpload("inactive", {
+      actorType: actorTypeForRole(input.actor.role),
+      actorId: input.actor.id,
+      purpose: "branding",
+      eventId: input.eventId,
+    });
   }
 
   const event = await prisma.event.findFirst({
@@ -409,7 +547,12 @@ export async function completeBrandingUpload(input: {
   });
 
   if (!event) {
-    throw new UploadError("notFound");
+    throw await rejectUpload("notFound", {
+      actorType: actorTypeForRole(input.actor.role),
+      actorId: input.actor.id,
+      purpose: "branding",
+      eventId: input.eventId,
+    });
   }
 
   const intent = await prisma.uploadIntent.findFirst({
@@ -427,13 +570,23 @@ export async function completeBrandingUpload(input: {
     !intent.brandingSlot ||
     !keysMatch(intent.storageKey, input.claimedKey)
   ) {
-    throw new UploadError("intent");
+    throw await rejectUpload("intent", {
+      actorType: actorTypeForRole(input.actor.role),
+      actorId: input.actor.id,
+      purpose: "branding",
+      eventId: event.id,
+    });
   }
 
   const head = await input.storage.headObject(intent.storageKey);
 
   if (!head || !objectMatches(head, intent.contentType, intent.contentLength)) {
-    throw new UploadError("intent");
+    throw await rejectUpload("intent", {
+      actorType: actorTypeForRole(input.actor.role),
+      actorId: input.actor.id,
+      purpose: "branding",
+      eventId: event.id,
+    });
   }
 
   const slot = intent.brandingSlot;
@@ -463,6 +616,20 @@ export async function completeBrandingUpload(input: {
   if (previous && previous !== intent.storageKey) {
     await input.storage.deleteObject(previous);
   }
+
+  await recordApplicationLog({
+    eventType: "media.upload.succeeded",
+    actorType: actorTypeForRole(input.actor.role),
+    actorId: input.actor.id,
+    targetType: "event",
+    targetId: event.id,
+    result: "success",
+    metadata: {
+      eventId: event.id,
+      mediaKind: "photo",
+      uploadPurpose: "branding",
+    },
+  });
 
   return { storageKey: intent.storageKey };
 }

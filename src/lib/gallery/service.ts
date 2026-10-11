@@ -2,6 +2,9 @@ import { randomUUID } from "node:crypto";
 import { decideGuestAccess, eventScope } from "@/lib/events/access";
 import { customerHasServiceAccess } from "@/lib/access";
 import { GalleryError } from "@/lib/gallery/errors";
+import { actorTypeForRole, isInternalId } from "@/lib/logging/catalog";
+import { recordCrossCustomerEventAccess } from "@/lib/logging/access";
+import { recordApplicationLog } from "@/lib/logging/logger";
 import {
   exceedsBulkCap,
   formatStorage,
@@ -31,6 +34,13 @@ async function ensureCustomerService(actor: Actor, now: Date) {
   }
 
   if (!(await customerHasServiceAccess(actor, now))) {
+    await recordApplicationLog({
+      eventType: "access.denied",
+      actorType: actorTypeForRole(actor.role),
+      actorId: actor.id,
+      result: "denied",
+      metadata: { reason: "inactive" },
+    });
     throw new GalleryError("inactive");
   }
 }
@@ -199,6 +209,7 @@ async function requireCustomerEvent(actor: Actor, eventId: string, now: Date) {
   });
 
   if (!event) {
+    await recordCrossCustomerEventAccess(actor, eventId);
     throw new GalleryError("notFound");
   }
 
@@ -262,6 +273,14 @@ export async function mutateCustomerMedia(
   now = new Date(),
 ) {
   if (!actor) {
+    await recordApplicationLog({
+      eventType: "access.denied",
+      actorType: "anonymous",
+      targetType: isInternalId(eventId) ? "event" : undefined,
+      targetId: isInternalId(eventId) ? eventId : undefined,
+      result: "denied",
+      metadata: { reason: "unauthenticated" },
+    });
     throw new GalleryError("unauthorized");
   }
 
@@ -279,6 +298,15 @@ export async function mutateCustomerMedia(
     await prisma.media.delete({
       where: { id: media.id },
     });
+    await recordApplicationLog({
+      eventType: "media.deleted",
+      actorType: actorTypeForRole(actor.role),
+      actorId: actor.id,
+      targetType: "media",
+      targetId: media.id,
+      result: "success",
+      metadata: { eventId: media.eventId },
+    });
 
     return { ok: true as const };
   }
@@ -294,6 +322,21 @@ export async function mutateCustomerMedia(
             ? { isFavorite: true }
             : { isFavorite: false },
   });
+
+  if (action === "hide" || action === "unhide") {
+    await recordApplicationLog({
+      eventType: "media.visibility.changed",
+      actorType: actorTypeForRole(actor.role),
+      actorId: actor.id,
+      targetType: "media",
+      targetId: media.id,
+      result: "success",
+      metadata: {
+        eventId: media.eventId,
+        visibility: action === "hide" ? "hidden" : "visible",
+      },
+    });
+  }
 
   return { ok: true as const };
 }
@@ -389,6 +432,14 @@ export async function downloadCustomerMedia(
   now = new Date(),
 ) {
   if (!actor) {
+    await recordApplicationLog({
+      eventType: "access.denied",
+      actorType: "anonymous",
+      targetType: isInternalId(eventId) ? "event" : undefined,
+      targetId: isInternalId(eventId) ? eventId : undefined,
+      result: "denied",
+      metadata: { reason: "unauthenticated" },
+    });
     throw new GalleryError("unauthorized");
   }
 
@@ -462,6 +513,14 @@ export async function createCustomerAlbum(
   now = new Date(),
 ) {
   if (!actor) {
+    await recordApplicationLog({
+      eventType: "access.denied",
+      actorType: "anonymous",
+      targetType: isInternalId(eventId) ? "event" : undefined,
+      targetId: isInternalId(eventId) ? eventId : undefined,
+      result: "denied",
+      metadata: { reason: "unauthenticated" },
+    });
     throw new GalleryError("unauthorized");
   }
 
@@ -475,6 +534,15 @@ export async function createCustomerAlbum(
     },
     select: { id: true, name: true },
   });
+  await recordApplicationLog({
+    eventType: "album.created",
+    actorType: actorTypeForRole(actor.role),
+    actorId: actor.id,
+    targetType: "album",
+    targetId: album.id,
+    result: "success",
+    metadata: { eventId: event.id },
+  });
 
   return album;
 }
@@ -487,6 +555,14 @@ export async function renameCustomerAlbum(
   now = new Date(),
 ) {
   if (!actor) {
+    await recordApplicationLog({
+      eventType: "access.denied",
+      actorType: "anonymous",
+      targetType: isInternalId(eventId) ? "event" : undefined,
+      targetId: isInternalId(eventId) ? eventId : undefined,
+      result: "denied",
+      metadata: { reason: "unauthenticated" },
+    });
     throw new GalleryError("unauthorized");
   }
 
@@ -501,11 +577,22 @@ export async function renameCustomerAlbum(
     throw new GalleryError("notFound");
   }
 
-  return prisma.album.update({
+  const renamed = await prisma.album.update({
     where: { id: existing.id },
     data: { name },
     select: { id: true, name: true },
   });
+  await recordApplicationLog({
+    eventType: "album.renamed",
+    actorType: actorTypeForRole(actor.role),
+    actorId: actor.id,
+    targetType: "album",
+    targetId: renamed.id,
+    result: "success",
+    metadata: { eventId: event.id },
+  });
+
+  return renamed;
 }
 
 export async function deleteCustomerAlbum(
@@ -515,6 +602,14 @@ export async function deleteCustomerAlbum(
   now = new Date(),
 ) {
   if (!actor) {
+    await recordApplicationLog({
+      eventType: "access.denied",
+      actorType: "anonymous",
+      targetType: isInternalId(eventId) ? "event" : undefined,
+      targetId: isInternalId(eventId) ? eventId : undefined,
+      result: "denied",
+      metadata: { reason: "unauthenticated" },
+    });
     throw new GalleryError("unauthorized");
   }
 
@@ -532,6 +627,15 @@ export async function deleteCustomerAlbum(
   await prisma.album.delete({
     where: { id: existing.id },
   });
+  await recordApplicationLog({
+    eventType: "album.deleted",
+    actorType: actorTypeForRole(actor.role),
+    actorId: actor.id,
+    targetType: "album",
+    targetId: existing.id,
+    result: "success",
+    metadata: { eventId: event.id },
+  });
 
   return { ok: true as const };
 }
@@ -544,6 +648,14 @@ export async function assignCustomerMediaAlbum(
   now = new Date(),
 ) {
   if (!actor) {
+    await recordApplicationLog({
+      eventType: "access.denied",
+      actorType: "anonymous",
+      targetType: isInternalId(eventId) ? "event" : undefined,
+      targetId: isInternalId(eventId) ? eventId : undefined,
+      result: "denied",
+      metadata: { reason: "unauthenticated" },
+    });
     throw new GalleryError("unauthorized");
   }
 
@@ -577,6 +689,14 @@ export async function assignCustomerMediaAlbums(
   now = new Date(),
 ) {
   if (!actor) {
+    await recordApplicationLog({
+      eventType: "access.denied",
+      actorType: "anonymous",
+      targetType: isInternalId(eventId) ? "event" : undefined,
+      targetId: isInternalId(eventId) ? eventId : undefined,
+      result: "denied",
+      metadata: { reason: "unauthenticated" },
+    });
     throw new GalleryError("unauthorized");
   }
 
@@ -605,6 +725,15 @@ export async function assignCustomerMediaAlbums(
     where: { id: { in: ids } },
     data: { albumId: album.id },
   });
+  await recordApplicationLog({
+    eventType: "media.bulk.assigned",
+    actorType: actorTypeForRole(actor.role),
+    actorId: actor.id,
+    targetType: "event",
+    targetId: event.id,
+    result: "success",
+    metadata: { eventId: event.id, count: ids.length },
+  });
 
   return { ok: true as const, count: ids.length };
 }
@@ -617,6 +746,14 @@ export async function prepareBulkDownload(
   now = new Date(),
 ) {
   if (!actor) {
+    await recordApplicationLog({
+      eventType: "access.denied",
+      actorType: "anonymous",
+      targetType: isInternalId(eventId) ? "event" : undefined,
+      targetId: isInternalId(eventId) ? eventId : undefined,
+      result: "denied",
+      metadata: { reason: "unauthenticated" },
+    });
     throw new GalleryError("unauthorized");
   }
 

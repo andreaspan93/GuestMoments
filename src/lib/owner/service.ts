@@ -1,3 +1,4 @@
+import type { Prisma } from "@/generated/prisma/client";
 import { accessExpiryFromDays, accessStatusOf } from "@/lib/access";
 import { PLATFORM_SETTINGS_ID } from "@/lib/events/defaults";
 import {
@@ -20,6 +21,8 @@ import {
   type OwnerSettingsValues,
   type OwnerUpdateValues,
 } from "@/lib/owner/schema";
+import { actorTypeForRole } from "@/lib/logging/catalog";
+import { recordApplicationLog, requireApplicationLogRow } from "@/lib/logging/logger";
 import { prisma } from "@/lib/prisma";
 import { getStorage } from "@/lib/storage";
 import type { IStorageService } from "@/lib/storage/types";
@@ -30,12 +33,25 @@ type Actor = {
   role: string;
 };
 
-function requireOwner(actor: Actor | null) {
+async function requireOwner(actor: Actor | null) {
   if (!actor) {
+    await recordApplicationLog({
+      eventType: "access.denied",
+      actorType: "anonymous",
+      result: "denied",
+      metadata: { reason: "unauthenticated" },
+    });
     throw new OwnerError("unauthorized");
   }
 
   if (actor.role !== "OWNER") {
+    await recordApplicationLog({
+      eventType: "access.denied",
+      actorType: actorTypeForRole(actor.role),
+      actorId: actor.id,
+      result: "denied",
+      metadata: { reason: "forbidden" },
+    });
     throw new OwnerError("forbidden");
   }
 
@@ -62,7 +78,7 @@ async function requireCustomer(customerId: string) {
 }
 
 export async function listOwnerCustomers(actor: Actor | null, now = new Date()) {
-  requireOwner(actor);
+  await requireOwner(actor);
   await prisma.user.updateMany({
     where: {
       role: "CUSTOMER",
@@ -96,7 +112,7 @@ export async function listOwnerCustomers(actor: Actor | null, now = new Date()) 
 }
 
 export async function getOwnerCustomer(actor: Actor | null, userId: string, now = new Date()) {
-  requireOwner(actor);
+  await requireOwner(actor);
   await requireCustomer(userId);
 
   const customer = await prisma.user.findUnique({
@@ -130,7 +146,7 @@ export async function setCustomerDisabled(
   userId: string,
   disabled: boolean,
 ) {
-  requireOwner(actor);
+  const owner = await requireOwner(actor);
   const customer = await requireCustomer(userId);
 
   const current = await prisma.user.findUniqueOrThrow({
@@ -156,6 +172,15 @@ export async function setCustomerDisabled(
       ? [prisma.session.deleteMany({ where: { userId: customer.id } })]
       : []),
   ]);
+  await recordApplicationLog({
+    eventType: "account.access.changed",
+    actorType: "owner",
+    actorId: owner.id,
+    targetType: "user",
+    targetId: customer.id,
+    result: "success",
+    metadata: { fields: ["disabled", "accessStatus"] },
+  });
 }
 
 export async function activateCustomerAccess(
@@ -164,7 +189,7 @@ export async function activateCustomerAccess(
   input: CustomerActivationValues,
   now = new Date(),
 ) {
-  requireOwner(actor);
+  const owner = await requireOwner(actor);
   const customer = await requireCustomer(userId);
   const current = await prisma.user.findUniqueOrThrow({
     where: { id: customer.id },
@@ -198,6 +223,16 @@ export async function activateCustomerAccess(
     },
   });
 
+  await recordApplicationLog({
+    eventType: "account.access.changed",
+    actorType: "owner",
+    actorId: owner.id,
+    targetType: "user",
+    targetId: customer.id,
+    result: "success",
+    metadata: { fields: ["accessStatus"] },
+  });
+
   return { accessExpiresAt };
 }
 
@@ -207,7 +242,7 @@ export async function deleteCustomerPermanently(
   confirmEmail: string,
   storage?: IStorageService,
 ) {
-  const owner = requireOwner(actor);
+  const owner = await requireOwner(actor);
 
   if (owner.id === userId) {
     throw new OwnerError("forbidden");
@@ -280,10 +315,19 @@ export async function deleteCustomerPermanently(
       where: { id: customer.id },
     }),
   ]);
+  await recordApplicationLog({
+    eventType: "account.deleted",
+    actorType: "owner",
+    actorId: owner.id,
+    targetType: "user",
+    targetId: customer.id,
+    result: "success",
+    metadata: { count: events.length },
+  });
 }
 
 export async function listOwnerEvents(actor: Actor | null) {
-  requireOwner(actor);
+  await requireOwner(actor);
 
   return prisma.event.findMany({
     orderBy: { createdAt: "desc" },
@@ -296,7 +340,7 @@ export async function listOwnerEvents(actor: Actor | null) {
 }
 
 export async function getOwnerEvent(actor: Actor | null, eventId: string) {
-  requireOwner(actor);
+  await requireOwner(actor);
 
   return prisma.event.findUnique({
     where: { id: eventId },
@@ -309,7 +353,7 @@ export async function getOwnerEvent(actor: Actor | null, eventId: string) {
 }
 
 export async function createOwnerEvent(actor: Actor | null, input: OwnerCreateValues) {
-  requireOwner(actor);
+  const owner = await requireOwner(actor);
   const customer = await requireCustomer(input.customerId);
 
   return createCustomerEvent(
@@ -327,7 +371,7 @@ export async function createOwnerEvent(actor: Actor | null, input: OwnerCreateVa
       status: input.status,
     },
     new Date(),
-    { enforceServiceAccess: false, enforceEventLimit: false },
+    { enforceServiceAccess: false, enforceEventLimit: false, performedBy: owner },
   );
 }
 
@@ -337,10 +381,17 @@ export async function updateOwnerEvent(
   input: OwnerUpdateValues,
   now = new Date(),
 ) {
-  requireOwner(actor);
+  const owner = await requireOwner(actor);
   const existing = await prisma.event.findUnique({
     where: { id: eventId },
-    select: { id: true },
+    select: {
+      id: true,
+      customerId: true,
+      status: true,
+      privacyMode: true,
+      retentionDays: true,
+      maxStorageBytes: true,
+    },
   });
 
   if (!existing) {
@@ -354,7 +405,7 @@ export async function updateOwnerEvent(
     throw new OwnerError("pastExpiry");
   }
 
-  return prisma.event.update({
+  const updated = await prisma.event.update({
     where: { id: existing.id },
     data: {
       customerId: input.customerId,
@@ -373,6 +424,34 @@ export async function updateOwnerEvent(
       expiresAt,
     },
   });
+  const nextQuota = mibToBytes(input.quotaMib);
+  const fields = [
+    ...(existing.customerId !== input.customerId ? ["customerId" as const] : []),
+    ...(existing.status !== input.status ? ["status" as const] : []),
+    ...(existing.privacyMode !== input.privacyMode ? ["privacyMode" as const] : []),
+    ...(existing.retentionDays !== input.retentionDays ? ["retentionDays" as const] : []),
+    ...(existing.maxStorageBytes !== nextQuota ? ["maxStorageBytes" as const] : []),
+  ];
+
+  if (fields.length > 0) {
+    await recordApplicationLog({
+      eventType: "event.updated",
+      actorType: "owner",
+      actorId: owner.id,
+      targetType: "event",
+      targetId: updated.id,
+      result: "success",
+      metadata: {
+        fields,
+        ...(fields.includes("privacyMode") ? { privacyMode: input.privacyMode } : {}),
+        ...(fields.includes("status") ? { eventStatus: input.status } : {}),
+        ...(fields.includes("retentionDays") ? { retentionDays: input.retentionDays } : {}),
+        ...(fields.includes("maxStorageBytes") ? { quotaMib: input.quotaMib } : {}),
+      },
+    });
+  }
+
+  return updated;
 }
 
 export async function deleteOwnerEvent(
@@ -380,7 +459,7 @@ export async function deleteOwnerEvent(
   eventId: string,
   storage?: IStorageService,
 ) {
-  const owner = requireOwner(actor);
+  const owner = await requireOwner(actor);
 
   try {
     await deleteCustomerEvent(owner, eventId, storage);
@@ -394,7 +473,7 @@ export async function deleteOwnerEvent(
 }
 
 export async function getOwnerSettings(actor: Actor | null) {
-  requireOwner(actor);
+  await requireOwner(actor);
   const settings = await prisma.platformSettings.findUnique({
     where: { id: PLATFORM_SETTINGS_ID },
   });
@@ -407,22 +486,62 @@ export async function getOwnerSettings(actor: Actor | null) {
 }
 
 export async function updateOwnerSettings(actor: Actor | null, input: OwnerSettingsValues) {
-  requireOwner(actor);
-
-  return prisma.platformSettings.update({
-    where: { id: PLATFORM_SETTINGS_ID },
-    data: {
-      defaultRetentionDays: input.defaultRetentionDays,
-      defaultMaxStorageBytes: mibToBytes(input.defaultQuotaMib),
-      maxPhotoBytes: mibToBytes(input.maxPhotoMib),
-      maxVideoBytes: mibToBytes(input.maxVideoMib),
+  const owner = await requireOwner(actor);
+  const logRow = requireApplicationLogRow({
+    eventType: "settings.updated",
+    actorType: "owner",
+    actorId: owner.id,
+    targetType: "settings",
+    targetId: PLATFORM_SETTINGS_ID,
+    result: "success",
+    metadata: {
+      fields: [
+        "defaultRetentionDays",
+        "defaultMaxStorageBytes",
+        "maxPhotoBytes",
+        "maxVideoBytes",
+        "maxEventsPerCustomer",
+      ],
+      retentionDays: input.defaultRetentionDays,
+      quotaMib: input.defaultQuotaMib,
+      maxPhotoMib: input.maxPhotoMib,
+      maxVideoMib: input.maxVideoMib,
       maxEventsPerCustomer: input.maxEventsPerCustomer,
     },
+  });
+
+  return prisma.$transaction(async (tx) => {
+    const updated = await tx.platformSettings.update({
+      where: { id: PLATFORM_SETTINGS_ID },
+      data: {
+        defaultRetentionDays: input.defaultRetentionDays,
+        defaultMaxStorageBytes: mibToBytes(input.defaultQuotaMib),
+        maxPhotoBytes: mibToBytes(input.maxPhotoMib),
+        maxVideoBytes: mibToBytes(input.maxVideoMib),
+        maxEventsPerCustomer: input.maxEventsPerCustomer,
+      },
+    });
+
+    await tx.applicationLog.create({
+      data: {
+        id: logRow.id,
+        eventType: logRow.eventType,
+        actorType: logRow.actorType,
+        actorId: logRow.actorId,
+        targetType: logRow.targetType,
+        targetId: logRow.targetId,
+        result: logRow.result,
+        requestId: logRow.requestId,
+        metadata: logRow.metadata as Prisma.InputJsonValue,
+      },
+    });
+
+    return updated;
   });
 }
 
 export async function platformCounts(actor: Actor | null) {
-  requireOwner(actor);
+  await requireOwner(actor);
   const [customers, events, media, storage] = await prisma.$transaction([
     prisma.user.count({ where: { role: "CUSTOMER" } }),
     prisma.event.count(),

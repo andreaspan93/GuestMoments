@@ -40,7 +40,11 @@ export default async function AccountPage({
           {t("verifiedNotice")}
         </p>
       ) : null}
-      <AccountForm name={session.user.name} email={session.user.email} />
+      <AccountForm
+        name={session.user.name}
+        surname={session.user.surname}
+        email={session.user.email}
+      />
     </AuthCard>
   );
 }

@@ -1,12 +1,25 @@
 import { z } from "zod";
 
 const emailSchema = z.string().trim().toLowerCase().pipe(z.email());
-const passwordSchema = z.string().min(8).max(128);
+const personNameSchema = z.string().trim().min(1).max(120);
+
+export function passwordMeetsRules(password: string) {
+  return (
+    password.length >= 10 &&
+    password.length <= 128 &&
+    /[A-Za-z]/.test(password) &&
+    /\d/.test(password) &&
+    /[^A-Za-z0-9]/.test(password)
+  );
+}
+
+const newPasswordSchema = z.string().refine(passwordMeetsRules, { message: "weak" });
 
 export const registerSchema = z.strictObject({
-  name: z.string().trim().min(1).max(120),
+  name: personNameSchema,
+  surname: personNameSchema,
   email: emailSchema,
-  password: passwordSchema,
+  password: newPasswordSchema,
 });
 
 export const loginSchema = z.strictObject({
@@ -20,22 +33,26 @@ export const forgotPasswordSchema = z.strictObject({
 
 export const resetPasswordSchema = z.strictObject({
   token: z.string().trim().min(1).max(256),
-  newPassword: passwordSchema,
+  newPassword: newPasswordSchema,
 });
 
-export const accountUpdateSchema = z
+export const accountUpdateSchema = z.strictObject({
+  name: personNameSchema,
+  surname: z.string().trim().max(120),
+});
+
+export const changePasswordSchema = z
   .strictObject({
-    name: z.string().trim().min(1).max(120),
-    email: emailSchema,
-    currentPassword: z.string().max(128).optional().default(""),
-    newPassword: z.string().max(128).optional().default(""),
+    currentPassword: z.string().min(1).max(128),
+    newPassword: newPasswordSchema,
+    confirmPassword: z.string().max(128),
   })
   .superRefine((value, context) => {
-    if (value.newPassword.length > 0 && value.newPassword.length < 8) {
+    if (value.newPassword !== value.confirmPassword) {
       context.addIssue({
         code: "custom",
-        path: ["newPassword"],
-        message: "short",
+        path: ["confirmPassword"],
+        message: "mismatch",
       });
     }
   });
@@ -45,13 +62,16 @@ export type IdentityErrorCode =
   | "emailTaken"
   | "invalidCredentials"
   | "invalidPassword"
+  | "weakPassword"
+  | "passwordMismatch"
+  | "noPassword"
   | "passwordRequired"
   | "resetInvalid"
   | "sessionExpired";
 
 export type IdentityFormState = {
   error?: IdentityErrorCode;
-  success?: "sent" | "saved" | "verificationSent";
+  success?: "sent" | "saved" | "verificationSent" | "passwordChanged";
 } | null;
 
 export function preferredLocaleFromPage(locale: string): "el" | "en" {

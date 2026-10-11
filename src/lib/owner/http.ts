@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { recordUnexpectedError } from "@/lib/logging/logger";
 import {
   createOwnerEvent,
   deleteOwnerEvent,
@@ -33,7 +34,7 @@ export function ownerJson(body: unknown, status = 200) {
   return Response.json(body, { status });
 }
 
-export function ownerErrorResponse(error: unknown) {
+export async function ownerErrorResponse(error: unknown) {
   if (error instanceof OwnerError) {
     return ownerJson({ error: error.code }, ownerStatus(error.code));
   }
@@ -42,6 +43,7 @@ export function ownerErrorResponse(error: unknown) {
     return ownerJson({ error: "invalid" }, 400);
   }
 
+  await recordUnexpectedError();
   throw error;
 }
 

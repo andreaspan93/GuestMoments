@@ -11,6 +11,7 @@ datasource db {
 model User {
   id              String    @id
   name            String
+  surname         String    @default("")
   email           String
   emailVerified   Boolean   @default(false)
   image           String?
@@ -193,4 +194,23 @@ model RateLimitHit {
 
   @@unique([bucket, windowStart])
   @@map("rate_limit_hit")
+}
+
+model ApplicationLog {
+  id         String   @id
+  eventType  String
+  actorType  String
+  actorId    String?
+  targetType String?
+  targetId   String?
+  result     String
+  requestId  String?
+  metadata   Json     @default("{}")
+  createdAt  DateTime @default(now())
+
+  @@index([eventType, createdAt])
+  @@index([createdAt])
+  @@index([actorId, createdAt])
+  @@index([targetType, targetId, createdAt])
+  @@map("application_log")
 }

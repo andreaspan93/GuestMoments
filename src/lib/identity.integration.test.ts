@@ -40,9 +40,10 @@ describe("identity", () => {
     const email = emailAddress();
 
     await signUp({
-      name: "English Guest",
+      name: "English",
+      surname: "Guest",
       email,
-      password: "password123",
+      password: "Password123!",
       preferredLocale: "en",
       role: "OWNER",
       disabled: true,
@@ -51,6 +52,8 @@ describe("identity", () => {
 
     const user = await prisma.user.findUnique({ where: { email } });
 
+    expect(user?.name).toBe("English");
+    expect(user?.surname).toBe("Guest");
     expect(user?.role).toBe("CUSTOMER");
     expect(user?.disabled).toBe(false);
     expect(user?.emailVerified).toBe(false);
@@ -65,13 +68,14 @@ describe("identity", () => {
     await signUp({
       name: "Greek Guest",
       email,
-      password: "password123",
+      password: "Password123!",
       preferredLocale: "fr",
     });
 
     const user = await prisma.user.findUnique({ where: { email } });
 
     expect(user?.preferredLocale).toBe("el");
+    expect(user?.surname).toBe("");
     expect(user?.role).toBe("CUSTOMER");
   });
 
@@ -81,7 +85,7 @@ describe("identity", () => {
       body: {
         name: "Account User",
         email,
-        password: "password123",
+        password: "Password123!",
         preferredLocale: "el",
       },
       asResponse: true,
@@ -124,7 +128,7 @@ describe("identity", () => {
       body: {
         name: "Disabled User",
         email,
-        password: "password123",
+        password: "Password123!",
         preferredLocale: "el",
       },
       asResponse: true,
@@ -143,7 +147,7 @@ describe("identity", () => {
     ).resolves.toBe(0);
     await expect(
       auth.api.signInEmail({
-        body: { email, password: "password123" },
+        body: { email, password: "Password123!" },
       }),
     ).rejects.toThrow();
     await expect(
@@ -157,7 +161,7 @@ describe("identity", () => {
     await signUp({
       name: "Verify User",
       email,
-      password: "password123",
+      password: "Password123!",
       preferredLocale: "en",
     });
     const sent = verificationDeliveries.filter((item) => item.to === email);
@@ -170,7 +174,7 @@ describe("identity", () => {
 
     verificationDeliveries.length = 0;
     const signedIn = await auth.api.signInEmail({
-      body: { email, password: "password123" },
+      body: { email, password: "Password123!" },
       asResponse: true,
     });
     await auth.api.sendVerificationEmail({
@@ -196,7 +200,7 @@ describe("identity", () => {
     await signUp({
       name: "Reset User",
       email,
-      password: "password123",
+      password: "Password123!",
       preferredLocale: "en",
     });
     const user = await prisma.user.findUniqueOrThrow({ where: { email } });
@@ -221,7 +225,7 @@ describe("identity", () => {
     await auth.api.resetPassword({
       body: {
         token,
-        newPassword: "newpassword1",
+        newPassword: "Newpassword1!",
       },
     });
 
@@ -230,7 +234,111 @@ describe("identity", () => {
     ).resolves.toBe(0);
 
     const signedIn = await auth.api.signInEmail({
-      body: { email, password: "newpassword1" },
+      body: { email, password: "Newpassword1!" },
+      asResponse: true,
+    });
+
+    expect(signedIn.status).toBe(200);
+  });
+
+  it("saves name and surname independently and keeps a legacy empty surname usable", async () => {
+    const email = emailAddress();
+    const response = await auth.api.signUpEmail({
+      body: {
+        name: "Account User",
+        email,
+        password: "Password123!",
+        preferredLocale: "el",
+      },
+      asResponse: true,
+    });
+    const user = await prisma.user.findUniqueOrThrow({ where: { email } });
+    const headers = cookieHeaderFrom(response);
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { name: "Legacy Name", surname: "" },
+    });
+
+    const legacy = await getActiveSession(headers);
+    expect(legacy?.user.name).toBe("Legacy Name");
+    expect(legacy?.user.surname).toBe("");
+
+    await applyAccountUpdateFromInput(user.id, {
+      name: "Mary",
+      surname: "Smith",
+    });
+    await applyAccountUpdateFromInput(user.id, {
+      name: "Mary",
+      surname: "Jones",
+    });
+    await applyAccountUpdateFromInput(user.id, {
+      name: "Helen",
+      surname: "Jones",
+    });
+
+    const stored = await prisma.user.findUniqueOrThrow({ where: { email } });
+    expect(stored.name).toBe("Helen");
+    expect(stored.surname).toBe("Jones");
+    expect(stored.email).toBe(email);
+
+    const session = await getActiveSession(headers);
+    expect(session?.user.name).toBe("Helen");
+    expect(session?.user.surname).toBe("Jones");
+    expect(session?.user.email).toBe(email);
+  });
+
+  it("rejects a weak signup password and a password change with the wrong current password", async () => {
+    const email = emailAddress();
+
+    await expect(
+      signUp({
+        name: "Weak",
+        surname: "Password",
+        email,
+        password: "password123",
+        preferredLocale: "el",
+      }),
+    ).rejects.toMatchObject({
+      body: { code: "PASSWORD_TOO_SHORT" },
+    });
+
+    const response = await auth.api.signUpEmail({
+      body: {
+        name: "Password",
+        surname: "Change",
+        email,
+        password: "Password123!",
+        preferredLocale: "el",
+      },
+      asResponse: true,
+    });
+    const headers = cookieHeaderFrom(response);
+
+    await expect(
+      auth.api.changePassword({
+        body: {
+          currentPassword: "wrong-password",
+          newPassword: "Newpassword1!",
+          revokeOtherSessions: true,
+        },
+        headers,
+      }),
+    ).rejects.toMatchObject({
+      body: { code: "INVALID_PASSWORD" },
+    });
+
+    await auth.api.changePassword({
+      body: {
+        currentPassword: "Password123!",
+        newPassword: "Newpassword1!",
+        revokeOtherSessions: true,
+      },
+      headers,
+    });
+
+    const signedIn = await auth.api.signInEmail({
+      body: { email, password: "Newpassword1!" },
       asResponse: true,
     });
 
