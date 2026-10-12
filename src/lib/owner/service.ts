@@ -22,11 +22,13 @@ import {
   type OwnerUpdateValues,
 } from "@/lib/owner/schema";
 import { actorTypeForRole } from "@/lib/logging/catalog";
-import { recordApplicationLog, requireApplicationLogRow } from "@/lib/logging/logger";
+import { eraseDeletedCustomerLogs } from "@/lib/logging/erasure";
+import { recordApplicationLog, recordUnexpectedError, requireApplicationLogRow } from "@/lib/logging/logger";
 import { prisma } from "@/lib/prisma";
 import { getStorage } from "@/lib/storage";
 import type { IStorageService } from "@/lib/storage/types";
 import { eventStoragePrefix } from "@/lib/uploads/policy";
+import { deleteConfiguredGuestRateLimits, guestRateLimitHitFilter } from "@/lib/uploads/rate-limit";
 
 type Actor = {
   id: string;
@@ -267,8 +269,22 @@ export async function deleteCustomerPermanently(
 
   const events = await prisma.event.findMany({
     where: { customerId: customer.id },
-    select: { id: true },
+    select: { id: true, uniqueCode: true },
   });
+  const eventIds = events.map((event) => event.id);
+  const [mediaRows, albumRows] =
+    eventIds.length === 0
+      ? [[], []]
+      : await Promise.all([
+          prisma.media.findMany({
+            where: { eventId: { in: eventIds } },
+            select: { id: true },
+          }),
+          prisma.album.findMany({
+            where: { eventId: { in: eventIds } },
+            select: { id: true },
+          }),
+        ]);
 
   if (events.length > 0) {
     const store = storage ?? getStorage();
@@ -286,8 +302,6 @@ export async function deleteCustomerPermanently(
     }
   }
 
-  const eventIds = events.map((event) => event.id);
-
   await prisma.$transaction([
     prisma.verification.deleteMany({
       where: {
@@ -299,6 +313,9 @@ export async function deleteCustomerPermanently(
         OR: [
           { bucket: { startsWith: `branding:${customer.id}:` } },
           ...eventIds.map((eventId) => ({ bucket: { contains: eventId } })),
+          ...events.flatMap((event) =>
+            event.uniqueCode ? [guestRateLimitHitFilter(event.uniqueCode)] : [],
+          ),
         ],
       },
     }),
@@ -315,15 +332,31 @@ export async function deleteCustomerPermanently(
       where: { id: customer.id },
     }),
   ]);
+
+  try {
+    await eraseDeletedCustomerLogs({
+      userId: customer.id,
+      eventIds,
+      mediaIds: mediaRows.map((media) => media.id),
+      albumIds: albumRows.map((album) => album.id),
+    });
+  } catch {
+    // The account transaction has already committed. A later log rewrite must not restore it.
+  }
+
   await recordApplicationLog({
     eventType: "account.deleted",
     actorType: "owner",
     actorId: owner.id,
-    targetType: "user",
-    targetId: customer.id,
     result: "success",
     metadata: { count: events.length },
   });
+
+  try {
+    await deleteConfiguredGuestRateLimits(events.map((event) => event.uniqueCode));
+  } catch {
+    await recordUnexpectedError();
+  }
 }
 
 export async function listOwnerEvents(actor: Actor | null) {

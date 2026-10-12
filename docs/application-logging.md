@@ -12,16 +12,14 @@ It is not used for advertising, product analytics, or ordinary navigation.
 
 Rows are written to the `application_log` table. The application has no customer page and no public API for reading logs. There is also no owner log viewer. Investigation is done by someone with direct, authorized database access.
 
-The table has no foreign key to users or events. Deleting an account does not delete its log rows. The application does not update log rows. The only application delete path is the retention cleanup below.
-
-Database logs are not immutable. A person with database credentials can still change or delete rows. The application does not provide that protection.
+The table has no foreign key to users or events. Retention cleanup is not the only delete path: permanent account deletion also deletes or anonymizes the log rows described below. Database logs are not immutable. A person with database credentials can still change or delete rows. The application does not provide that protection.
 
 ## Who can access logs
 
 - Customers cannot read logs, including their own.
 - Guests cannot read logs.
 - The owner area does not display logs.
-- The retention cron can delete only expired rows in `application_log`. It does not read them back to the client.
+- The retention cron can delete only expired rows in `application_log`. It does not read them back to the client. That cleanup is separate from the anonymization that runs when an owner deletes a customer.
 
 ## Fields
 
@@ -92,7 +90,27 @@ Initial defaults, overridable with environment variables from 1 to 3650 days:
 
 The existing daily Vercel cron `GET /api/cron/retention` deletes expired log rows after the storage cleanup. The delete is limited to `application_log`, filtered by allowlisted event type and `createdAt`. Running it again is safe. It does not delete users, events, or media.
 
-These periods are engineering defaults. The owner, and legal review if required, should confirm them before production use.
+These periods apply to log rows in general. They are not what happens at the moment an account is deleted. The defaults remain 30 days for operational logs, 90 days for failed logins, and 180 days for security logs unless `APP_LOG_RETENTION_OPERATIONAL_DAYS`, `APP_LOG_RETENTION_AUTH_FAILURE_DAYS`, or `APP_LOG_RETENTION_SECURITY_DAYS` overrides them. Each override must be an integer from 1 to 3650; an invalid value falls back to the default.
+
+These periods are engineering defaults. The owner, and legal review if required, should confirm them before treating them as a settled retention policy.
+
+## Permanent account deletion
+
+An owner can permanently delete a customer. That deletion does not store the deleted customer's user id in the new `account.deleted` row. The row keeps the deleting owner's id, the time, a successful result, and the number of events removed.
+
+After the account transaction commits, the application rewrites older log rows for that customer:
+
+- Operational rows that contain the customer id, or an event, media, or album id belonging to that customer, are deleted. Examples are account updates, successful logins, event changes, and successful uploads.
+- Security rows that contain those ids are kept, with the ids removed. The event type, result, reason, and timestamp stay. If another person accessed that customer's event, that other person's id stays and the event id is removed.
+- Failed login rows that do not contain the deleted customer's id are left as they are.
+- Platform setting rows are left as they are.
+- Logs for other customers are left as they are.
+
+This is not complete anonymization. A retained security row can still show a reason, an actor type, a timestamp, and a request id. Those fields do not by themselves name the person, but a request id or timestamp can be correlated with hosting logs, and a database backup can still contain the account from before the deletion. The log rewrite is not part of the account transaction. If it fails, the account stays deleted and the new deletion row still omits the customer id, but older rows can keep their ids.
+
+Guest rate-limit buckets for the deleted customer's event codes are removed in the same database transaction as the account. Those buckets look like `guest:{ip}:{eventCode}` and can also use an IPv6 address in the middle. Branding buckets for that customer are removed there too. Unrelated buckets are not matched by that filter. If that database delete fails, the account deletion rolls back.
+
+When Upstash is configured, the same event codes are removed from Redis after the account commit, and only keys that belong to the guest rate-limit prefix and that event code. A Redis failure does not restore the account and does not delete keys that fail that check. Those keys can remain until the 10-minute rate-limit window expires. The application does not write the IP address, event code, or Redis key to the log. Automated tests do not call Upstash.
 
 ## Personal data
 
@@ -112,14 +130,13 @@ Most user actions continue if the log write fails. A logging outage should not b
 
 Platform setting changes are the exception. The setting update and its `settings.updated` row are saved in one database transaction. If the log row cannot be written, the setting change is rolled back.
 
-Account deletion still completes if the following log write fails. Blocking erasure because the log database is unavailable would get in the way of deleting a customer. The deletion row is written after the delete commits, so a crash between the two steps can leave a deletion without a log row.
+Account deletion still completes if the following log rewrite fails. Blocking erasure because the log database is unavailable would get in the way of deleting a customer. The log rewrite and the `account.deleted` row run after the account transaction commits, so they are not atomic with the deletion. A crash between those steps can leave a deleted account without a deletion row, or with older identifiers still present. The deletion row itself does not contain the deleted customer's user id.
 
 ## Decisions still needing confirmation
 
 - Whether 30, 90, and 180 days are the right retention periods.
 - Who is allowed to query the production database, and how that access is granted and reviewed.
 - Whether a future owner-only log screen is needed. It should not be added until that access model is explicit.
-- Existing `RateLimitHit.bucket` values can contain an IP address and an event code. That store was already there and is separate from `application_log`.
-- Existing `session` rows can contain an IP address and user agent. That is Better Auth session data, not this log.
+- Existing `RateLimitHit.bucket` values for active guests can contain an IP address and an event code until they age out. Permanent deletion removes the guest buckets for that customer's events. Buckets for other events stay. Upstash keys for a deleted event can outlive the account if Redis cleanup fails. Session rows can contain an IP address and user agent while the account exists; permanent deletion removes those session rows.
 - When email delivery is not configured, `src/lib/email.ts` does not print the recipient, link, or token. Production fails with a generic delivery error. Development logs only that delivery is not configured. This log does not copy those values.
 - Direct calls to the Better Auth HTTP routes are logged without an actor id, because reading the response body could capture an email address. The in-app login and password actions record the internal user id.

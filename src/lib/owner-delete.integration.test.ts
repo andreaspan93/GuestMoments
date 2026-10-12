@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { auth } from "@/lib/auth";
 import {
   DEFAULT_MAX_PHOTO_BYTES,
@@ -396,6 +396,283 @@ describe("owner customer deletion", () => {
         where: { id: { in: [emptyEvent.id, expiredEvent.id, disabledEvent.id] } },
       }),
     ).resolves.toBe(0);
+  });
+
+  it("removes the deleted customer's log identifiers and guest rate-limit buckets", async () => {
+    const owner = await makeOwner("Erasure Owner");
+    const customer = await signUpCustomer("Erasure Customer");
+    const other = await signUpCustomer("Erasure Other");
+    const event = await createEvent(owner, customer.id, "Erasure wedding");
+    const kept = await createEvent(owner, other.id, "Erasure kept");
+    const stored = await prisma.event.findUniqueOrThrow({
+      where: { id: event.id },
+      select: { uniqueCode: true },
+    });
+    const keptEvent = await prisma.event.findUniqueOrThrow({
+      where: { id: kept.id },
+      select: { uniqueCode: true },
+    });
+    const album = await prisma.album.create({
+      data: { id: randomUUID(), eventId: event.id, name: "Ceremony" },
+    });
+    const media = await prisma.media.create({
+      data: {
+        id: randomUUID(),
+        eventId: event.id,
+        albumId: album.id,
+        storageKey: `events/${event.id}/originals/${randomUUID()}`,
+        type: "PHOTO",
+        originalFileName: "one.jpg",
+        size: BigInt(1000),
+        mimeType: "image/jpeg",
+        guestToken: createGuestToken(),
+      },
+    });
+    const operationalId = randomUUID();
+    const passwordId = randomUUID();
+    const rateId = randomUUID();
+    const accessId = randomUUID();
+    const settingsId = randomUUID();
+    const failedLoginId = randomUUID();
+    const otherLoginId = randomUUID();
+    const guestBucket = `guest:203.0.113.8:${stored.uniqueCode}`;
+    const otherGuestBucket = `guest:203.0.113.9:${keptEvent.uniqueCode}`;
+    const similarBucket = `guest:203.0.113.10:${stored.uniqueCode}extra`;
+
+    await prisma.applicationLog.createMany({
+      data: [
+        {
+          id: operationalId,
+          eventType: "account.updated",
+          actorType: "customer",
+          actorId: customer.id,
+          targetType: "user",
+          targetId: customer.id,
+          result: "success",
+          metadata: { fields: ["name"] },
+        },
+        {
+          id: passwordId,
+          eventType: "auth.password.reset",
+          actorType: "customer",
+          actorId: customer.id,
+          targetType: "user",
+          targetId: customer.id,
+          result: "success",
+          metadata: {},
+        },
+        {
+          id: rateId,
+          eventType: "rate.limited",
+          actorType: "guest",
+          targetType: "event",
+          targetId: event.id,
+          result: "denied",
+          metadata: { reason: "upload", uploadPurpose: "guest", eventId: event.id },
+        },
+        {
+          id: accessId,
+          eventType: "access.denied",
+          actorType: "customer",
+          actorId: other.id,
+          targetType: "event",
+          targetId: event.id,
+          result: "denied",
+          metadata: { reason: "forbidden" },
+        },
+        {
+          id: settingsId,
+          eventType: "settings.updated",
+          actorType: "owner",
+          actorId: owner.id,
+          targetType: "settings",
+          targetId: "default",
+          result: "success",
+          metadata: { maxEventsPerCustomer: 10 },
+        },
+        {
+          id: failedLoginId,
+          eventType: "auth.login.failed",
+          actorType: "anonymous",
+          result: "failure",
+          metadata: { reason: "invalid_credentials" },
+        },
+        {
+          id: otherLoginId,
+          eventType: "auth.login.succeeded",
+          actorType: "customer",
+          actorId: other.id,
+          targetType: "user",
+          targetId: other.id,
+          result: "success",
+          metadata: {},
+        },
+      ],
+    });
+    await prisma.rateLimitHit.createMany({
+      data: [
+        { id: randomUUID(), bucket: guestBucket, windowStart: new Date(), count: 1 },
+        { id: randomUUID(), bucket: otherGuestBucket, windowStart: new Date(), count: 1 },
+        { id: randomUUID(), bucket: similarBucket, windowStart: new Date(), count: 1 },
+      ],
+    });
+
+    await deleteCustomerPermanently(owner, customer.id, customer.email, new RecordingStorage());
+
+    await expect(prisma.applicationLog.findUnique({ where: { id: operationalId } })).resolves.toBeNull();
+    await expect(prisma.applicationLog.findUnique({ where: { id: passwordId } })).resolves.toMatchObject({
+      eventType: "auth.password.reset",
+      actorId: null,
+      targetType: null,
+      targetId: null,
+      result: "success",
+    });
+    await expect(prisma.applicationLog.findUnique({ where: { id: rateId } })).resolves.toMatchObject({
+      eventType: "rate.limited",
+      actorId: null,
+      targetType: null,
+      targetId: null,
+      result: "denied",
+      metadata: { reason: "upload", uploadPurpose: "guest" },
+    });
+    await expect(prisma.applicationLog.findUnique({ where: { id: accessId } })).resolves.toMatchObject({
+      actorId: other.id,
+      targetType: null,
+      targetId: null,
+      metadata: { reason: "forbidden" },
+    });
+    await expect(prisma.applicationLog.findUnique({ where: { id: settingsId } })).resolves.toMatchObject({
+      actorId: owner.id,
+      targetType: "settings",
+      targetId: "default",
+      metadata: { maxEventsPerCustomer: 10 },
+    });
+    await expect(prisma.applicationLog.findUnique({ where: { id: failedLoginId } })).resolves.toMatchObject({
+      eventType: "auth.login.failed",
+      actorId: null,
+      targetId: null,
+      metadata: { reason: "invalid_credentials" },
+    });
+    await expect(prisma.applicationLog.findUnique({ where: { id: otherLoginId } })).resolves.toMatchObject({
+      actorId: other.id,
+      targetId: other.id,
+    });
+
+    const deletion = await prisma.applicationLog.findFirst({
+      where: { eventType: "account.deleted", actorId: owner.id },
+      orderBy: { createdAt: "desc" },
+    });
+    expect(deletion?.targetId).toBeNull();
+    expect(deletion?.metadata).toEqual({ count: 1 });
+    expect(JSON.stringify(deletion)).not.toContain(customer.id);
+    expect(JSON.stringify(deletion)).not.toContain(event.id);
+    expect(JSON.stringify(deletion)).not.toContain(media.id);
+    expect(JSON.stringify(deletion)).not.toContain(album.id);
+    expect(JSON.stringify(deletion)).not.toContain(stored.uniqueCode);
+
+    await expect(
+      prisma.applicationLog.count({
+        where: {
+          OR: [
+            { actorId: customer.id },
+            { targetId: customer.id },
+            { targetId: { in: [event.id, media.id, album.id] } },
+            { metadata: { path: ["eventId"], equals: event.id } },
+          ],
+        },
+      }),
+    ).resolves.toBe(0);
+    await expect(prisma.rateLimitHit.count({ where: { bucket: guestBucket } })).resolves.toBe(0);
+    await expect(prisma.rateLimitHit.count({ where: { bucket: otherGuestBucket } })).resolves.toBe(1);
+    await expect(prisma.rateLimitHit.count({ where: { bucket: similarBucket } })).resolves.toBe(1);
+
+    await prisma.applicationLog.deleteMany({
+      where: { id: { in: [passwordId, rateId, accessId, settingsId, failedLoginId, otherLoginId, deletion!.id] } },
+    });
+    await prisma.rateLimitHit.deleteMany({
+      where: { bucket: { in: [otherGuestBucket, similarBucket] } },
+    });
+  });
+
+  it("still deletes the account when log erasure fails and does not record the customer id", async () => {
+    const owner = await makeOwner("Log Failure Owner");
+    const customer = await signUpCustomer("Log Failure Customer");
+    const operationalId = randomUUID();
+    await prisma.applicationLog.create({
+      data: {
+        id: operationalId,
+        eventType: "auth.login.succeeded",
+        actorType: "customer",
+        actorId: customer.id,
+        targetType: "user",
+        targetId: customer.id,
+        result: "success",
+        metadata: {},
+      },
+    });
+    const transaction = prisma.$transaction.bind(prisma) as (...args: never[]) => Promise<unknown>;
+    let calls = 0;
+    const spy = vi.spyOn(prisma, "$transaction").mockImplementation(((...args: never[]) => {
+      calls += 1;
+
+      if (calls > 1) {
+        return Promise.reject(new Error("log erasure failed"));
+      }
+
+      return transaction(...args);
+    }) as typeof prisma.$transaction);
+
+    try {
+      await deleteCustomerPermanently(owner, customer.id, customer.email, new RecordingStorage());
+    } finally {
+      spy.mockRestore();
+    }
+
+    await expect(prisma.user.findUnique({ where: { id: customer.id } })).resolves.toBeNull();
+    await expect(prisma.applicationLog.findUnique({ where: { id: operationalId } })).resolves.toMatchObject({
+      actorId: customer.id,
+      targetId: customer.id,
+    });
+    const deletion = await prisma.applicationLog.findFirst({
+      where: { eventType: "account.deleted", actorId: owner.id },
+      orderBy: { createdAt: "desc" },
+    });
+    expect(deletion?.targetId).toBeNull();
+    expect(JSON.stringify(deletion)).not.toContain(customer.id);
+    await prisma.applicationLog.deleteMany({
+      where: { id: { in: [operationalId, deletion!.id] } },
+    });
+  });
+
+  it("rolls back account deletion when rate-limit cleanup fails", async () => {
+    const owner = await makeOwner("Rate Failure Owner");
+    const customer = await signUpCustomer("Rate Failure Customer");
+    const unrelated = `guest:203.0.113.40:${randomUUID().replaceAll("-", "").slice(0, 16)}`;
+    const branded = `branding:${customer.id}:${randomUUID()}`;
+    await prisma.rateLimitHit.createMany({
+      data: [
+        { id: randomUUID(), bucket: unrelated, windowStart: new Date(), count: 1 },
+        { id: randomUUID(), bucket: branded, windowStart: new Date(), count: 1 },
+      ],
+    });
+    const spy = vi.spyOn(prisma.rateLimitHit, "deleteMany").mockRejectedValue(new Error("rate limit failed"));
+
+    try {
+      await expect(
+        deleteCustomerPermanently(owner, customer.id, customer.email, new RecordingStorage()),
+      ).rejects.toThrow();
+    } finally {
+      spy.mockRestore();
+    }
+
+    await expect(prisma.user.findUnique({ where: { id: customer.id } })).resolves.toMatchObject({
+      id: customer.id,
+    });
+    await expect(prisma.rateLimitHit.count({ where: { bucket: unrelated } })).resolves.toBe(1);
+    await expect(prisma.rateLimitHit.count({ where: { bucket: branded } })).resolves.toBe(1);
+    await prisma.rateLimitHit.deleteMany({
+      where: { bucket: { in: [unrelated, branded] } },
+    });
   });
 
   it("still deletes a single event without deleting the customer", async () => {
