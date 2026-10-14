@@ -2,6 +2,7 @@ import { deleteExpiredApplicationLogs } from "@/lib/logging/retention";
 import { prisma } from "@/lib/prisma";
 import type { IStorageService } from "@/lib/storage/types";
 import { eventStoragePrefix } from "@/lib/uploads/policy";
+import { deleteExpiredRateLimitHits } from "@/lib/uploads/rate-limit";
 
 const PURGE_BATCH = 20;
 
@@ -80,5 +81,20 @@ export async function runStorageCleanup(
     expiredLogs = { operational: 0, security: 0, authFailure: 0 };
   }
 
-  return { abandonedIntents, purgedEvents, expiredLogs };
+  const expiredSessions = await prisma.session.deleteMany({
+    where: { expiresAt: { lt: now } },
+  });
+  const expiredVerifications = await prisma.verification.deleteMany({
+    where: { expiresAt: { lt: now } },
+  });
+  const expiredRateLimits = await deleteExpiredRateLimitHits(now);
+
+  return {
+    abandonedIntents,
+    purgedEvents,
+    expiredLogs,
+    expiredSessions: expiredSessions.count,
+    expiredVerifications: expiredVerifications.count,
+    expiredRateLimits,
+  };
 }

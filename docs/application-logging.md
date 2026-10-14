@@ -90,7 +90,15 @@ Initial defaults, overridable with environment variables from 1 to 3650 days:
 
 The existing daily Vercel cron `GET /api/cron/retention` deletes expired log rows after the storage cleanup. The delete is limited to `application_log`, filtered by allowlisted event type and `createdAt`. Running it again is safe. It does not delete users, events, or media.
 
-These periods apply to log rows in general. They are not what happens at the moment an account is deleted. The defaults remain 30 days for operational logs, 90 days for failed logins, and 180 days for security logs unless `APP_LOG_RETENTION_OPERATIONAL_DAYS`, `APP_LOG_RETENTION_AUTH_FAILURE_DAYS`, or `APP_LOG_RETENTION_SECURITY_DAYS` overrides them. Each override must be an integer from 1 to 3650; an invalid value falls back to the default.
+The same cron then deletes three other kinds of expired rows. These rules are separate from the 30, 90, and 180 day log periods:
+
+- Sessions whose `expiresAt` is already in the past. A session that is still valid is not deleted.
+- Verification rows whose `expiresAt` is already in the past. Password-reset tokens live in this table and are valid until that time. Email verification links are signed tokens and are not stored in this table, so this cleanup does not affect an unexpired verification link.
+- `rate_limit_hit` rows whose window started more than 24 hours earlier. This runs even when live rate limiting uses Upstash. Rows inside that 24 hours stay, so the 10-minute upload limit is unchanged.
+
+If the session, verification, or rate-limit delete fails, the cron response fails. Storage that was already purged is not restored. A failure while deleting old application logs still does not undo the storage cleanup.
+
+Deleting one event removes only that event's guest and branding rate-limit rows. The guest match is the event code at the end of a `guest:` bucket. The branding match is the event id at the end of a `branding:` bucket.
 
 These periods are engineering defaults. The owner, and legal review if required, should confirm them before treating them as a settled retention policy.
 
@@ -137,6 +145,6 @@ Account deletion still completes if the following log rewrite fails. Blocking er
 - Whether 30, 90, and 180 days are the right retention periods.
 - Who is allowed to query the production database, and how that access is granted and reviewed.
 - Whether a future owner-only log screen is needed. It should not be added until that access model is explicit.
-- Existing `RateLimitHit.bucket` values for active guests can contain an IP address and an event code until they age out. Permanent deletion removes the guest buckets for that customer's events. Buckets for other events stay. Upstash keys for a deleted event can outlive the account if Redis cleanup fails. Session rows can contain an IP address and user agent while the account exists; permanent deletion removes those session rows.
+- `rate_limit_hit` rows can contain an IP address and an event code for up to 24 hours after the window starts. The daily cron deletes older rows even when Upstash is handling new checks. Deleting an event removes only that event's buckets. Deleting an account still removes that customer's buckets in the account transaction. Upstash keys expire on their own after about 20 minutes, and a Redis failure during deletion can leave those keys until then. Session rows can still contain an IP address and user agent. Better Auth writes both when it creates a session, and this application does not read them. Expired session rows are deleted by the daily cron. Logout, account deletion, and disabling an account still delete the relevant session rows immediately.
 - When email delivery is not configured, `src/lib/email.ts` does not print the recipient, link, or token. Production fails with a generic delivery error. Development logs only that delivery is not configured. This log does not copy those values.
 - Direct calls to the Better Auth HTTP routes are logged without an actor id, because reading the response body could capture an email address. The in-app login and password actions record the internal user id.

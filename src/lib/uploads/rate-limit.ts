@@ -5,7 +5,9 @@ import { prisma } from "@/lib/prisma";
 import { UploadError } from "@/lib/uploads/errors";
 
 const WINDOW_MS = 10 * 60 * 1000;
+const RATE_LIMIT_RETENTION_MS = 24 * 60 * 60 * 1000;
 const DEFAULT_LIMIT = 30;
+const EVENT_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const UPLOAD_RATE_LIMIT_PREFIX = "guestmoments";
 const MAX_GUEST_KEY_SCAN_PAGES = 1000;
 const EVENT_CODE = /^[A-Za-z0-9_-]{8,128}$/;
@@ -18,6 +20,36 @@ export function guestRateLimitHitFilter(eventCode: string) {
   return {
     AND: [{ bucket: { startsWith: "guest:" } }, { bucket: { endsWith: `:${eventCode}` } }],
   };
+}
+
+export function eventRateLimitHitWhere(eventId: string, uniqueCode: string) {
+  const filters = [];
+
+  if (EVENT_ID.test(eventId)) {
+    filters.push({
+      AND: [{ bucket: { startsWith: "branding:" } }, { bucket: { endsWith: `:${eventId}` } }],
+    });
+  }
+
+  if (EVENT_CODE.test(uniqueCode)) {
+    filters.push(guestRateLimitHitFilter(uniqueCode));
+  }
+
+  if (filters.length === 0) {
+    return null;
+  }
+
+  return { OR: filters };
+}
+
+export async function deleteExpiredRateLimitHits(now = new Date()) {
+  const result = await prisma.rateLimitHit.deleteMany({
+    where: {
+      windowStart: { lt: new Date(now.getTime() - RATE_LIMIT_RETENTION_MS) },
+    },
+  });
+
+  return result.count;
 }
 
 export function isDeletedGuestRateLimitKey(
@@ -112,11 +144,7 @@ export async function consumePostgresRateLimit(
 ) {
   const windowStart = new Date(Math.floor(now.getTime() / WINDOW_MS) * WINDOW_MS);
 
-  await prisma.rateLimitHit.deleteMany({
-    where: {
-      windowStart: { lt: new Date(now.getTime() - 24 * 60 * 60 * 1000) },
-    },
-  });
+  await deleteExpiredRateLimitHits(now);
 
   const existing = await prisma.rateLimitHit.findUnique({
     where: {

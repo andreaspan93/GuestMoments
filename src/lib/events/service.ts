@@ -12,11 +12,15 @@ import {
 import { EventError, type EventFormValues } from "@/lib/events/schema";
 import { actorTypeForRole } from "@/lib/logging/catalog";
 import { recordCrossCustomerEventAccess } from "@/lib/logging/access";
-import { recordApplicationLog } from "@/lib/logging/logger";
+import { recordApplicationLog, recordUnexpectedError } from "@/lib/logging/logger";
 import { prisma } from "@/lib/prisma";
 import { getStorage } from "@/lib/storage";
 import type { IStorageService } from "@/lib/storage/types";
 import { eventStoragePrefix } from "@/lib/uploads/policy";
+import {
+  deleteConfiguredGuestRateLimits,
+  eventRateLimitHitWhere,
+} from "@/lib/uploads/rate-limit";
 
 type Actor = {
   id: string;
@@ -250,7 +254,7 @@ export async function deleteCustomerEvent(
       id: eventId,
       ...eventScope(actor),
     },
-    select: { id: true },
+    select: { id: true, uniqueCode: true },
   });
 
   if (!existing) {
@@ -262,6 +266,23 @@ export async function deleteCustomerEvent(
   await prisma.event.delete({
     where: { id: existing.id },
   });
+
+  const rateLimitWhere = eventRateLimitHitWhere(existing.id, existing.uniqueCode);
+
+  if (rateLimitWhere) {
+    try {
+      await prisma.rateLimitHit.deleteMany({ where: rateLimitWhere });
+    } catch {
+      await recordUnexpectedError();
+    }
+  }
+
+  try {
+    await deleteConfiguredGuestRateLimits([existing.uniqueCode]);
+  } catch {
+    await recordUnexpectedError();
+  }
+
   await recordApplicationLog({
     eventType: "event.deleted",
     actorType: actorTypeForRole(actor.role),
