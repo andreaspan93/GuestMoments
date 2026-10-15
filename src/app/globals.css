@@ -52,7 +52,7 @@ body {
   justify-content: center;
   background: #fff;
   color: #111;
-  padding: 12mm 11mm;
+  padding: 11mm 11mm 12mm;
   print-color-adjust: exact;
   -webkit-print-color-adjust: exact;
 }
@@ -67,14 +67,15 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: min(4.2mm, 2cqh);
+  gap: min(3.4mm, 1.7cqh);
 }
 
 .qr-poster-cover {
   box-sizing: border-box;
   flex: 0 0 auto;
-  width: min(32mm, 16cqh);
-  max-width: 42%;
+  width: min(44mm, 22cqh);
+  max-width: 58%;
+  margin-bottom: min(2.2mm, 1.1cqh);
   aspect-ratio: 1;
   height: auto;
   border-radius: 50%;
@@ -103,6 +104,7 @@ body {
   margin: 0;
   max-width: 100%;
   color: #111;
+  margin-top: min(-1.4mm, -0.6cqh);
   font-size: min(7.2mm, 3.5cqh);
   font-weight: 400;
   line-height: 1.2;
@@ -115,7 +117,8 @@ body {
   align-self: center;
   width: max-content;
   max-width: 100%;
-  margin-block: min(1.5mm, 0.8cqh);
+  margin-top: min(3.2mm, 1.6cqh);
+  margin-bottom: min(1.4mm, 0.7cqh);
   background: #fff;
   padding: 0;
   line-height: 0;
@@ -124,7 +127,7 @@ body {
 .qr-poster-qr img {
   box-sizing: border-box;
   display: block;
-  width: min(78mm, 38cqh);
+  width: min(66mm, 32cqh);
   max-width: 100%;
   height: auto;
   aspect-ratio: 1;
@@ -133,11 +136,12 @@ body {
 }
 
 .qr-poster-has-logo .qr-poster-cover {
-  width: min(26mm, 13cqh);
+  width: min(34mm, 17cqh);
+  margin-bottom: 0;
 }
 
 .qr-poster-has-logo .qr-poster-qr img {
-  width: min(62mm, 30cqh);
+  width: min(56mm, 27cqh);
 }
 
 .qr-poster-cta {
