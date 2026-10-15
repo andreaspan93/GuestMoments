@@ -178,6 +178,9 @@
     "backgroundImage": "Background image",
     "brandingSaved": "Image saved.",
     "brandingFailed": "The image was not saved.",
+    "removeImage": "Remove image",
+    "brandingRemoved": "Image removed.",
+    "brandingRemoveFailed": "The image was not removed.",
     "errors": {
       "invalid": "Check the details and try again.",
       "pastExpiry": "That date is already past the end of the retention period. Choose a later date.",

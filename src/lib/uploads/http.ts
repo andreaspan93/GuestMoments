@@ -9,6 +9,7 @@ import {
   completeGuestUpload,
   createBrandingIntent,
   createGuestUploadIntent,
+  removeBrandingImage,
 } from "@/lib/uploads/service";
 import { getRequestSession } from "@/lib/session";
 
@@ -39,6 +40,10 @@ const brandingRequest = z.strictObject({
 const brandingCompleteRequest = z.strictObject({
   storageKey: z.string().optional(),
   guestToken: z.string().optional(),
+});
+
+const brandingRemoveRequest = z.strictObject({
+  slot: z.enum(["cover", "logo", "background"]),
 });
 
 export function uploadJson(body: unknown, status = 200) {
@@ -148,6 +153,18 @@ export async function postBrandingComplete(
     eventId,
     intentId,
     claimedKey: body.storageKey,
+    storage: getStorage(),
+  });
+}
+
+export async function deleteBranding(eventId: string, request: Request) {
+  const session = await getRequestSession();
+  const body = brandingRemoveRequest.parse(await readJson(request));
+
+  return removeBrandingImage({
+    actor: session?.user ?? null,
+    eventId,
+    slot: body.slot,
     storage: getStorage(),
   });
 }

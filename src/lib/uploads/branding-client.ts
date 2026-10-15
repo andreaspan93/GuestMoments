@@ -41,3 +41,16 @@ export async function uploadBrandingFile(eventId: string, slot: BrandingSlot, fi
     throw new Error("intent");
   }
 }
+
+export async function removeBrandingFile(eventId: string, slot: BrandingSlot) {
+  const response = await fetch(`/api/events/${eventId}/branding`, {
+    method: "DELETE",
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ slot }),
+  });
+
+  if (!response.ok) {
+    throw new Error("The image was not removed.");
+  }
+}

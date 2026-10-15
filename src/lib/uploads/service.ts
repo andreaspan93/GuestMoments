@@ -633,3 +633,75 @@ export async function completeBrandingUpload(input: {
 
   return { storageKey: intent.storageKey };
 }
+
+export async function removeBrandingImage(input: {
+  actor: Actor | null;
+  eventId: string;
+  slot: BrandingSlot;
+  storage: IStorageService;
+}) {
+  const now = new Date();
+
+  if (!input.actor) {
+    throw new UploadError("unauthorized");
+  }
+
+  if (
+    input.actor.role !== "OWNER" &&
+    !(await customerHasServiceAccess(input.actor, now))
+  ) {
+    throw new UploadError("inactive");
+  }
+
+  const event = await prisma.event.findFirst({
+    where: {
+      id: input.eventId,
+      ...eventScope(input.actor),
+    },
+    select: {
+      id: true,
+      coverKey: true,
+      logoKey: true,
+      backgroundImageKey: true,
+    },
+  });
+
+  if (!event) {
+    throw new UploadError("notFound");
+  }
+
+  const previous =
+    input.slot === "cover"
+      ? event.coverKey
+      : input.slot === "logo"
+        ? event.logoKey
+        : event.backgroundImageKey;
+
+  if (previous) {
+    await input.storage.deleteObject(previous);
+  }
+
+  await prisma.event.update({
+    where: { id: event.id },
+    data:
+      input.slot === "cover"
+        ? { coverKey: null }
+        : input.slot === "logo"
+          ? { logoKey: null }
+          : { backgroundImageKey: null },
+  });
+
+  if (previous) {
+    await recordApplicationLog({
+      eventType: "media.deleted",
+      actorType: actorTypeForRole(input.actor.role),
+      actorId: input.actor.id,
+      targetType: "event",
+      targetId: event.id,
+      result: "success",
+      metadata: { eventId: event.id },
+    });
+  }
+
+  return { removed: true };
+}

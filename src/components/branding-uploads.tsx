@@ -4,8 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { FilePicker } from "@/components/file-picker";
+import { buttonVariants } from "@/components/ui/button";
 import {
   brandingSlots,
+  removeBrandingFile,
   uploadBrandingFile,
   type BrandingSlot,
 } from "@/lib/uploads/branding-client";
@@ -32,6 +34,10 @@ export function BrandingUploads({
   const [message, setMessage] = useState<string | null>(null);
   const [pendingSlot, setPendingSlot] = useState<string | null>(null);
   const [localPreviews, setLocalPreviews] = useState<Partial<Record<BrandingSlot, string>>>({});
+  const [cleared, setCleared] = useState<Partial<Record<BrandingSlot, boolean>>>({});
+  const [pickerGeneration, setPickerGeneration] = useState<Partial<Record<BrandingSlot, number>>>(
+    {},
+  );
   const staged = useRef<Partial<Record<BrandingSlot, File>>>({});
   const previewUrls = useRef<string[]>([]);
 
@@ -82,6 +88,53 @@ export function BrandingUploads({
     }
   }
 
+  function clearStaged(slot: BrandingSlot) {
+    if (staged.current[slot]) {
+      const next = { ...staged.current };
+      delete next[slot];
+      staged.current = next;
+      onStagedChange?.(next);
+    }
+
+    setLocalPreviews((current) => {
+      const previous = current[slot];
+
+      if (previous) {
+        URL.revokeObjectURL(previous);
+      }
+
+      return { ...current, [slot]: undefined };
+    });
+    setPickerGeneration((current) => ({
+      ...current,
+      [slot]: (current[slot] ?? 0) + 1,
+    }));
+  }
+
+  async function remove(slot: BrandingSlot) {
+    const hasStored = Boolean(previews?.[slot]) && !cleared[slot];
+    clearStaged(slot);
+
+    if (!eventId || !hasStored) {
+      return;
+    }
+
+    setCleared((current) => ({ ...current, [slot]: true }));
+    setPendingSlot(slot);
+    setMessage(null);
+
+    try {
+      await removeBrandingFile(eventId, slot);
+      setMessage(t("brandingRemoved"));
+      router.refresh();
+    } catch {
+      setCleared((current) => ({ ...current, [slot]: false }));
+      setMessage(t("brandingRemoveFailed"));
+    } finally {
+      setPendingSlot(null);
+    }
+  }
+
   return (
     <section className="mt-2 grid gap-4 border-t border-border pt-8">
       <div>
@@ -90,17 +143,19 @@ export function BrandingUploads({
       </div>
       {brandingSlots.map((slot) => {
         const label = slot === "background" ? t("backgroundImage") : t(slot);
-        const preview = localPreviews[slot] ?? previews?.[slot] ?? null;
+        const storedPreview = cleared[slot] ? null : (previews?.[slot] ?? null);
+        const preview = localPreviews[slot] ?? storedPreview;
 
         return (
-          <label key={slot} className="grid gap-2 text-sm font-medium">
-            {label}
+          <div key={slot} className="grid gap-2 text-sm font-medium">
+            <span>{label}</span>
             {preview ? (
               // Signed storage URL or a local preview; the image optimizer is not used.
               // eslint-disable-next-line @next/next/no-img-element
               <img className="max-h-40 w-full rounded-2xl object-cover" src={preview} alt="" />
             ) : null}
             <FilePicker
+              key={`${slot}-${pickerGeneration[slot] ?? 0}`}
               accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
               disabled={disabled || pendingSlot !== null}
               buttonLabel={t("chooseFile")}
@@ -114,8 +169,20 @@ export function BrandingUploads({
                 }
               }}
             />
+            {preview ? (
+              <button
+                type="button"
+                className={buttonVariants({ variant: "outline", size: "sm" })}
+                disabled={disabled || pendingSlot !== null}
+                onClick={() => {
+                  void remove(slot);
+                }}
+              >
+                {t("removeImage")}
+              </button>
+            ) : null}
             {pendingSlot === slot ? <span>{t("pending")}</span> : null}
-          </label>
+          </div>
         );
       })}
       {message ? (

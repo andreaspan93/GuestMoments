@@ -18,6 +18,7 @@ import {
   completeGuestUpload,
   createBrandingIntent,
   createGuestUploadIntent,
+  removeBrandingImage,
 } from "@/lib/uploads/service";
 
 const createdEmails: string[] = [];
@@ -326,6 +327,76 @@ describe("uploads", () => {
         storage,
       }),
     ).rejects.toMatchObject({ code: "notFound" });
+  });
+
+  it("removes a branding image and leaves the other slots", async () => {
+    const owner = await signUpCustomer("Remove Owner");
+    const other = await signUpCustomer("Remove Other");
+    const event = await createCustomerEvent(owner, form());
+    const storage = new MemoryStorage();
+    const coverKey = `events/${event.id}/branding/cover-${randomUUID()}`;
+    const logoKey = `events/${event.id}/branding/logo-${randomUUID()}`;
+    storage.objects.set(coverKey, {
+      bytes: new Uint8Array([1, 2, 3]),
+      contentType: "image/jpeg",
+    });
+    storage.objects.set(logoKey, {
+      bytes: new Uint8Array([4, 5]),
+      contentType: "image/png",
+    });
+    await prisma.event.update({
+      where: { id: event.id },
+      data: { coverKey, logoKey },
+    });
+
+    await expect(
+      removeBrandingImage({
+        actor: null,
+        eventId: event.id,
+        slot: "cover",
+        storage,
+      }),
+    ).rejects.toMatchObject({ code: "unauthorized" });
+
+    await expect(
+      removeBrandingImage({
+        actor: other,
+        eventId: event.id,
+        slot: "cover",
+        storage,
+      }),
+    ).rejects.toMatchObject({ code: "notFound" });
+
+    expect(storage.objects.has(coverKey)).toBe(true);
+
+    await expect(
+      removeBrandingImage({
+        actor: owner,
+        eventId: event.id,
+        slot: "cover",
+        storage,
+      }),
+    ).resolves.toEqual({ removed: true });
+
+    const cleared = await prisma.event.findUniqueOrThrow({
+      where: { id: event.id },
+      select: { coverKey: true, logoKey: true, backgroundImageKey: true },
+    });
+
+    expect(cleared.coverKey).toBeNull();
+    expect(cleared.logoKey).toBe(logoKey);
+    expect(cleared.backgroundImageKey).toBeNull();
+    expect(storage.objects.has(coverKey)).toBe(false);
+    expect(storage.objects.has(logoKey)).toBe(true);
+
+    await expect(
+      removeBrandingImage({
+        actor: owner,
+        eventId: event.id,
+        slot: "background",
+        storage,
+      }),
+    ).resolves.toEqual({ removed: true });
   });
 
   it("deletes abandoned intents and the event prefix", async () => {
