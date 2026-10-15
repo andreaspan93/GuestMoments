@@ -2,14 +2,25 @@
 
 import { useActionState, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
+import { BrandingUploads } from "@/components/branding-uploads";
 import { EventAppearanceFields } from "@/components/event-appearance-fields";
 import { Button } from "@/components/ui/button";
-import { defaultEventAppearance, type EventFontId, type LogoSize } from "@/lib/events/appearance";
+import { useRouter } from "@/i18n/navigation";
+import {
+  defaultEventAppearance,
+  type EventFontId,
+  type LogoCorner,
+  type LogoSize,
+} from "@/lib/events/appearance";
 import {
   createEventAction,
   updateEventAction,
   type EventFormState,
 } from "@/lib/events/actions";
+import { pathAfterEventCreated } from "@/lib/events/create-flow";
+import { uploadBrandingFile, type BrandingSlot } from "@/lib/uploads/branding-client";
+
+const finishingIds = new Set<string>();
 
 const fieldClassName =
   "h-10 rounded-full border border-border bg-background px-4 text-base text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring";
@@ -29,6 +40,7 @@ export type EventFormDefaults = {
   titleFont: EventFontId;
   guestFont: EventFontId;
   logoSize: LogoSize;
+  logoCorner: LogoCorner;
   privacyMode: "OWN_UPLOADS" | "FULL_GALLERY";
   status: "ACTIVE" | "DISABLED";
 };
@@ -72,11 +84,18 @@ function FormMessage({ state }: { state: EventFormState }) {
 export function EventForm({
   eventId,
   defaults,
+  brandingPreviews,
 }: {
   eventId?: string;
   defaults?: EventFormDefaults;
+  brandingPreviews?: {
+    cover: string | null;
+    logo: string | null;
+    background: string | null;
+  };
 }) {
   const t = useTranslations("events");
+  const router = useRouter();
   const values = defaults ?? emptyEvent;
   const action = eventId
     ? updateEventAction.bind(null, eventId)
@@ -86,7 +105,10 @@ export function EventForm({
   const [status, setStatus] = useState(values.status);
   const [savedPrivacy, setSavedPrivacy] = useState(values.privacyMode);
   const [savedStatus, setSavedStatus] = useState(values.status);
+  const [finishing, setFinishing] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
+  const stagedFiles = useRef<Partial<Record<BrandingSlot, File>>>({});
+  const redirectStarted = useRef(false);
 
   if (values.privacyMode !== savedPrivacy || values.status !== savedStatus) {
     setSavedPrivacy(values.privacyMode);
@@ -94,6 +116,36 @@ export function EventForm({
     setPrivacyMode(values.privacyMode);
     setStatus(values.status);
   }
+
+  useEffect(() => {
+    const createdId = state?.createdId;
+
+    if (!createdId || redirectStarted.current || finishingIds.has(createdId)) {
+      return;
+    }
+
+    redirectStarted.current = true;
+    finishingIds.add(createdId);
+    const files = stagedFiles.current;
+    setFinishing(true);
+    void (async () => {
+      for (const slot of ["cover", "logo", "background"] as const) {
+        const file = files[slot];
+
+        if (!file) {
+          continue;
+        }
+
+        try {
+          await uploadBrandingFile(createdId, slot, file);
+        } catch {
+          // The event already exists, so the list is still the right place to land.
+        }
+      }
+
+      router.push(pathAfterEventCreated());
+    })();
+  }, [router, state]);
 
   useEffect(() => {
     if (state?.success !== "saved") {
@@ -208,6 +260,7 @@ export function EventForm({
         titleFont={values.titleFont}
         guestFont={values.guestFont}
         logoSize={values.logoSize}
+        logoCorner={values.logoCorner}
       />
       <label className="grid gap-2 text-sm font-medium">
         {t("privacy")}
@@ -239,9 +292,17 @@ export function EventForm({
           <option value="DISABLED">{t("disabled")}</option>
         </select>
       </label>
+      <BrandingUploads
+        eventId={eventId}
+        previews={brandingPreviews}
+        disabled={pending || finishing}
+        onStagedChange={(files) => {
+          stagedFiles.current = files;
+        }}
+      />
       <FormMessage state={state} />
-      <Button type="submit" disabled={pending} aria-busy={pending}>
-        {pending ? t("pending") : eventId ? t("save") : t("createSubmit")}
+      <Button type="submit" disabled={pending || finishing} aria-busy={pending || finishing}>
+        {pending || finishing ? t("pending") : eventId ? t("save") : t("createSubmit")}
       </Button>
     </form>
   );

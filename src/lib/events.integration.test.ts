@@ -61,6 +61,7 @@ function form(overrides: Partial<EventFormValues> = {}): EventFormValues {
     titleFont: "noto-sans",
     guestFont: "noto-sans",
     logoSize: "medium",
+    logoCorner: "square",
     privacyMode: "FULL_GALLERY",
     status: "ACTIVE",
     ...overrides,
@@ -291,13 +292,19 @@ describe("events", () => {
       form({
         titleFont: "literata",
         guestFont: "noto-serif",
-        logoSize: "large",
+        logoSize: "extra-large",
+        logoCorner: "rounded",
       }),
     );
 
     expect(created.titleFont).toBe("literata");
     expect(created.guestFont).toBe("noto-serif");
-    expect(created.logoSize).toBe("large");
+    expect(created.logoSize).toBe("extra-large");
+    expect(created.logoCorner).toBe("rounded");
+
+    const reloaded = await getCustomerEvent(customer, created.id);
+    expect(reloaded?.logoSize).toBe("extra-large");
+    expect(reloaded?.logoCorner).toBe("rounded");
 
     const updated = await updateCustomerEvent(
       customer,
@@ -306,12 +313,14 @@ describe("events", () => {
         titleFont: "eb-garamond",
         guestFont: "source-sans",
         logoSize: "small",
+        logoCorner: "square",
       }),
     );
 
     expect(updated.titleFont).toBe("eb-garamond");
     expect(updated.guestFont).toBe("source-sans");
     expect(updated.logoSize).toBe("small");
+    expect(updated.logoCorner).toBe("square");
     expect(updated.name).toBe("Alex and Niki");
   });
 });

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { eventFontIds, logoSizes } from "./appearance";
+import { eventFontIds, logoCorners, logoSizes } from "./appearance";
 import { isCalendarDate } from "./expiry";
 
 const hexColor = z
@@ -19,6 +19,7 @@ export const eventFormSchema = z.strictObject({
   titleFont: z.enum(eventFontIds),
   guestFont: z.enum(eventFontIds),
   logoSize: z.enum(logoSizes),
+  logoCorner: z.enum(logoCorners),
   privacyMode: z.enum(["OWN_UPLOADS", "FULL_GALLERY"]),
   status: z.enum(["ACTIVE", "DISABLED"]),
 });

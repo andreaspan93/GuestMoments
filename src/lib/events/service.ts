@@ -52,6 +52,7 @@ async function insertEvent(data: {
   titleFont: string;
   guestFont: string;
   logoSize: string;
+  logoCorner: string;
   status: string;
   privacyMode: string;
   retentionDays: number;
@@ -160,6 +161,7 @@ export async function createCustomerEvent(
     titleFont: input.titleFont,
     guestFont: input.guestFont,
     logoSize: input.logoSize,
+    logoCorner: input.logoCorner,
     status: input.status,
     privacyMode: input.privacyMode,
     retentionDays: settings.defaultRetentionDays,
@@ -223,6 +225,7 @@ export async function updateCustomerEvent(
       titleFont: input.titleFont,
       guestFont: input.guestFont,
       logoSize: input.logoSize,
+      logoCorner: input.logoCorner,
       status: input.status,
       privacyMode: input.privacyMode,
       expiresAt,

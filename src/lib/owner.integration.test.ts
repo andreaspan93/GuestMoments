@@ -93,6 +93,7 @@ function form(overrides: Partial<EventFormValues> = {}): EventFormValues {
     titleFont: "noto-sans",
     guestFont: "noto-sans",
     logoSize: "medium",
+    logoCorner: "square",
     privacyMode: "FULL_GALLERY",
     status: "ACTIVE",
     ...overrides,

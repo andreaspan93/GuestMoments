@@ -109,6 +109,7 @@ model Event {
   titleFont            String    @default("noto-sans")
   guestFont            String    @default("noto-sans")
   logoSize             String    @default("medium")
+  logoCorner           String    @default("square")
   status               String    @default("ACTIVE")
   privacyMode          String    @default("FULL_GALLERY")
   retentionDays        Int

@@ -4,7 +4,7 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { EventAppearanceFields } from "@/components/event-appearance-fields";
 import { Button } from "@/components/ui/button";
-import { type EventFontId, type LogoSize } from "@/lib/events/appearance";
+import { type EventFontId, type LogoCorner, type LogoSize } from "@/lib/events/appearance";
 import {
   createOwnerEventAction,
   updateOwnerEventAction,
@@ -30,6 +30,7 @@ export type OwnerEventDefaults = {
   titleFont: EventFontId;
   guestFont: EventFontId;
   logoSize: LogoSize;
+  logoCorner: LogoCorner;
   privacyMode: "OWN_UPLOADS" | "FULL_GALLERY";
   status: "ACTIVE" | "DISABLED";
   retentionDays?: number;
@@ -251,6 +252,7 @@ export function OwnerEventForm({
         titleFont={defaults.titleFont}
         guestFont={defaults.guestFont}
         logoSize={defaults.logoSize}
+        logoCorner={defaults.logoCorner}
       />
       <label className="grid gap-2 text-sm font-medium">
         {events("privacy")}

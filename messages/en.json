@@ -91,7 +91,13 @@
     "logoSizes": {
       "small": "Small",
       "medium": "Medium",
-      "large": "Large"
+      "large": "Large",
+      "extra-large": "Extra large"
+    },
+    "logoCorner": "Logo corners",
+    "logoCorners": {
+      "rounded": "Rounded",
+      "square": "Square"
     },
     "privacy": "What guests can see",
     "fullGallery": "The full gallery",

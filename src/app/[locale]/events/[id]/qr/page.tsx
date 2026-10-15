@@ -6,7 +6,7 @@ import { ServiceAccessNotice } from "@/components/service-access-notice";
 import { buttonVariants } from "@/components/ui/button";
 import { redirect } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
-import { eventFontFamily, logoSizeClass } from "@/lib/events/appearance";
+import { eventFontFamily, logoImageClass } from "@/lib/events/appearance";
 import { guestEventUrl } from "@/lib/events/code";
 import { getCustomerEvent } from "@/lib/events/service";
 import { getRequestSession } from "@/lib/session";
@@ -61,7 +61,7 @@ export default async function EventQrPage({
         <section className="flex flex-col items-center rounded-3xl border border-border bg-card px-6 py-10 text-center shadow-sm sm:px-12">
           <EventLogo
             src={logoUrl}
-            className={`mb-6 ${logoSizeClass(event.logoSize, "screen")}`}
+            className={`mb-6 ${logoImageClass(event.logoSize, event.logoCorner, "screen")}`}
           />
           <h1
             className="text-3xl font-semibold tracking-tight"
@@ -98,7 +98,7 @@ export default async function EventQrPage({
         >
           {event.name}
         </h1>
-        <EventLogo src={logoUrl} className={logoSizeClass(event.logoSize, "print")} />
+        <EventLogo src={logoUrl} className={logoImageClass(event.logoSize, event.logoCorner, "print")} />
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={qrSrc}

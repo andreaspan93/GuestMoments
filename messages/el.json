@@ -91,7 +91,13 @@
     "logoSizes": {
       "small": "Μικρό",
       "medium": "Μεσαίο",
-      "large": "Μεγάλο"
+      "large": "Μεγάλο",
+      "extra-large": "Πολύ μεγάλο"
+    },
+    "logoCorner": "Γωνίες λογοτύπου",
+    "logoCorners": {
+      "rounded": "Στρογγυλεμένες",
+      "square": "Τετράγωνες"
     },
     "privacy": "Τι βλέπουν οι καλεσμένοι",
     "fullGallery": "Όλη τη συλλογή",

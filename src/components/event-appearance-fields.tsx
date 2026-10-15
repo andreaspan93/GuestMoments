@@ -1,7 +1,14 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { eventFonts, logoSizes, type EventFontId, type LogoSize } from "@/lib/events/appearance";
+import {
+  eventFonts,
+  logoCorners,
+  logoSizes,
+  type EventFontId,
+  type LogoCorner,
+  type LogoSize,
+} from "@/lib/events/appearance";
 
 const fieldClassName =
   "h-10 rounded-full border border-border bg-background px-4 text-base text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring";
@@ -10,10 +17,12 @@ export function EventAppearanceFields({
   titleFont,
   guestFont,
   logoSize,
+  logoCorner,
 }: {
   titleFont: EventFontId;
   guestFont: EventFontId;
   logoSize: LogoSize;
+  logoCorner: LogoCorner;
 }) {
   const t = useTranslations("events");
 
@@ -45,6 +54,16 @@ export function EventAppearanceFields({
           {logoSizes.map((size) => (
             <option key={size} value={size}>
               {t(`logoSizes.${size}`)}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="grid gap-2 text-sm font-medium">
+        {t("logoCorner")}
+        <select className={fieldClassName} name="logoCorner" defaultValue={logoCorner}>
+          {logoCorners.map((corner) => (
+            <option key={corner} value={corner}>
+              {t(`logoCorners.${corner}`)}
             </option>
           ))}
         </select>

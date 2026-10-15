@@ -14,6 +14,7 @@ import { getRequestSession } from "@/lib/session";
 export type EventFormState = {
   error?: "invalid" | "pastExpiry" | "inactive" | "eventLimit";
   success?: "saved";
+  createdId?: string;
 } | null;
 
 function field(formData: FormData, name: string) {
@@ -34,6 +35,7 @@ function readEventForm(formData: FormData) {
     titleFont: field(formData, "titleFont"),
     guestFont: field(formData, "guestFont"),
     logoSize: field(formData, "logoSize"),
+    logoCorner: field(formData, "logoCorner"),
     privacyMode: field(formData, "privacyMode"),
     status: field(formData, "status"),
   };
@@ -91,8 +93,8 @@ export async function createEventAction(
     return formError(error);
   }
 
-  redirect({ href: `/events/${event.id}`, locale });
-  return null;
+  revalidatePath("/[locale]/events", "page");
+  return { createdId: event.id };
 }
 
 export async function updateEventAction(

@@ -47,6 +47,7 @@ function readEventFields(formData: FormData) {
     titleFont: field(formData, "titleFont"),
     guestFont: field(formData, "guestFont"),
     logoSize: field(formData, "logoSize"),
+    logoCorner: field(formData, "logoCorner"),
     privacyMode: field(formData, "privacyMode"),
     status: field(formData, "status"),
   };

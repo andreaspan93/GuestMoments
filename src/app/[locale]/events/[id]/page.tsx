@@ -2,7 +2,6 @@ import { hasLocale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { customerNotice } from "@/lib/access";
-import { BrandingUploads } from "@/components/branding-uploads";
 import { ServiceAccessNotice } from "@/components/service-access-notice";
 import { DeleteEventButton } from "@/components/delete-event-button";
 import { EventForm } from "@/components/event-form";
@@ -12,7 +11,7 @@ import {
   calendarDateFromDb,
   formatAthensDateTime,
 } from "@/lib/events/expiry";
-import { isEventFontId, isLogoSize } from "@/lib/events/appearance";
+import { isEventFontId, isLogoCorner, isLogoSize } from "@/lib/events/appearance";
 import { getCustomerEvent } from "@/lib/events/service";
 import { signedObjectUrl } from "@/lib/storage/links";
 import { getRequestSession } from "@/lib/session";
@@ -89,16 +88,14 @@ export default async function EditEventPage({
               titleFont: isEventFontId(event.titleFont) ? event.titleFont : "noto-sans",
               guestFont: isEventFontId(event.guestFont) ? event.guestFont : "noto-sans",
               logoSize: isLogoSize(event.logoSize) ? event.logoSize : "medium",
+              logoCorner: isLogoCorner(event.logoCorner) ? event.logoCorner : "square",
               privacyMode:
                 event.privacyMode === "OWN_UPLOADS" ? "OWN_UPLOADS" : "FULL_GALLERY",
               status: event.status === "DISABLED" ? "DISABLED" : "ACTIVE",
             }}
+            brandingPreviews={{ cover, logo, background }}
           />
         </div>
-        <BrandingUploads
-          eventId={event.id}
-          previews={{ cover, logo, background }}
-        />
         <div className="mt-8">
           <DeleteEventButton
             eventId={event.id}

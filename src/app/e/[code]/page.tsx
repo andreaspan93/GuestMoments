@@ -3,7 +3,7 @@ import { GuestGallery } from "@/components/guest-gallery";
 import { GuestLanguageSwitch } from "@/components/guest-language-switch";
 import { GuestTokenCleanup } from "@/components/guest-token-cleanup";
 import { GuestUploader } from "@/components/guest-uploader";
-import { eventFontFamily, logoSizeClass } from "@/lib/events/appearance";
+import { eventFontFamily, logoImageClass } from "@/lib/events/appearance";
 import { decideGuestAccess } from "@/lib/events/access";
 import { formatCalendarDate, calendarDateFromDb } from "@/lib/events/expiry";
 import { readGuestLocale } from "@/lib/events/guest-actions";
@@ -81,7 +81,7 @@ export default async function GuestEventRoute({
             // Signed storage URL; the image optimizer is not used.
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              className={`mb-4 ${logoSizeClass(event.logoSize, "screen")}`}
+              className={`mb-4 ${logoImageClass(event.logoSize, event.logoCorner, "screen")}`}
               src={logoUrl}
               alt=""
             />
