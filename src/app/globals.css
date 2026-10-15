@@ -73,8 +73,8 @@ body {
 .qr-poster-cover {
   box-sizing: border-box;
   flex: 0 0 auto;
-  width: min(44mm, 22cqh);
-  max-width: 58%;
+  width: min(62mm, 30cqh);
+  max-width: 72%;
   margin-bottom: min(2.2mm, 1.1cqh);
   aspect-ratio: 1;
   height: auto;
@@ -117,7 +117,7 @@ body {
   align-self: center;
   width: max-content;
   max-width: 100%;
-  margin-top: min(3.2mm, 1.6cqh);
+  margin-top: min(2.2mm, 1.1cqh);
   margin-bottom: min(1.4mm, 0.7cqh);
   background: #fff;
   padding: 0;
@@ -127,7 +127,7 @@ body {
 .qr-poster-qr img {
   box-sizing: border-box;
   display: block;
-  width: min(66mm, 32cqh);
+  width: min(52mm, 25cqh);
   max-width: 100%;
   height: auto;
   aspect-ratio: 1;
@@ -136,12 +136,12 @@ body {
 }
 
 .qr-poster-has-logo .qr-poster-cover {
-  width: min(34mm, 17cqh);
+  width: min(48mm, 23cqh);
   margin-bottom: 0;
 }
 
 .qr-poster-has-logo .qr-poster-qr img {
-  width: min(56mm, 27cqh);
+  width: min(46mm, 22cqh);
 }
 
 .qr-poster-cta {
