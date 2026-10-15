@@ -59,12 +59,12 @@ describe("event appearance", () => {
     const mediumPrint = logoSizeClass("medium", "print");
     const extraLargePrint = logoSizeClass("extra-large", "print");
 
-    expect(smallPrint).toContain("12cqh");
-    expect(smallPrint).toContain("max-h-[26mm]");
-    expect(mediumPrint).toContain("15cqh");
-    expect(mediumPrint).toContain("max-h-[32mm]");
-    expect(extraLargePrint).toContain("21cqh");
-    expect(extraLargePrint).toContain("max-h-[44mm]");
+    expect(smallPrint).toContain("6.5cqh");
+    expect(smallPrint).toContain("max-h-[14mm]");
+    expect(mediumPrint).toContain("8cqh");
+    expect(mediumPrint).toContain("max-h-[18mm]");
+    expect(extraLargePrint).toContain("11cqh");
+    expect(extraLargePrint).toContain("max-h-[24mm]");
     expect(extraLargePrint).not.toContain("h-80");
     expect(mediumPrint).not.toContain("h-52");
   });
@@ -111,8 +111,8 @@ describe("event appearance", () => {
       expect(squarePrint).toContain("object-contain");
       expect(squarePrint).toContain("rounded-none");
       expect(squarePrint).not.toContain("rounded-full");
-      expect(squarePrint).toMatch(/max-h-\[(26|32|38|44)mm\]/);
-      expect(printCircle).toMatch(/max-w-\[(26|32|38|44)mm\]/);
+      expect(squarePrint).toMatch(/max-h-\[(14|18|21|24)mm\]/);
+      expect(printCircle).toMatch(/max-w-\[(14|18|21|24)mm\]/);
     }
   });
 
@@ -122,10 +122,10 @@ describe("event appearance", () => {
     const longName = posterTitleSize("A".repeat(70));
     const longestName = posterTitleSize("Ω".repeat(120));
 
-    expect(shortName).toBe("5cqh");
-    expect(mediumName).toBe("3.6cqh");
-    expect(longName).toBe("2.9cqh");
-    expect(longestName).toBe("2.35cqh");
+    expect(shortName).toBe("5.6cqh");
+    expect(mediumName).toBe("3.8cqh");
+    expect(longName).toBe("3cqh");
+    expect(longestName).toBe("2.2cqh");
     expect(Number.parseFloat(longestName) * 2.1).toBeGreaterThanOrEqual(4);
   });
 
@@ -159,6 +159,9 @@ describe("event appearance", () => {
     expect(qr).toContain(print);
     expect(qr).toContain("eventFontFamily(event.titleFont)");
     expect(qr).toContain("posterTitleSize(event.name)");
+    expect(qr).toContain("signedObjectUrl(event.coverKey)");
+    expect(qr).toContain("formatCalendarDate(calendarDateFromDb(event.eventDate), locale)");
+    expect(qr).toContain("qr-poster-cover");
     expect(qr).not.toContain("guestFont");
     expect(qr).toContain("`/api/events/${event.id}/qr`");
     expect(qr).toContain('t("qrPosterCta")');
@@ -171,6 +174,10 @@ describe("event appearance", () => {
     expect(css).toContain("height: 210mm;");
     expect(css).toContain("box-sizing: border-box;");
     expect(css).toContain("aspect-ratio: 148 / 210;");
+    expect(css).toContain(".qr-poster-cover");
+    expect(css).toContain("border-radius: 50%;");
+    expect(css).toContain("object-fit: cover;");
+    expect(css).not.toContain("qr-poster-ornament");
   });
 
   it("sends a new event to the event list and offers the same image slots as edit", () => {

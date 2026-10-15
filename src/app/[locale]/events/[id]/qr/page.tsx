@@ -1,4 +1,3 @@
-import type { CSSProperties } from "react";
 import { hasLocale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
@@ -9,6 +8,7 @@ import { redirect } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
 import { eventFontFamily, logoImageClass, posterTitleSize } from "@/lib/events/appearance";
 import { guestEventUrl } from "@/lib/events/code";
+import { calendarDateFromDb, formatCalendarDate } from "@/lib/events/expiry";
 import { getCustomerEvent } from "@/lib/events/service";
 import { getRequestSession } from "@/lib/session";
 import { signedObjectUrl } from "@/lib/storage/links";
@@ -52,9 +52,12 @@ export default async function EventQrPage({
 
   const t = await getTranslations("events");
   const url = guestEventUrl(event.uniqueCode);
-  const logoUrl = await signedObjectUrl(event.logoKey);
+  const [coverUrl, logoUrl] = await Promise.all([
+    signedObjectUrl(event.coverKey),
+    signedObjectUrl(event.logoKey),
+  ]);
   const qrSrc = `/api/events/${event.id}/qr`;
-  const posterStyle = { "--poster-accent": event.accentColor } as CSSProperties;
+  const posterClass = logoUrl ? "qr-poster qr-poster-has-logo" : "qr-poster";
 
   return (
     <>
@@ -64,8 +67,13 @@ export default async function EventQrPage({
       </div>
       <div className="qr-poster-stage">
         <div className="qr-poster-scale">
-          <article className="qr-poster" style={posterStyle}>
-            <div className="qr-poster-frame">
+          <article className={posterClass}>
+            <div className="qr-poster-sheet">
+              {coverUrl ? (
+                // Signed storage URL; the image optimizer is not used.
+                // eslint-disable-next-line @next/next/no-img-element
+                <img className="qr-poster-cover" src={coverUrl} alt="" />
+              ) : null}
               <h1
                 className="qr-poster-title"
                 style={{
@@ -75,11 +83,9 @@ export default async function EventQrPage({
               >
                 {event.name}
               </h1>
-              <div className="qr-poster-ornament" aria-hidden="true">
-                <span />
-                <span />
-                <span />
-              </div>
+              <p className="qr-poster-date">
+                {formatCalendarDate(calendarDateFromDb(event.eventDate), locale)}
+              </p>
               <EventLogo
                 src={logoUrl}
                 className={logoImageClass(event.logoSize, event.logoCorner, "print")}

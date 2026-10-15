@@ -48,69 +48,65 @@ body {
   min-height: 0;
   height: 100%;
   container-type: size;
-  background: #fffaf6;
-  color: #241c18;
-  padding: 7mm;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  color: #111;
+  padding: 12mm 11mm;
   print-color-adjust: exact;
   -webkit-print-color-adjust: exact;
 }
 
-.qr-poster-frame {
+.qr-poster-sheet {
   box-sizing: border-box;
   display: flex;
   min-width: 0;
   min-height: 0;
-  flex: 1 1 auto;
+  width: 100%;
+  flex: 0 1 auto;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: min(4mm, 1.9cqh);
-  width: 100%;
-  padding: 6mm 5.5mm;
-  border: 0.35mm solid color-mix(in srgb, var(--poster-accent, #8c3d32) 78%, #5c4033);
-  outline: 0.18mm solid color-mix(in srgb, var(--poster-accent, #8c3d32) 42%, #c4a574);
-  outline-offset: 1.8mm;
+  gap: min(4.2mm, 2cqh);
 }
 
-.qr-poster-frame > * {
+.qr-poster-cover {
   box-sizing: border-box;
-  min-width: 0;
-  max-width: 100%;
+  flex: 0 0 auto;
+  width: min(32mm, 16cqh);
+  max-width: 42%;
+  aspect-ratio: 1;
+  height: auto;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: center;
+  overflow: hidden;
 }
 
 .qr-poster-title {
+  box-sizing: border-box;
   flex: 0 1 auto;
   margin: 0;
   max-width: 100%;
-  color: #241c18;
-  font-weight: 500;
-  line-height: 1.15;
-  letter-spacing: 0.012em;
+  color: #111;
+  font-weight: 600;
+  line-height: 1.12;
+  letter-spacing: 0;
   text-align: center;
   overflow-wrap: anywhere;
   word-break: break-word;
 }
 
-.qr-poster-ornament {
-  display: flex;
+.qr-poster-date {
+  box-sizing: border-box;
   flex: 0 0 auto;
-  align-items: center;
-  gap: 2.4mm;
-  width: min(34mm, 46%);
-}
-
-.qr-poster-ornament span:nth-child(odd) {
-  height: 0.22mm;
-  flex: 1 1 auto;
-  background: color-mix(in srgb, var(--poster-accent, #8c3d32) 78%, #5c4033);
-}
-
-.qr-poster-ornament span:nth-child(2) {
-  width: 1.6mm;
-  height: 1.6mm;
-  flex: none;
-  rotate: 45deg;
-  background: color-mix(in srgb, var(--poster-accent, #8c3d32) 78%, #5c4033);
+  margin: 0;
+  max-width: 100%;
+  color: #111;
+  font-size: min(7.2mm, 3.5cqh);
+  font-weight: 400;
+  line-height: 1.2;
+  text-align: center;
 }
 
 .qr-poster-qr {
@@ -119,15 +115,16 @@ body {
   align-self: center;
   width: max-content;
   max-width: 100%;
+  margin-block: min(1.5mm, 0.8cqh);
   background: #fff;
-  padding: min(3.2mm, 1.5cqh);
+  padding: 0;
   line-height: 0;
 }
 
 .qr-poster-qr img {
   box-sizing: border-box;
   display: block;
-  width: min(54mm, 26cqh);
+  width: min(78mm, 38cqh);
   max-width: 100%;
   height: auto;
   aspect-ratio: 1;
@@ -135,15 +132,28 @@ body {
   background: #fff;
 }
 
+.qr-poster-has-logo .qr-poster-cover {
+  width: min(26mm, 13cqh);
+}
+
+.qr-poster-has-logo .qr-poster-qr img {
+  width: min(62mm, 30cqh);
+}
+
 .qr-poster-cta {
   box-sizing: border-box;
   flex: 0 0 auto;
-  max-width: 34ch;
+  max-width: 100%;
   margin: 0;
-  color: #3a2e28;
-  font-size: min(3.6mm, 2.15cqh);
-  line-height: 1.35;
+  padding-inline-start: 0.2em;
+  color: #9a9a9a;
+  font-size: min(3.15mm, 1.6cqh);
+  font-weight: 500;
+  line-height: 1.65;
+  letter-spacing: 0.2em;
   text-align: center;
+  text-transform: uppercase;
+  white-space: pre-line;
 }
 
 @media screen {
