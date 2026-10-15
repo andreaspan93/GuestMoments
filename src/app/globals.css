@@ -127,7 +127,7 @@ body {
 .qr-poster-qr img {
   box-sizing: border-box;
   display: block;
-  width: min(52mm, 25cqh);
+  width: min(44mm, 21cqh);
   max-width: 100%;
   height: auto;
   aspect-ratio: 1;
@@ -136,12 +136,12 @@ body {
 }
 
 .qr-poster-has-logo .qr-poster-cover {
-  width: min(48mm, 23cqh);
+  width: min(30mm, 15cqh);
   margin-bottom: 0;
 }
 
 .qr-poster-has-logo .qr-poster-qr img {
-  width: min(46mm, 22cqh);
+  width: min(38mm, 18cqh);
 }
 
 .qr-poster-cta {

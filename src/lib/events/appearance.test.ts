@@ -59,12 +59,12 @@ describe("event appearance", () => {
     const mediumPrint = logoSizeClass("medium", "print");
     const extraLargePrint = logoSizeClass("extra-large", "print");
 
-    expect(smallPrint).toContain("6.5cqh");
-    expect(smallPrint).toContain("max-h-[14mm]");
-    expect(mediumPrint).toContain("8cqh");
-    expect(mediumPrint).toContain("max-h-[18mm]");
-    expect(extraLargePrint).toContain("11cqh");
-    expect(extraLargePrint).toContain("max-h-[24mm]");
+    expect(smallPrint).toContain("12.5cqh");
+    expect(smallPrint).toContain("max-h-[26mm]");
+    expect(mediumPrint).toContain("16cqh");
+    expect(mediumPrint).toContain("max-h-[34mm]");
+    expect(extraLargePrint).toContain("22cqh");
+    expect(extraLargePrint).toContain("max-h-[46mm]");
     expect(extraLargePrint).not.toContain("h-80");
     expect(mediumPrint).not.toContain("h-52");
   });
@@ -111,8 +111,8 @@ describe("event appearance", () => {
       expect(squarePrint).toContain("object-contain");
       expect(squarePrint).toContain("rounded-none");
       expect(squarePrint).not.toContain("rounded-full");
-      expect(squarePrint).toMatch(/max-h-\[(14|18|21|24)mm\]/);
-      expect(printCircle).toMatch(/max-w-\[(14|18|21|24)mm\]/);
+      expect(squarePrint).toMatch(/max-h-\[(26|34|40|46)mm\]/);
+      expect(printCircle).toMatch(/max-w-\[(26|34|40|46)mm\]/);
     }
   });
 
