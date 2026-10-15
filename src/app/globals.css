@@ -28,6 +28,17 @@ body {
   color: var(--foreground);
 }
 
+@media print {
+  @page {
+    margin: 16mm;
+  }
+
+  body {
+    background: white;
+    color: black;
+  }
+}
+
 .color-well {
   height: 2.5rem;
   width: 100%;

@@ -1,8 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { guestChrome, type GuestLocale } from "@/lib/events/text";
 import { createThumbnail, normalizeUploadFile } from "@/lib/uploads/browser-file";
+import {
+  claimUploadStart,
+  GUEST_UPLOAD_REDIRECT_MS,
+  guestEventPath,
+  uploadAttemptResult,
+} from "@/lib/uploads/guest-upload-flow";
 import { putBytesWithRetry } from "@/lib/uploads/transfer";
 import { FilePicker } from "@/components/file-picker";
 import { Button } from "@/components/ui/button";
@@ -91,6 +97,18 @@ export function GuestUploader({
   const [guestMessage, setGuestMessage] = useState("");
   const [items, setItems] = useState<UploadItem[]>([]);
   const [pending, setPending] = useState(false);
+  const [uploaded, setUploaded] = useState(false);
+  const [pickerKey, setPickerKey] = useState(0);
+  const inProgress = useRef(false);
+  const redirectTimer = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (redirectTimer.current !== null) {
+        window.clearTimeout(redirectTimer.current);
+      }
+    };
+  }, []);
 
   function updateItem(id: string, patch: Partial<UploadItem>) {
     setItems((current) =>
@@ -164,16 +182,37 @@ export function GuestUploader({
     window.dispatchEvent(new Event("guestmoments-gallery-refresh"));
   }
 
+  function resetSelection(current: UploadItem[]) {
+    for (const item of current) {
+      if (item.previewUrl) {
+        URL.revokeObjectURL(item.previewUrl);
+      }
+    }
+
+    setGuestName("");
+    setGuestMessage("");
+    setItems([]);
+    setPickerKey((key) => key + 1);
+  }
+
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (!claimUploadStart(inProgress.current)) {
+      return;
+    }
+
     const input = event.currentTarget.elements.namedItem("files");
 
     if (!(input instanceof HTMLInputElement) || !input.files?.length) {
       return;
     }
 
+    inProgress.current = true;
     setPending(true);
+    setUploaded(false);
     const files = Array.from(input.files);
+    const outcomes: Array<"done" | "error"> = [];
 
     for (let index = 0; index < items.length; index += 1) {
       const item = items[index];
@@ -185,8 +224,10 @@ export function GuestUploader({
 
       try {
         await uploadOne(item, file);
+        outcomes.push("done");
       } catch (error) {
         const codeName = error instanceof Error ? error.message : "";
+        outcomes.push("error");
         updateItem(item.id, {
           status: "error",
           message: errorMessage(codeName, copy),
@@ -194,11 +235,35 @@ export function GuestUploader({
       }
     }
 
+    const result = uploadAttemptResult(outcomes);
+
+    if (result.succeeded) {
+      if (result.reset) {
+        resetSelection(items);
+      }
+
+      setUploaded(true);
+
+      if (result.redirect) {
+        redirectTimer.current = window.setTimeout(() => {
+          window.location.assign(guestEventPath(code));
+        }, GUEST_UPLOAD_REDIRECT_MS);
+      }
+
+      return;
+    }
+
+    inProgress.current = false;
     setPending(false);
   }
 
   return (
     <form className="mt-8 grid gap-4" onSubmit={onSubmit}>
+      {uploaded ? (
+        <p role="status" className="rounded-2xl border border-border bg-background px-4 py-3 text-sm">
+          {copy.uploadSuccess}
+        </p>
+      ) : null}
       <h2 className="text-sm font-medium tracking-wide uppercase" style={{ color: accentColor }}>
         {copy.uploadTitle}
       </h2>
@@ -208,6 +273,7 @@ export function GuestUploader({
           className="h-10 rounded-full border border-border bg-background px-4 text-base"
           name="guestName"
           maxLength={80}
+          disabled={pending}
           value={guestName}
           onChange={(event) => setGuestName(event.target.value)}
         />
@@ -218,6 +284,7 @@ export function GuestUploader({
           className="min-h-20 rounded-2xl border border-border bg-background px-4 py-3 text-base"
           name="guestMessage"
           maxLength={500}
+          disabled={pending}
           value={guestMessage}
           onChange={(event) => setGuestMessage(event.target.value)}
         />
@@ -225,8 +292,10 @@ export function GuestUploader({
       <div className="grid gap-2">
         <p className="text-sm font-medium">{copy.uploadPick}</p>
         <FilePicker
+          key={pickerKey}
           name="files"
           multiple
+          disabled={pending}
           buttonLabel={copy.uploadChoose}
           emptyLabel={copy.uploadEmpty}
           accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif,video/mp4,video/quicktime,.mp4,.mov"
@@ -257,7 +326,7 @@ export function GuestUploader({
           </li>
         ))}
       </ul>
-      <Button type="submit" disabled={pending || items.length === 0}>
+      <Button type="submit" disabled={pending || items.length === 0} aria-busy={pending}>
         {pending ? copy.uploadPending : copy.uploadSubmit}
       </Button>
     </form>
