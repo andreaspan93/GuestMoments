@@ -64,6 +64,9 @@ function form(name: string): EventFormValues {
     uploadInstructionsEn: "",
     backgroundColor: "#f7f1ea",
     accentColor: "#8c3d32",
+    titleFont: "noto-sans",
+    guestFont: "noto-sans",
+    logoSize: "medium",
     privacyMode: "FULL_GALLERY",
     status: "ACTIVE",
   };

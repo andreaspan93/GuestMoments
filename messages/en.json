@@ -85,6 +85,14 @@
     "fallbackHint": "If an English field is empty, guests see the Greek text.",
     "background": "Background color",
     "accent": "Accent color",
+    "titleFont": "Event name font",
+    "guestFont": "Guest page font",
+    "logoSize": "Logo size",
+    "logoSizes": {
+      "small": "Small",
+      "medium": "Medium",
+      "large": "Large"
+    },
     "privacy": "What guests can see",
     "fullGallery": "The full gallery",
     "ownUploads": "Only their own uploads",

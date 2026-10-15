@@ -51,6 +51,9 @@ function form(name = "Access wedding"): EventFormValues {
     uploadInstructionsEn: "",
     backgroundColor: "#102030",
     accentColor: "#abcdef",
+    titleFont: "noto-sans",
+    guestFont: "noto-sans",
+    logoSize: "medium",
     privacyMode: "FULL_GALLERY",
     status: "ACTIVE",
   };

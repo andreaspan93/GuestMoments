@@ -31,6 +31,9 @@ function readEventForm(formData: FormData) {
     uploadInstructionsEn: field(formData, "uploadInstructionsEn"),
     backgroundColor: field(formData, "backgroundColor"),
     accentColor: field(formData, "accentColor"),
+    titleFont: field(formData, "titleFont"),
+    guestFont: field(formData, "guestFont"),
+    logoSize: field(formData, "logoSize"),
     privacyMode: field(formData, "privacyMode"),
     status: field(formData, "status"),
   };

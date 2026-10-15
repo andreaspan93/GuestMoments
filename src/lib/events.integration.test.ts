@@ -58,6 +58,9 @@ function form(overrides: Partial<EventFormValues> = {}): EventFormValues {
     uploadInstructionsEn: "",
     backgroundColor: "#f7f1ea",
     accentColor: "#8c3d32",
+    titleFont: "noto-sans",
+    guestFont: "noto-sans",
+    logoSize: "medium",
     privacyMode: "FULL_GALLERY",
     status: "ACTIVE",
     ...overrides,
@@ -278,5 +281,37 @@ describe("events", () => {
         new Date(),
       ).state,
     ).toBe("unavailable");
+  });
+
+  it("saves appearance choices and keeps them on a later edit", async () => {
+    const customer = await signUpCustomer("Appearance Customer");
+    await setRetention(90);
+    const created = await createCustomerEvent(
+      customer,
+      form({
+        titleFont: "literata",
+        guestFont: "noto-serif",
+        logoSize: "large",
+      }),
+    );
+
+    expect(created.titleFont).toBe("literata");
+    expect(created.guestFont).toBe("noto-serif");
+    expect(created.logoSize).toBe("large");
+
+    const updated = await updateCustomerEvent(
+      customer,
+      created.id,
+      form({
+        titleFont: "eb-garamond",
+        guestFont: "source-sans",
+        logoSize: "small",
+      }),
+    );
+
+    expect(updated.titleFont).toBe("eb-garamond");
+    expect(updated.guestFont).toBe("source-sans");
+    expect(updated.logoSize).toBe("small");
+    expect(updated.name).toBe("Alex and Niki");
   });
 });

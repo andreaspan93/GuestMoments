@@ -1,12 +1,7 @@
 import type { Metadata } from "next";
-import { Noto_Sans } from "next/font/google";
 import { cookies, headers } from "next/headers";
+import { guestFontVariables } from "@/lib/events/guest-fonts";
 import "./globals.css";
-
-const notoSans = Noto_Sans({
-  variable: "--font-noto-sans",
-  subsets: ["latin", "greek"],
-});
 
 export const metadata: Metadata = {
   title: "GuestMoments",
@@ -27,7 +22,7 @@ export default async function RootLayout({
       : (headerStore.get("x-next-intl-locale") ?? "el");
 
   return (
-    <html lang={locale} className={`${notoSans.variable} h-full antialiased`}>
+    <html lang={locale} className={`${guestFontVariables} h-full antialiased`}>
       <body className="flex min-h-full flex-col font-sans">{children}</body>
     </html>
   );

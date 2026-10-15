@@ -49,6 +49,9 @@ async function insertEvent(data: {
   uploadInstructionsEn: string;
   backgroundColor: string;
   accentColor: string;
+  titleFont: string;
+  guestFont: string;
+  logoSize: string;
   status: string;
   privacyMode: string;
   retentionDays: number;
@@ -154,6 +157,9 @@ export async function createCustomerEvent(
     uploadInstructionsEn: input.uploadInstructionsEn,
     backgroundColor: input.backgroundColor,
     accentColor: input.accentColor,
+    titleFont: input.titleFont,
+    guestFont: input.guestFont,
+    logoSize: input.logoSize,
     status: input.status,
     privacyMode: input.privacyMode,
     retentionDays: settings.defaultRetentionDays,
@@ -214,6 +220,9 @@ export async function updateCustomerEvent(
       uploadInstructionsEn: input.uploadInstructionsEn,
       backgroundColor: input.backgroundColor,
       accentColor: input.accentColor,
+      titleFont: input.titleFont,
+      guestFont: input.guestFont,
+      logoSize: input.logoSize,
       status: input.status,
       privacyMode: input.privacyMode,
       expiresAt,

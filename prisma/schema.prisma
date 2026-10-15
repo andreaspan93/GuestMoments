@@ -106,6 +106,9 @@ model Event {
   backgroundColor      String
   backgroundImageKey   String?
   accentColor          String
+  titleFont            String    @default("noto-sans")
+  guestFont            String    @default("noto-sans")
+  logoSize             String    @default("medium")
   status               String    @default("ACTIVE")
   privacyMode          String    @default("FULL_GALLERY")
   retentionDays        Int

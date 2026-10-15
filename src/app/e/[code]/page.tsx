@@ -3,6 +3,7 @@ import { GuestGallery } from "@/components/guest-gallery";
 import { GuestLanguageSwitch } from "@/components/guest-language-switch";
 import { GuestTokenCleanup } from "@/components/guest-token-cleanup";
 import { GuestUploader } from "@/components/guest-uploader";
+import { eventFontFamily, logoSizeClass } from "@/lib/events/appearance";
 import { decideGuestAccess } from "@/lib/events/access";
 import { formatCalendarDate, calendarDateFromDb } from "@/lib/events/expiry";
 import { readGuestLocale } from "@/lib/events/guest-actions";
@@ -67,6 +68,7 @@ export default async function GuestEventRoute({
         backgroundImage: backgroundUrl ? `url("${backgroundUrl}")` : undefined,
         backgroundSize: "cover",
         backgroundPosition: "center",
+        fontFamily: eventFontFamily(event.guestFont),
       }}
     >
       <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col">
@@ -78,7 +80,11 @@ export default async function GuestEventRoute({
           {logoUrl ? (
             // Signed storage URL; the image optimizer is not used.
             // eslint-disable-next-line @next/next/no-img-element
-            <img className="mb-4 h-16 w-auto object-contain" src={logoUrl} alt="" />
+            <img
+              className={`mb-4 ${logoSizeClass(event.logoSize, "screen")}`}
+              src={logoUrl}
+              alt=""
+            />
           ) : null}
           {coverUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -89,7 +95,7 @@ export default async function GuestEventRoute({
           </p>
           <h1
             className="mt-2 text-4xl font-semibold tracking-tight"
-            style={{ color: event.accentColor }}
+            style={{ color: event.accentColor, fontFamily: eventFontFamily(event.titleFont) }}
           >
             {event.name}
           </h1>

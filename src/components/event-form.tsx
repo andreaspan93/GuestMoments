@@ -2,7 +2,9 @@
 
 import { useActionState, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
+import { EventAppearanceFields } from "@/components/event-appearance-fields";
 import { Button } from "@/components/ui/button";
+import { defaultEventAppearance, type EventFontId, type LogoSize } from "@/lib/events/appearance";
 import {
   createEventAction,
   updateEventAction,
@@ -24,6 +26,9 @@ export type EventFormDefaults = {
   uploadInstructionsEn: string;
   backgroundColor: string;
   accentColor: string;
+  titleFont: EventFontId;
+  guestFont: EventFontId;
+  logoSize: LogoSize;
   privacyMode: "OWN_UPLOADS" | "FULL_GALLERY";
   status: "ACTIVE" | "DISABLED";
 };
@@ -37,6 +42,7 @@ const emptyEvent: EventFormDefaults = {
   uploadInstructionsEn: "",
   backgroundColor: "#f7f1ea",
   accentColor: "#8c3d32",
+  ...defaultEventAppearance,
   privacyMode: "FULL_GALLERY",
   status: "ACTIVE",
 };
@@ -198,6 +204,11 @@ export function EventForm({
           />
         </label>
       </div>
+      <EventAppearanceFields
+        titleFont={values.titleFont}
+        guestFont={values.guestFont}
+        logoSize={values.logoSize}
+      />
       <label className="grid gap-2 text-sm font-medium">
         {t("privacy")}
         <select

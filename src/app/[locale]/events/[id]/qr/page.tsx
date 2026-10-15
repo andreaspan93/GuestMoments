@@ -6,6 +6,7 @@ import { ServiceAccessNotice } from "@/components/service-access-notice";
 import { buttonVariants } from "@/components/ui/button";
 import { redirect } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
+import { eventFontFamily, logoSizeClass } from "@/lib/events/appearance";
 import { guestEventUrl } from "@/lib/events/code";
 import { getCustomerEvent } from "@/lib/events/service";
 import { getRequestSession } from "@/lib/session";
@@ -60,9 +61,14 @@ export default async function EventQrPage({
         <section className="flex flex-col items-center rounded-3xl border border-border bg-card px-6 py-10 text-center shadow-sm sm:px-12">
           <EventLogo
             src={logoUrl}
-            className="mb-6 h-24 w-auto max-w-full object-contain sm:h-32"
+            className={`mb-6 ${logoSizeClass(event.logoSize, "screen")}`}
           />
-          <h1 className="text-3xl font-semibold tracking-tight">{event.name}</h1>
+          <h1
+            className="text-3xl font-semibold tracking-tight"
+            style={{ fontFamily: eventFontFamily(event.titleFont) }}
+          >
+            {event.name}
+          </h1>
           <p className="mt-3 max-w-xl text-sm leading-6 text-foreground/80">{t("qrLead")}</p>
           {/* Generated locally; the image optimizer is not used. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -86,11 +92,13 @@ export default async function EventQrPage({
         </section>
       </main>
       <section className="hidden print:flex print:min-h-[100vh] print:flex-col print:items-center print:bg-white print:px-8 print:pt-4 print:text-center print:text-black">
-        <h1 className="text-4xl font-semibold tracking-tight">{event.name}</h1>
-        <EventLogo
-          src={logoUrl}
-          className="mt-6 h-28 w-auto max-w-[70mm] object-contain"
-        />
+        <h1
+          className="text-4xl font-semibold tracking-tight"
+          style={{ fontFamily: eventFontFamily(event.titleFont) }}
+        >
+          {event.name}
+        </h1>
+        <EventLogo src={logoUrl} className={logoSizeClass(event.logoSize, "print")} />
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={qrSrc}
