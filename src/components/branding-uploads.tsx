@@ -14,6 +14,7 @@ export function BrandingUploads({
   eventId,
   previews,
   disabled = false,
+  uploadOnSave = false,
   onStagedChange,
 }: {
   eventId?: string;
@@ -23,6 +24,7 @@ export function BrandingUploads({
     background: string | null;
   };
   disabled?: boolean;
+  uploadOnSave?: boolean;
   onStagedChange?: (files: Partial<Record<BrandingSlot, File>>) => void;
 }) {
   const t = useTranslations("events");
@@ -61,7 +63,7 @@ export function BrandingUploads({
   }
 
   async function upload(slot: BrandingSlot, file: File) {
-    if (!eventId) {
+    if (!eventId || uploadOnSave) {
       stage(slot, file);
       return;
     }

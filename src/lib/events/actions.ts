@@ -15,6 +15,7 @@ export type EventFormState = {
   error?: "invalid" | "pastExpiry" | "inactive" | "eventLimit";
   success?: "saved";
   createdId?: string;
+  savedId?: string;
 } | null;
 
 function field(formData: FormData, name: string) {
@@ -123,7 +124,7 @@ export async function updateEventAction(
 
   revalidatePath("/[locale]/events/[id]", "page");
   revalidatePath("/[locale]/events", "page");
-  return { success: "saved" };
+  return { savedId: eventId };
 }
 
 export async function deleteEventAction(eventId: string) {

@@ -17,7 +17,11 @@ import {
   updateEventAction,
   type EventFormState,
 } from "@/lib/events/actions";
-import { pathAfterEventCreated } from "@/lib/events/create-flow";
+import {
+  pathAfterEventCreated,
+  pathAfterEventUpdated,
+  shouldRedirectAfterEdit,
+} from "@/lib/events/create-flow";
 import { uploadBrandingFile, type BrandingSlot } from "@/lib/uploads/branding-client";
 
 const finishingIds = new Set<string>();
@@ -106,6 +110,7 @@ export function EventForm({
   const [savedPrivacy, setSavedPrivacy] = useState(values.privacyMode);
   const [savedStatus, setSavedStatus] = useState(values.status);
   const [finishing, setFinishing] = useState(false);
+  const [brandingError, setBrandingError] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const stagedFiles = useRef<Partial<Record<BrandingSlot, File>>>({});
   const redirectStarted = useRef(false);
@@ -119,16 +124,21 @@ export function EventForm({
 
   useEffect(() => {
     const createdId = state?.createdId;
+    const savedId = state?.savedId;
+    const targetId = createdId ?? savedId;
 
-    if (!createdId || redirectStarted.current || finishingIds.has(createdId)) {
+    if (!targetId || redirectStarted.current || finishingIds.has(targetId)) {
       return;
     }
 
     redirectStarted.current = true;
-    finishingIds.add(createdId);
+    finishingIds.add(targetId);
     const files = stagedFiles.current;
+    const editing = Boolean(savedId) && !createdId;
     setFinishing(true);
     void (async () => {
+      let uploadsSucceeded = true;
+
       for (const slot of ["cover", "logo", "background"] as const) {
         const file = files[slot];
 
@@ -137,13 +147,25 @@ export function EventForm({
         }
 
         try {
-          await uploadBrandingFile(createdId, slot, file);
+          await uploadBrandingFile(targetId, slot, file);
         } catch {
-          // The event already exists, so the list is still the right place to land.
+          uploadsSucceeded = false;
+
+          if (editing) {
+            break;
+          }
         }
       }
 
-      router.push(pathAfterEventCreated());
+      if (editing && !shouldRedirectAfterEdit(true, uploadsSucceeded)) {
+        finishingIds.delete(targetId);
+        redirectStarted.current = false;
+        setFinishing(false);
+        setBrandingError(true);
+        return;
+      }
+
+      router.push(editing ? pathAfterEventUpdated() : pathAfterEventCreated());
     })();
   }, [router, state]);
 
@@ -178,7 +200,12 @@ export function EventForm({
   }, [state, privacyMode, status]);
 
   return (
-    <form ref={formRef} action={formAction} className="grid gap-4">
+    <form
+      ref={formRef}
+      action={formAction}
+      className="grid gap-4"
+      onSubmit={() => setBrandingError(false)}
+    >
       <label className="grid gap-2 text-sm font-medium">
         {t("name")}
         <input
@@ -296,10 +323,16 @@ export function EventForm({
         eventId={eventId}
         previews={brandingPreviews}
         disabled={pending || finishing}
+        uploadOnSave={Boolean(eventId)}
         onStagedChange={(files) => {
           stagedFiles.current = files;
         }}
       />
+      {brandingError ? (
+        <p role="alert" className="text-sm text-primary">
+          {t("brandingFailed")}
+        </p>
+      ) : null}
       <FormMessage state={state} />
       <Button type="submit" disabled={pending || finishing} aria-busy={pending || finishing}>
         {pending || finishing ? t("pending") : eventId ? t("save") : t("createSubmit")}

@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { eventFormSchema } from "@/lib/events/schema";
 import {
@@ -62,12 +63,39 @@ describe("event appearance", () => {
     expect(logoSizeClass("huge", "screen")).toContain("h-36");
   });
 
-  it("rounds only the rounded corner choice", () => {
-    expect(logoCornerClass("rounded")).toContain("rounded-3xl");
+  it("keeps square logos unclipped and clips rounded logos to a circle", () => {
+    const square = logoImageClass("large", "square", "screen");
+    const rounded = logoImageClass("large", "rounded", "screen");
+
+    expect(logoCornerClass("square")).toBe("rounded-none");
+    expect(square).toContain("rounded-none");
+    expect(square).toContain("object-contain");
+    expect(square).toContain("self-center");
+    expect(square).not.toContain("rounded-full");
+    expect(square).not.toContain("object-cover");
+
+    expect(logoCornerClass("rounded")).toContain("rounded-full");
+    expect(logoCornerClass("rounded")).toContain("object-cover");
     expect(logoCornerClass("rounded")).toContain("overflow-hidden");
-    expect(logoImageClass("large", "rounded", "screen")).toContain("rounded-3xl");
-    expect(logoImageClass("large", "square", "print")).toContain("rounded-none");
-    expect(logoImageClass("large", "square", "print")).toContain("object-contain");
+    expect(rounded).toContain("rounded-full");
+    expect(rounded).toContain("aspect-square");
+    expect(rounded).toContain("object-cover");
+    expect(rounded).toContain("w-48");
+    expect(rounded).toContain("sm:w-64");
+    expect(rounded).not.toContain("object-contain");
+    expect(rounded).not.toContain("rounded-3xl");
+
+    for (const size of ["small", "medium", "large", "extra-large"] as const) {
+      const circle = logoImageClass(size, "rounded", "screen");
+      const printCircle = logoImageClass(size, "rounded", "print");
+      expect(circle).toContain("aspect-square");
+      expect(circle).toContain("rounded-full");
+      expect(circle).toContain("object-cover");
+      expect(printCircle).toContain("aspect-square");
+      expect(printCircle).toContain("rounded-full");
+      expect(logoImageClass(size, "square", "print")).toContain("object-contain");
+      expect(logoImageClass(size, "square", "print")).toContain("rounded-none");
+    }
   });
 
   it("accepts the shared create and edit choices and rejects unknown ones", () => {
@@ -84,6 +112,20 @@ describe("event appearance", () => {
     ).toBe(false);
     expect(eventFormSchema.safeParse({ ...validForm, logoSize: "huge" }).success).toBe(false);
     expect(eventFormSchema.safeParse({ ...validForm, logoCorner: "circle" }).success).toBe(false);
+  });
+
+  it("uses the saved logo size and shape on the guest page, QR page, and print layout", () => {
+    const guest = readFileSync(new URL("../../app/e/[code]/page.tsx", import.meta.url), "utf8");
+    const qr = readFileSync(
+      new URL("../../app/[locale]/events/[id]/qr/page.tsx", import.meta.url),
+      "utf8",
+    );
+    const screen = 'logoImageClass(event.logoSize, event.logoCorner, "screen")';
+    const print = 'logoImageClass(event.logoSize, event.logoCorner, "print")';
+
+    expect(guest).toContain(screen);
+    expect(qr).toContain(screen);
+    expect(qr).toContain(print);
   });
 
   it("sends a new event to the event list and offers the same image slots as edit", () => {

@@ -45,20 +45,39 @@ export const defaultEventAppearance = {
 
 const logoClasses = {
   small: {
-    screen: "h-24 w-auto max-w-full object-contain sm:h-32",
-    print: "mt-6 h-36 w-auto max-w-[90mm] object-contain",
+    screen: "h-24 w-auto max-w-full shrink-0 self-center object-contain sm:h-32",
+    print: "mt-6 h-36 w-auto max-w-[90mm] shrink-0 self-center object-contain",
   },
   medium: {
-    screen: "h-36 w-auto max-w-full object-contain sm:h-48",
-    print: "mt-6 h-52 w-auto max-w-[120mm] object-contain",
+    screen: "h-36 w-auto max-w-full shrink-0 self-center object-contain sm:h-48",
+    print: "mt-6 h-52 w-auto max-w-[120mm] shrink-0 self-center object-contain",
   },
   large: {
-    screen: "h-48 w-auto max-w-full object-contain sm:h-64",
-    print: "mt-6 h-64 w-auto max-w-[150mm] object-contain",
+    screen: "h-48 w-auto max-w-full shrink-0 self-center object-contain sm:h-64",
+    print: "mt-6 h-64 w-auto max-w-[150mm] shrink-0 self-center object-contain",
   },
   "extra-large": {
-    screen: "h-60 w-auto max-w-full object-contain sm:h-80",
-    print: "mt-8 h-80 w-auto max-w-full object-contain",
+    screen: "h-60 w-auto max-w-full shrink-0 self-center object-contain sm:h-80",
+    print: "mt-8 h-80 w-auto max-w-full shrink-0 self-center object-contain",
+  },
+} as const;
+
+const logoCircleClasses = {
+  small: {
+    screen: "aspect-square h-auto w-24 max-w-full shrink-0 self-center sm:w-32",
+    print: "mt-6 aspect-square h-auto w-36 max-w-[90mm] shrink-0 self-center",
+  },
+  medium: {
+    screen: "aspect-square h-auto w-36 max-w-full shrink-0 self-center sm:w-48",
+    print: "mt-6 aspect-square h-auto w-52 max-w-[120mm] shrink-0 self-center",
+  },
+  large: {
+    screen: "aspect-square h-auto w-48 max-w-full shrink-0 self-center sm:w-64",
+    print: "mt-6 aspect-square h-auto w-64 max-w-[150mm] shrink-0 self-center",
+  },
+  "extra-large": {
+    screen: "aspect-square h-auto w-60 max-w-full shrink-0 self-center sm:w-80",
+    print: "mt-8 aspect-square h-auto w-80 max-w-full shrink-0 self-center",
   },
 } as const;
 
@@ -85,9 +104,14 @@ export function logoSizeClass(value: string, surface: "screen" | "print") {
 }
 
 export function logoCornerClass(value: string) {
-  return value === "rounded" ? "overflow-hidden rounded-3xl" : "rounded-none";
+  return value === "rounded" ? "overflow-hidden rounded-full object-cover" : "rounded-none";
 }
 
 export function logoImageClass(size: string, corner: string, surface: "screen" | "print") {
+  if (corner === "rounded") {
+    const known = isLogoSize(size) ? size : defaultLogoSize;
+    return `${logoCircleClasses[known][surface]} ${logoCornerClass(corner)}`;
+  }
+
   return `${logoSizeClass(size, surface)} ${logoCornerClass(corner)}`;
 }
