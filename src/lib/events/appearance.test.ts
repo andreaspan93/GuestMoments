@@ -7,6 +7,7 @@ import {
   logoCornerClass,
   logoImageClass,
   logoSizeClass,
+  posterTitleSize,
 } from "@/lib/events/appearance";
 import { pathAfterEventCreated } from "@/lib/events/create-flow";
 import { brandingSlots } from "@/lib/uploads/branding-client";
@@ -54,8 +55,18 @@ describe("event appearance", () => {
     expect(extraLarge).toContain("sm:h-80");
     expect(small).toContain("object-contain");
     expect(extraLarge).not.toContain("object-cover");
-    expect(logoSizeClass("medium", "print")).toContain("h-52");
-    expect(logoSizeClass("extra-large", "print")).toContain("h-80");
+    const smallPrint = logoSizeClass("small", "print");
+    const mediumPrint = logoSizeClass("medium", "print");
+    const extraLargePrint = logoSizeClass("extra-large", "print");
+
+    expect(smallPrint).toContain("12cqh");
+    expect(smallPrint).toContain("max-h-[26mm]");
+    expect(mediumPrint).toContain("15cqh");
+    expect(mediumPrint).toContain("max-h-[32mm]");
+    expect(extraLargePrint).toContain("21cqh");
+    expect(extraLargePrint).toContain("max-h-[44mm]");
+    expect(extraLargePrint).not.toContain("h-80");
+    expect(mediumPrint).not.toContain("h-52");
   });
 
   it("falls back when a stored value is not one of the choices", () => {
@@ -93,9 +104,29 @@ describe("event appearance", () => {
       expect(circle).toContain("object-cover");
       expect(printCircle).toContain("aspect-square");
       expect(printCircle).toContain("rounded-full");
-      expect(logoImageClass(size, "square", "print")).toContain("object-contain");
-      expect(logoImageClass(size, "square", "print")).toContain("rounded-none");
+      expect(printCircle).toContain("object-cover");
+      expect(printCircle).not.toContain("object-contain");
+      expect(printCircle).not.toContain("rounded-3xl");
+      const squarePrint = logoImageClass(size, "square", "print");
+      expect(squarePrint).toContain("object-contain");
+      expect(squarePrint).toContain("rounded-none");
+      expect(squarePrint).not.toContain("rounded-full");
+      expect(squarePrint).toMatch(/max-h-\[(26|32|38|44)mm\]/);
+      expect(printCircle).toMatch(/max-w-\[(26|32|38|44)mm\]/);
     }
+  });
+
+  it("shrinks the poster title as the event name gets longer", () => {
+    const shortName = posterTitleSize("Wedding");
+    const mediumName = posterTitleSize("A".repeat(40));
+    const longName = posterTitleSize("A".repeat(70));
+    const longestName = posterTitleSize("Ω".repeat(120));
+
+    expect(shortName).toBe("5cqh");
+    expect(mediumName).toBe("3.6cqh");
+    expect(longName).toBe("2.9cqh");
+    expect(longestName).toBe("2.35cqh");
+    expect(Number.parseFloat(longestName) * 2.1).toBeGreaterThanOrEqual(4);
   });
 
   it("accepts the shared create and edit choices and rejects unknown ones", () => {
@@ -114,18 +145,32 @@ describe("event appearance", () => {
     expect(eventFormSchema.safeParse({ ...validForm, logoCorner: "circle" }).success).toBe(false);
   });
 
-  it("uses the saved logo size and shape on the guest page, QR page, and print layout", () => {
+  it("uses the saved logo size and shape on the guest page and the A5 poster", () => {
     const guest = readFileSync(new URL("../../app/e/[code]/page.tsx", import.meta.url), "utf8");
     const qr = readFileSync(
       new URL("../../app/[locale]/events/[id]/qr/page.tsx", import.meta.url),
       "utf8",
     );
+    const css = readFileSync(new URL("../../app/globals.css", import.meta.url), "utf8");
     const screen = 'logoImageClass(event.logoSize, event.logoCorner, "screen")';
     const print = 'logoImageClass(event.logoSize, event.logoCorner, "print")';
 
     expect(guest).toContain(screen);
-    expect(qr).toContain(screen);
     expect(qr).toContain(print);
+    expect(qr).toContain("eventFontFamily(event.titleFont)");
+    expect(qr).toContain("posterTitleSize(event.name)");
+    expect(qr).not.toContain("guestFont");
+    expect(qr).toContain("`/api/events/${event.id}/qr`");
+    expect(qr).toContain('t("qrPosterCta")');
+    expect(qr).toContain("print:hidden");
+    expect(qr).toContain("qr-poster");
+    expect(qr).not.toContain("100vh");
+    expect(css).toContain("size: A5 portrait;");
+    expect(css).toContain("margin: 0;");
+    expect(css).toContain("width: 148mm;");
+    expect(css).toContain("height: 210mm;");
+    expect(css).toContain("box-sizing: border-box;");
+    expect(css).toContain("aspect-ratio: 148 / 210;");
   });
 
   it("sends a new event to the event list and offers the same image slots as edit", () => {

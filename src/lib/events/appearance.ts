@@ -46,38 +46,38 @@ export const defaultEventAppearance = {
 const logoClasses = {
   small: {
     screen: "h-24 w-auto max-w-full shrink-0 self-center object-contain sm:h-32",
-    print: "mt-6 h-36 w-auto max-w-[90mm] shrink-0 self-center object-contain",
+    print: "h-[12cqh] max-h-[26mm] w-auto max-w-full shrink-0 self-center object-contain",
   },
   medium: {
     screen: "h-36 w-auto max-w-full shrink-0 self-center object-contain sm:h-48",
-    print: "mt-6 h-52 w-auto max-w-[120mm] shrink-0 self-center object-contain",
+    print: "h-[15cqh] max-h-[32mm] w-auto max-w-full shrink-0 self-center object-contain",
   },
   large: {
     screen: "h-48 w-auto max-w-full shrink-0 self-center object-contain sm:h-64",
-    print: "mt-6 h-64 w-auto max-w-[150mm] shrink-0 self-center object-contain",
+    print: "h-[18cqh] max-h-[38mm] w-auto max-w-full shrink-0 self-center object-contain",
   },
   "extra-large": {
     screen: "h-60 w-auto max-w-full shrink-0 self-center object-contain sm:h-80",
-    print: "mt-8 h-80 w-auto max-w-full shrink-0 self-center object-contain",
+    print: "h-[21cqh] max-h-[44mm] w-auto max-w-full shrink-0 self-center object-contain",
   },
 } as const;
 
 const logoCircleClasses = {
   small: {
     screen: "aspect-square h-auto w-24 max-w-full shrink-0 self-center sm:w-32",
-    print: "mt-6 aspect-square h-auto w-36 max-w-[90mm] shrink-0 self-center",
+    print: "aspect-square h-auto w-[12cqh] max-h-[26mm] max-w-[26mm] shrink-0 self-center",
   },
   medium: {
     screen: "aspect-square h-auto w-36 max-w-full shrink-0 self-center sm:w-48",
-    print: "mt-6 aspect-square h-auto w-52 max-w-[120mm] shrink-0 self-center",
+    print: "aspect-square h-auto w-[15cqh] max-h-[32mm] max-w-[32mm] shrink-0 self-center",
   },
   large: {
     screen: "aspect-square h-auto w-48 max-w-full shrink-0 self-center sm:w-64",
-    print: "mt-6 aspect-square h-auto w-64 max-w-[150mm] shrink-0 self-center",
+    print: "aspect-square h-auto w-[18cqh] max-h-[38mm] max-w-[38mm] shrink-0 self-center",
   },
   "extra-large": {
     screen: "aspect-square h-auto w-60 max-w-full shrink-0 self-center sm:w-80",
-    print: "mt-8 aspect-square h-auto w-80 max-w-full shrink-0 self-center",
+    print: "aspect-square h-auto w-[21cqh] max-h-[44mm] max-w-[44mm] shrink-0 self-center",
   },
 } as const;
 
@@ -96,6 +96,24 @@ export function isLogoCorner(value: string): value is LogoCorner {
 export function eventFontFamily(value: string) {
   const match = eventFonts.find((font) => font.id === value);
   return match?.family ?? eventFonts[0].family;
+}
+
+export function posterTitleSize(name: string) {
+  const length = Array.from(name.trim()).length;
+
+  if (length > 80) {
+    return "2.35cqh";
+  }
+
+  if (length > 48) {
+    return "2.9cqh";
+  }
+
+  if (length > 28) {
+    return "3.6cqh";
+  }
+
+  return "5cqh";
 }
 
 export function logoSizeClass(value: string, surface: "screen" | "print") {
