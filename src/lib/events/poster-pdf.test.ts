@@ -9,11 +9,14 @@ import {
   A5_HEIGHT_PT,
   A5_WIDTH_PT,
   buildPosterPdf,
+  PDF_DATE_SIZE_MM,
+  PDF_TITLE_MAX_MM,
+  posterContentTop,
   posterContentWidthPt,
   posterCta,
   posterTitleSizePt,
 } from "@/lib/events/poster-pdf";
-import { posterTitleRuns, titleFontFile } from "@/lib/events/poster-title";
+import { POSTER_TITLE_WIDTH_MM, posterTitleRuns, posterTitleWidthMm, titleFontFile } from "@/lib/events/poster-title";
 
 const png = Uint8Array.from(
   Buffer.from(
@@ -51,6 +54,55 @@ describe("A5 poster pdf", () => {
     expect(page.size.width).toBeCloseTo(A5_WIDTH_PT, 2);
     expect(page.size.height).toBeCloseTo(A5_HEIGHT_PT, 2);
     expect(Buffer.from(bytes).toString("latin1")).not.toContain("Print");
+  });
+
+  it("places a larger title higher and keeps a slightly smaller date on one line", async () => {
+    const short = await buildPosterPdf({
+      name: "Wedding",
+      dateLabel: "15 Oct 2026",
+      cta: posterCta("en"),
+      locale: "en",
+      logoSize: "medium",
+      logoCorner: "square",
+      qr: { bytes: png },
+    });
+    const long = await buildPosterPdf({
+      name: longName,
+      titleFont: "playfair-display",
+      dateLabel: "15 Οκτ 2026",
+      cta: posterCta("el"),
+      locale: "el",
+      logoSize: "extra-large",
+      logoCorner: "rounded",
+      cover: { bytes: png },
+      logo: { bytes: png },
+      qr: { bytes: png },
+    });
+    const shortPdf = await PDFDocument.load(short);
+    const longPdf = await PDFDocument.load(long);
+    const shortSizes = textSizesMm(shortPdf);
+    const longSizes = textSizesMm(longPdf);
+    const padTop = (11 * 72) / 25.4;
+    const padBottom = (12 * 72) / 25.4;
+    const contentHeight = A5_HEIGHT_PT - padTop - padBottom;
+    const centeredTop = A5_HEIGHT_PT - padTop - (contentHeight - 220) / 2;
+
+    expect(shortPdf.getPageCount()).toBe(1);
+    expect(longPdf.getPageCount()).toBe(1);
+    expect(shortPdf.getPage(0).getSize().width).toBeCloseTo(A5_WIDTH_PT, 2);
+    expect(shortPdf.getPage(0).getSize().height).toBeCloseTo(A5_HEIGHT_PT, 2);
+    expect(shortSizes[0]).toBeCloseTo(PDF_TITLE_MAX_MM, 1);
+    expect(shortSizes[1]).toBeCloseTo(PDF_DATE_SIZE_MM, 1);
+    expect(longSizes[0]).toBeLessThan(shortSizes[0]);
+    expect(longSizes[0]).toBeGreaterThan(0);
+    expect(posterTitleWidthMm("Wedding", "noto-sans", shortSizes[0])).toBeLessThanOrEqual(POSTER_TITLE_WIDTH_MM);
+    expect(posterTitleWidthMm(longName, "playfair-display", longSizes[0])).toBeLessThanOrEqual(
+      POSTER_TITLE_WIDTH_MM + 0.2,
+    );
+    expect(titleShows(shortPdf)).toBe(1);
+    expect(titleShows(longPdf)).toBe(1);
+    expect(posterContentTop(220)).toBeGreaterThan(centeredTop);
+    expect(posterContentWidthPt).toBeGreaterThan(0);
   });
 
   it("keeps long names, Greek text, and every logo size on one page", async () => {
@@ -164,6 +216,10 @@ function pageContent(pdf: PDFDocument) {
   }
 
   return text;
+}
+
+function textSizesMm(pdf: PDFDocument) {
+  return [...pageContent(pdf).matchAll(/([\d.]+) Tf/g)].map((match) => (Number(match[1]) * 25.4) / 72);
 }
 
 function titleShows(pdf: PDFDocument) {

@@ -20,7 +20,6 @@ import en from "../../../messages/en.json";
 import { isLogoSize, type LogoSize } from "@/lib/events/appearance";
 import {
   fittedTitleSizeMm,
-  POSTER_TITLE_MAX_MM,
   posterTitleRuns,
   posterTitleText,
   titleFontFile,
@@ -38,6 +37,11 @@ export const A5_HEIGHT_PT = A5_HEIGHT_MM * MM;
 const padX = 11 * MM;
 const padTop = 11 * MM;
 const padBottom = 12 * MM;
+/** Share of leftover vertical space kept above the poster stack. */
+const TOP_FREE_SHARE = 0.12;
+/** Larger than the on-screen poster so the downloaded title is more prominent. */
+export const PDF_TITLE_MAX_MM = 16.8;
+export const PDF_DATE_SIZE_MM = 6.2;
 export const posterContentWidthPt = A5_WIDTH_PT - padX * 2;
 const contentWidth = posterContentWidthPt;
 const contentHeight = A5_HEIGHT_PT - padTop - padBottom;
@@ -71,6 +75,11 @@ function mm(value: number) {
   return value * MM;
 }
 
+export function posterContentTop(blockHeight: number) {
+  const free = Math.max(0, contentHeight - blockHeight);
+  return A5_HEIGHT_PT - padTop - free * TOP_FREE_SHARE;
+}
+
 function fontBytes(fileName: string) {
   return readFileSync(path.join(process.cwd(), "src/lib/events/fonts", fileName));
 }
@@ -97,7 +106,7 @@ export function posterTitleSizePt(
   titleFont?: string,
   scale = 1,
 ) {
-  const fittedTitle = Math.min(mm(POSTER_TITLE_MAX_MM), mm(fittedTitleSizeMm(name, titleFont))) * scale;
+  const fittedTitle = mm(fittedTitleSizeMm(name, titleFont, PDF_TITLE_MAX_MM)) * scale;
   const width = widthAtSize(fittedTitle);
 
   if (!posterTitleText(name) || !Number.isFinite(width) || width <= 0 || width <= contentWidth) {
@@ -332,7 +341,7 @@ export async function buildPosterPdf(input: PosterPdfInput) {
     const blocks: Block[] = [];
     const titleSize = posterTitleSizePt(titleWidth, input.name, input.titleFont, scale);
     const titleHeight = titleSize * 1.12;
-    const dateSize = singleLineSize(regular, input.dateLabel, mm(7.2) * scale, contentWidth);
+    const dateSize = singleLineSize(regular, input.dateLabel, mm(PDF_DATE_SIZE_MM) * scale, contentWidth);
     const dateHeight = dateSize * 1.2;
     const ctaSize = mm(3.15) * scale;
     const tracking = ctaSize * 0.2;
@@ -460,7 +469,7 @@ export async function buildPosterPdf(input: PosterPdfInput) {
     color: rgb(1, 1, 1),
   });
 
-  let top = A5_HEIGHT_PT - padTop - (contentHeight - laid.height) / 2;
+  let top = posterContentTop(laid.height);
 
   for (const block of laid.blocks) {
     top -= block.gapBefore;

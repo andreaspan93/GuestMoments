@@ -138,14 +138,14 @@ export function posterTitleWidthMm(name: string, titleFont: string, sizeMm: numb
   return posterTitleRuns(name, titleFont).reduce((sum, run) => sum + runWidthMm(run, sizeMm), 0);
 }
 
-export function fittedTitleSizeMm(name: string, titleFont = "noto-sans") {
-  const widthAtMax = posterTitleWidthMm(name, titleFont, POSTER_TITLE_MAX_MM);
+export function fittedTitleSizeMm(name: string, titleFont = "noto-sans", maxMm = POSTER_TITLE_MAX_MM) {
+  const widthAtMax = posterTitleWidthMm(name, titleFont, maxMm);
 
   if (widthAtMax <= POSTER_TITLE_WIDTH_MM) {
-    return POSTER_TITLE_MAX_MM;
+    return maxMm;
   }
 
-  return (POSTER_TITLE_MAX_MM * POSTER_TITLE_WIDTH_MM * TITLE_FIT) / widthAtMax;
+  return (maxMm * POSTER_TITLE_WIDTH_MM * TITLE_FIT) / widthAtMax;
 }
 
 export function posterTitleSize(name: string, titleFont = "noto-sans") {
