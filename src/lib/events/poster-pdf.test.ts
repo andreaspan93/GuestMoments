@@ -1,6 +1,19 @@
+import { inflateSync } from "node:zlib";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import fontkit from "@pdf-lib/fontkit";
 import { describe, expect, it } from "vitest";
 import { PDFDocument } from "pdf-lib";
-import { A5_HEIGHT_PT, A5_WIDTH_PT, buildPosterPdf, posterCta } from "@/lib/events/poster-pdf";
+import { eventFontIds } from "@/lib/events/appearance";
+import {
+  A5_HEIGHT_PT,
+  A5_WIDTH_PT,
+  buildPosterPdf,
+  posterContentWidthPt,
+  posterCta,
+  posterTitleSizePt,
+} from "@/lib/events/poster-pdf";
+import { posterTitleText, titleFontFile } from "@/lib/events/poster-title";
 
 const png = Uint8Array.from(
   Buffer.from(
@@ -62,4 +75,115 @@ describe("A5 poster pdf", () => {
       }
     }
   });
+
+  it("draws a short title, a long Greek title, and every saved title font on one line", async () => {
+    const names = ["Andreas wed", longName, "Ω".repeat(120)];
+
+    for (const titleFont of eventFontIds) {
+      for (const name of names) {
+        const bytes = await buildPosterPdf({
+          name,
+          titleFont,
+          dateLabel: "15 Οκτ 2026",
+          cta: posterCta("el"),
+          locale: "el",
+          logoSize: "extra-large",
+          logoCorner: "square",
+          cover: { bytes: png },
+          logo: { bytes: png },
+          qr: { bytes: png },
+        });
+        const page = await pageSize(bytes);
+        const title = await measuredTitle(name, titleFont);
+
+        expect(page.pages).toBe(1);
+        expect(page.size.width).toBeCloseTo(A5_WIDTH_PT, 2);
+        expect(page.size.height).toBeCloseTo(A5_HEIGHT_PT, 2);
+        const pdf = await PDFDocument.load(bytes);
+
+        expect(title.width).toBeLessThanOrEqual(posterContentWidthPt + 0.05);
+        expect(titleShows(pdf)).toBe(1);
+        expect(embeddedFontNames(pdf)).toContain(titleFontFile(titleFont).replace(".ttf", ""));
+      }
+    }
+  }, 20000);
 });
+
+async function measuredTitle(name: string, titleFont: string) {
+  const pdf = await PDFDocument.create();
+  pdf.registerFontkit(fontkit);
+  const font = await pdf.embedFont(
+    readFileSync(path.join(process.cwd(), "src/lib/events/fonts", titleFontFile(titleFont))),
+    { subset: true },
+  );
+  const size = posterTitleSizePt(font, name, titleFont);
+
+  return {
+    size,
+    width: font.widthOfTextAtSize(posterTitleText(name), size),
+  };
+}
+
+function pageContent(pdf: PDFDocument) {
+  const contents = pdf.getPage(0).node.Contents();
+  const refs = contents && "asArray" in contents ? contents.asArray() : [contents];
+  let text = "";
+
+  for (const ref of refs) {
+    if (!ref) {
+      continue;
+    }
+
+    const stream = pdf.context.lookup(ref) as { getContents?: () => Uint8Array };
+    const raw = stream.getContents?.();
+
+    if (!raw) {
+      continue;
+    }
+
+    try {
+      text += inflateSync(raw).toString("latin1");
+    } catch {
+      text += Buffer.from(raw).toString("latin1");
+    }
+  }
+
+  return text;
+}
+
+function titleShows(pdf: PDFDocument) {
+  const content = pageContent(pdf).match(/[\d.]+ Tf[\s\S]*?(?=[\d.]+ Tf)/);
+
+  return content ? (content[0].match(/Tj/g) ?? []).length : 0;
+}
+
+type EntryRecord = {
+  entries: () => Array<[unknown, unknown]>;
+};
+
+function entryRecord(value: unknown): EntryRecord | null {
+  if (value && typeof value === "object" && "entries" in value && typeof value.entries === "function") {
+    return value as EntryRecord;
+  }
+
+  return null;
+}
+
+function embeddedFontNames(pdf: PDFDocument) {
+  const resources = pdf.getPage(0).node.normalizedEntries().Resources;
+  const fonts = resources.entries().find(([key]) => String(key) === "/Font")?.[1];
+  const dict = entryRecord(fonts) ?? entryRecord(pdf.context.lookup(fonts as never));
+  const names: string[] = [];
+
+  if (!dict) {
+    return "";
+  }
+
+  for (const [, value] of dict.entries()) {
+    const font = entryRecord(value) ?? entryRecord(pdf.context.lookup(value as never));
+    const base = font?.entries().find(([key]) => String(key) === "/BaseFont")?.[1];
+    names.push(String(base ?? ""));
+  }
+
+  return names.join(" ");
+}

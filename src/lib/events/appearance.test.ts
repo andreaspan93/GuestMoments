@@ -4,11 +4,12 @@ import { eventFormSchema } from "@/lib/events/schema";
 import {
   defaultEventAppearance,
   eventFontFamily,
+  eventFontIds,
   logoCornerClass,
   logoImageClass,
   logoSizeClass,
-  posterTitleSize,
 } from "@/lib/events/appearance";
+import { POSTER_TITLE_WIDTH_MM, posterTitleSize, posterTitleWidthMm } from "@/lib/events/poster-title";
 import { pathAfterEventCreated } from "@/lib/events/create-flow";
 import { brandingSlots } from "@/lib/uploads/branding-client";
 
@@ -117,17 +118,31 @@ describe("event appearance", () => {
     }
   });
 
-  it("shrinks the poster title as the event name gets longer", () => {
+  it("keeps the poster title on one line for short and long names", () => {
+    const greekName = "Ανδρέας και Μαρία γιορτάζουν μια πολύ μεγάλη μέρα με την οικογένεια και τους φίλους τους στο νησί";
     const shortName = posterTitleSize("Wedding");
     const mediumName = posterTitleSize("A".repeat(40));
-    const longName = posterTitleSize("A".repeat(70));
-    const longestName = posterTitleSize("Ω".repeat(120));
+    const longName = posterTitleSize(greekName);
+    const longestName = posterTitleSize("Ω".repeat(120), "noto-serif");
 
     expect(shortName).toBe("5.6cqh");
-    expect(mediumName).toBe("3.8cqh");
-    expect(longName).toBe("3cqh");
-    expect(longestName).toBe("2.2cqh");
-    expect(Number.parseFloat(longestName) * 2.1).toBeGreaterThanOrEqual(4);
+    expect(Number.parseFloat(mediumName)).toBeLessThan(5.6);
+    expect(Number.parseFloat(longName)).toBeLessThan(5.6);
+    expect(Number.parseFloat(longestName)).toBeLessThan(Number.parseFloat(mediumName));
+    expect(posterTitleWidthMm(greekName, "noto-sans", Number.parseFloat(longName) * 2.1)).toBeLessThanOrEqual(
+      POSTER_TITLE_WIDTH_MM,
+    );
+
+    for (const titleFont of eventFontIds) {
+      const sizeMm = Number.parseFloat(posterTitleSize("Ω".repeat(120), titleFont)) * 2.1;
+
+      expect(posterTitleWidthMm("Ω".repeat(120), titleFont, sizeMm)).toBeLessThanOrEqual(
+        POSTER_TITLE_WIDTH_MM,
+      );
+      expect(posterTitleWidthMm("Wedding", titleFont, 5.6 * 2.1)).toBeLessThanOrEqual(
+        POSTER_TITLE_WIDTH_MM,
+      );
+    }
   });
 
   it("accepts the shared create and edit choices and rejects unknown ones", () => {
@@ -167,7 +182,9 @@ describe("event appearance", () => {
     expect(guestGallery).not.toContain("columns-2");
     expect(qr).toContain(print);
     expect(qr).toContain("eventFontFamily(event.titleFont)");
-    expect(qr).toContain("posterTitleSize(event.name)");
+    expect(qr).toContain("posterTitleSize(event.name, event.titleFont)");
+    expect(css).toMatch(/\.qr-poster-title \{[^}]*white-space: nowrap;/);
+    expect(css).not.toMatch(/\.qr-poster-title \{[^}]*overflow-wrap:/);
     expect(qr).toContain("signedObjectUrl(event.coverKey)");
     expect(qr).toContain("formatCalendarDate(calendarDateFromDb(event.eventDate), locale)");
     expect(qr).toContain("qr-poster-cover");

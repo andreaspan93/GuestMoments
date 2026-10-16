@@ -18,6 +18,12 @@ import {
 import el from "../../../messages/el.json";
 import en from "../../../messages/en.json";
 import { isLogoSize, type LogoSize } from "@/lib/events/appearance";
+import {
+  fittedTitleSizeMm,
+  POSTER_TITLE_MAX_MM,
+  posterTitleText,
+  titleFontFile,
+} from "@/lib/events/poster-title";
 
 export const A5_WIDTH_MM = 148;
 export const A5_HEIGHT_MM = 210;
@@ -30,7 +36,8 @@ export const A5_HEIGHT_PT = A5_HEIGHT_MM * MM;
 const padX = 11 * MM;
 const padTop = 11 * MM;
 const padBottom = 12 * MM;
-const contentWidth = A5_WIDTH_PT - padX * 2;
+export const posterContentWidthPt = A5_WIDTH_PT - padX * 2;
+const contentWidth = posterContentWidthPt;
 const contentHeight = A5_HEIGHT_PT - padTop - padBottom;
 
 type PosterImage = {
@@ -39,6 +46,7 @@ type PosterImage = {
 
 export type PosterPdfInput = {
   name: string;
+  titleFont?: string;
   dateLabel: string;
   cta: string;
   locale: "en" | "el";
@@ -69,24 +77,6 @@ export function posterCta(locale: "en" | "el") {
   return locale === "el" ? el.events.qrPosterCta : en.events.qrPosterCta;
 }
 
-function titleSizeMm(name: string) {
-  const length = Array.from(name.trim()).length;
-
-  if (length > 80) {
-    return 2.2 * 2.1;
-  }
-
-  if (length > 48) {
-    return 3 * 2.1;
-  }
-
-  if (length > 28) {
-    return 3.8 * 2.1;
-  }
-
-  return 5.6 * 2.1;
-}
-
 function logoSizeMm(size: string) {
   const known: LogoSize = isLogoSize(size) ? size : "medium";
   const heights: Record<LogoSize, number> = {
@@ -99,28 +89,25 @@ function logoSizeMm(size: string) {
   return heights[known];
 }
 
-function wrapText(font: PDFFont, text: string, size: number, maxWidth: number) {
-  const characters = Array.from(text);
-  const lines: string[] = [];
-  let line = "";
+export function posterTitleSizePt(font: PDFFont, name: string, titleFont?: string, scale = 1) {
+  const text = posterTitleText(name);
+  const fittedTitle = Math.min(mm(POSTER_TITLE_MAX_MM), mm(fittedTitleSizeMm(name, titleFont))) * scale;
 
-  for (const character of characters) {
-    const next = `${line}${character}`;
+  return singleLineSize(font, text, fittedTitle, contentWidth);
+}
 
-    if (line && font.widthOfTextAtSize(next, size) > maxWidth) {
-      lines.push(line);
-      line = character.trim() === "" ? "" : character;
-      continue;
-    }
-
-    line = next;
+function singleLineSize(font: PDFFont, text: string, maxSize: number, maxWidth: number) {
+  if (!text || maxSize <= 0) {
+    return maxSize;
   }
 
-  if (line) {
-    lines.push(line);
+  const width = font.widthOfTextAtSize(text, maxSize);
+
+  if (!Number.isFinite(width) || width <= 0 || width <= maxWidth) {
+    return maxSize;
   }
 
-  return lines.length > 0 ? lines : [""];
+  return (maxSize * maxWidth) / width;
 }
 
 function trackedWidth(font: PDFFont, text: string, size: number, tracking: number) {
@@ -214,6 +201,28 @@ async function embed(pdf: PDFDocument, image: PosterImage | null | undefined) {
   return null;
 }
 
+async function embedTitleFont(pdf: PDFDocument, titleFont: string, text: string) {
+  const preferred = titleFontFile(titleFont);
+  const files = preferred === "NotoSans-SemiBold.ttf" ? [preferred] : [preferred, "NotoSans-SemiBold.ttf"];
+  let failure: unknown;
+
+  for (const fileName of files) {
+    try {
+      const font = await pdf.embedFont(fontBytes(fileName), { subset: true });
+
+      if (text) {
+        font.widthOfTextAtSize(text, 12);
+      }
+
+      return font;
+    } catch (error) {
+      failure = error;
+    }
+  }
+
+  throw failure instanceof Error ? failure : new Error("Poster title font could not be embedded.");
+}
+
 function coverBox(hasLogo: boolean, scale: number) {
   return mm(hasLogo ? 30 : 62) * scale;
 }
@@ -279,7 +288,8 @@ export async function buildPosterPdf(input: PosterPdfInput) {
   const pdf = await PDFDocument.create();
   pdf.registerFontkit(fontkit);
   const regular = await pdf.embedFont(fontBytes("NotoSans-Regular.ttf"), { subset: true });
-  const semibold = await pdf.embedFont(fontBytes("NotoSans-SemiBold.ttf"), { subset: true });
+  const titleText = posterTitleText(input.name);
+  const titleFace = await embedTitleFont(pdf, input.titleFont ?? "noto-sans", titleText);
   const cover = await embed(pdf, input.cover);
   const logo = await embed(pdf, input.logo);
   const qr = await embed(pdf, input.qr);
@@ -293,10 +303,9 @@ export async function buildPosterPdf(input: PosterPdfInput) {
 
   const measure = (scale: number) => {
     const blocks: Block[] = [];
-    const titleSize = mm(titleSizeMm(input.name)) * scale;
-    const titleLines = wrapText(semibold, input.name, titleSize, contentWidth);
-    const titleHeight = titleLines.length * titleSize * 1.12;
-    const dateSize = mm(7.2) * scale;
+    const titleSize = posterTitleSizePt(titleFace, input.name, input.titleFont, scale);
+    const titleHeight = titleSize * 1.12;
+    const dateSize = singleLineSize(regular, input.dateLabel, mm(7.2) * scale, contentWidth);
     const dateHeight = dateSize * 1.2;
     const ctaSize = mm(3.15) * scale;
     const tracking = ctaSize * 0.2;
@@ -318,17 +327,18 @@ export async function buildPosterPdf(input: PosterPdfInput) {
       height: titleHeight,
       gapBefore: blocks.length > 0 ? mm(3.4) * scale + mm(hasLogo ? 0 : 2.2) * scale : 0,
       draw: (page, top) => {
-        titleLines.forEach((line, index) => {
-          const width = semibold.widthOfTextAtSize(line, titleSize);
-          const y = top - titleSize * 1.12 * (index + 1) + titleSize * 0.12;
+        if (!titleText) {
+          return;
+        }
 
-          page.drawText(line, {
-            x: (A5_WIDTH_PT - width) / 2,
-            y,
-            size: titleSize,
-            font: semibold,
-            color: ink,
-          });
+        const width = titleFace.widthOfTextAtSize(titleText, titleSize);
+
+        page.drawText(titleText, {
+          x: (A5_WIDTH_PT - width) / 2,
+          y: top - titleSize,
+          size: titleSize,
+          font: titleFace,
+          color: ink,
         });
       },
     });

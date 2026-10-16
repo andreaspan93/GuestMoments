@@ -53,6 +53,7 @@ export async function GET(
   const qr = await renderEventQr(guestEventUrl(event.uniqueCode));
   const pdf = await buildPosterPdf({
     name: event.name,
+    titleFont: event.titleFont,
     dateLabel: formatCalendarDate(calendarDateFromDb(event.eventDate), locale),
     cta: posterCta(locale),
     locale,

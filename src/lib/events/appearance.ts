@@ -98,24 +98,6 @@ export function eventFontFamily(value: string) {
   return match?.family ?? eventFonts[0].family;
 }
 
-export function posterTitleSize(name: string) {
-  const length = Array.from(name.trim()).length;
-
-  if (length > 80) {
-    return "2.2cqh";
-  }
-
-  if (length > 48) {
-    return "3cqh";
-  }
-
-  if (length > 28) {
-    return "3.8cqh";
-  }
-
-  return "5.6cqh";
-}
-
 export function logoSizeClass(value: string, surface: "screen" | "print") {
   const size = isLogoSize(value) ? value : defaultLogoSize;
   return logoClasses[size][surface];
