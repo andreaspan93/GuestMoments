@@ -55,6 +55,7 @@ async function insertEvent(data: {
   logoCorner: string;
   status: string;
   privacyMode: string;
+  guestDownloadsEnabled: boolean;
   retentionDays: number;
   maxStorageBytes: bigint;
   expiresAt: Date;
@@ -164,6 +165,7 @@ export async function createCustomerEvent(
     logoCorner: input.logoCorner,
     status: input.status,
     privacyMode: input.privacyMode,
+    guestDownloadsEnabled: input.guestDownloadsEnabled,
     retentionDays: settings.defaultRetentionDays,
     maxStorageBytes: settings.defaultMaxStorageBytes,
     expiresAt,
@@ -228,11 +230,15 @@ export async function updateCustomerEvent(
       logoCorner: input.logoCorner,
       status: input.status,
       privacyMode: input.privacyMode,
+      guestDownloadsEnabled: input.guestDownloadsEnabled,
       expiresAt,
     },
   });
   const fields = [
     ...(existing.privacyMode !== input.privacyMode ? ["privacyMode" as const] : []),
+    ...(existing.guestDownloadsEnabled !== input.guestDownloadsEnabled
+      ? ["guestDownloadsEnabled" as const]
+      : []),
     ...(existing.status !== input.status ? ["status" as const] : []),
   ];
 

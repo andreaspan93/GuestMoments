@@ -159,8 +159,7 @@ export function BrandingUploads({
               accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
               disabled={disabled || pendingSlot !== null}
               buttonLabel={t("chooseFile")}
-              emptyLabel={t("noFileSelected")}
-              formatSelection={(files) => files[0]?.name ?? t("noFileSelected")}
+              formatSelection={(files) => files[0]?.name ?? ""}
               onFiles={(files) => {
                 const file = files?.[0];
 

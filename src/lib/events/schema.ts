@@ -21,6 +21,7 @@ export const eventFormSchema = z.strictObject({
   logoSize: z.enum(logoSizes),
   logoCorner: z.enum(logoCorners),
   privacyMode: z.enum(["OWN_UPLOADS", "FULL_GALLERY"]),
+  guestDownloadsEnabled: z.boolean().default(true),
   status: z.enum(["ACTIVE", "DISABLED"]),
 });
 

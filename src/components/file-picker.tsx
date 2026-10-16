@@ -11,7 +11,6 @@ export function FilePicker({
   disabled = false,
   name,
   buttonLabel,
-  emptyLabel,
   formatSelection,
   onFiles,
 }: {
@@ -20,13 +19,12 @@ export function FilePicker({
   disabled?: boolean;
   name?: string;
   buttonLabel: string;
-  emptyLabel: string;
   formatSelection: (files: File[]) => string;
   onFiles: (files: FileList | null) => void;
 }) {
   const id = useId();
   const summaryId = `${id}-summary`;
-  const [summary, setSummary] = useState(emptyLabel);
+  const [summary, setSummary] = useState<string | null>(null);
 
   return (
     <div className="grid gap-2">
@@ -37,12 +35,13 @@ export function FilePicker({
         accept={accept}
         multiple={multiple}
         disabled={disabled}
-        aria-describedby={summaryId}
+        aria-describedby={summary ? summaryId : undefined}
         className="sr-only"
         onChange={(event) => {
           const files = event.target.files;
           const list = files ? Array.from(files) : [];
-          setSummary(list.length === 0 ? emptyLabel : formatSelection(list));
+          const next = list.length === 0 ? "" : formatSelection(list);
+          setSummary(next || null);
           onFiles(files);
         }}
       />
@@ -57,9 +56,11 @@ export function FilePicker({
         <Upload className="size-4" aria-hidden="true" />
         {buttonLabel}
       </label>
-      <p id={summaryId} className="text-sm break-words text-foreground/80">
-        {summary}
-      </p>
+      {summary ? (
+        <p id={summaryId} className="text-sm break-words text-foreground/80">
+          {summary}
+        </p>
+      ) : null}
     </div>
   );
 }

@@ -95,6 +95,7 @@ function form(overrides: Partial<EventFormValues> = {}): EventFormValues {
     logoSize: "medium",
     logoCorner: "square",
     privacyMode: "FULL_GALLERY",
+    guestDownloadsEnabled: true,
     status: "ACTIVE",
     ...overrides,
   };
@@ -216,7 +217,7 @@ describe("owner administration", () => {
     const renamed = await updateCustomerEvent(
       customer,
       created.id,
-      form({ name: "Couple rename" }),
+      form({ name: "Couple rename", guestDownloadsEnabled: false }),
     );
 
     expect(renamed.name).toBe("Couple rename");
@@ -232,6 +233,7 @@ describe("owner administration", () => {
     });
 
     expect(reassigned.customerId).toBe(other.id);
+    expect(reassigned.guestDownloadsEnabled).toBe(false);
     expect(ownerUpdateSchema.safeParse(form()).success).toBe(false);
   });
 

@@ -9,10 +9,12 @@ export function GuestGallery({
   code,
   locale,
   initialItems,
+  downloadsEnabled,
 }: {
   code: string;
   locale: GuestLocale;
   initialItems: GalleryItem[];
+  downloadsEnabled: boolean;
 }) {
   const copy = guestChrome[locale];
   const [items, setItems] = useState(initialItems);
@@ -82,29 +84,35 @@ export function GuestGallery({
       {items.length === 0 ? (
         <p className="mt-4 text-sm text-foreground/80">{copy.galleryEmpty}</p>
       ) : (
-        <div className="mt-4 columns-2 gap-3">
+        <ul className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4">
           {items.map((item, index) => (
-            <button
+            <li
               key={item.id}
-              type="button"
-              className="mb-3 block w-full break-inside-avoid overflow-hidden rounded-2xl bg-background text-left"
-              onClick={() => setOpenIndex(index)}
+              className="relative min-w-0 overflow-hidden rounded-2xl border border-border bg-card"
             >
-              {item.previewUrl ? (
-                // Signed storage URL; the image optimizer is not used.
-                // eslint-disable-next-line @next/next/no-img-element
-                <img className="w-full object-cover" src={item.previewUrl} alt="" />
-              ) : (
-                <span className="flex h-28 items-center justify-center px-3 text-sm">
-                  {item.type === "video" ? copy.video : item.originalFileName}
+              <button type="button" className="block w-full text-left" onClick={() => setOpenIndex(index)}>
+                <span className="relative block aspect-square overflow-hidden bg-muted">
+                  {item.previewUrl ? (
+                    // Signed storage URL; the image optimizer is not used.
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      className="absolute inset-0 size-full object-cover object-center"
+                      src={item.previewUrl}
+                      alt=""
+                    />
+                  ) : (
+                    <span className="absolute inset-0 flex items-center justify-center px-3 text-center text-sm break-words">
+                      {item.type === "video" ? copy.video : item.originalFileName}
+                    </span>
+                  )}
                 </span>
-              )}
-              {item.guestName ? (
-                <span className="block px-3 py-2 text-sm">{item.guestName}</span>
-              ) : null}
-            </button>
+                <span className="line-clamp-2 block h-12 overflow-hidden px-2 py-1.5 text-xs leading-4 sm:h-14 sm:px-3 sm:py-2 sm:text-sm sm:leading-5">
+                  {item.guestName}
+                </span>
+              </button>
+            </li>
           ))}
-        </div>
+        </ul>
       )}
       {openIndex !== null ? (
         <GalleryViewer
@@ -119,6 +127,7 @@ export function GuestGallery({
           }}
           onClose={() => setOpenIndex(null)}
           onIndex={setOpenIndex}
+          allowDownload={downloadsEnabled}
           onDownload={(id) => void download(id)}
         />
       ) : null}

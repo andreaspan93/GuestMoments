@@ -69,6 +69,7 @@ export const APPLICATION_LOG_FIELDS = [
   "name",
   "surname",
   "privacyMode",
+  "guestDownloadsEnabled",
   "status",
   "retentionDays",
   "maxStorageBytes",

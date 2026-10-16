@@ -84,6 +84,7 @@ function form(overrides: Partial<EventFormValues> = {}): EventFormValues {
     logoSize: "medium",
     logoCorner: "square",
     privacyMode: "FULL_GALLERY",
+    guestDownloadsEnabled: true,
     status: "ACTIVE",
     ...overrides,
   };

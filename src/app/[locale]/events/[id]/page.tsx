@@ -91,6 +91,7 @@ export default async function EditEventPage({
               logoCorner: isLogoCorner(event.logoCorner) ? event.logoCorner : "square",
               privacyMode:
                 event.privacyMode === "OWN_UPLOADS" ? "OWN_UPLOADS" : "FULL_GALLERY",
+              guestDownloadsEnabled: event.guestDownloadsEnabled,
               status: event.status === "DISABLED" ? "DISABLED" : "ACTIVE",
             }}
             brandingPreviews={{ cover, logo, background }}

@@ -22,6 +22,7 @@ const validForm = {
   backgroundColor: "#f7f1ea",
   accentColor: "#8c3d32",
   privacyMode: "FULL_GALLERY",
+  guestDownloadsEnabled: true,
   status: "ACTIVE",
   ...defaultEventAppearance,
 };
@@ -147,6 +148,10 @@ describe("event appearance", () => {
 
   it("uses the saved logo size and shape on the guest page and the A5 poster", () => {
     const guest = readFileSync(new URL("../../app/e/[code]/page.tsx", import.meta.url), "utf8");
+    const guestGallery = readFileSync(
+      new URL("../../components/guest-gallery.tsx", import.meta.url),
+      "utf8",
+    );
     const qr = readFileSync(
       new URL("../../app/[locale]/events/[id]/qr/page.tsx", import.meta.url),
       "utf8",
@@ -156,6 +161,10 @@ describe("event appearance", () => {
     const print = 'logoImageClass(event.logoSize, event.logoCorner, "print")';
 
     expect(guest).toContain(screen);
+    expect(guestGallery).toContain("grid-cols-2");
+    expect(guestGallery).toContain("aspect-square");
+    expect(guestGallery).toContain("object-cover object-center");
+    expect(guestGallery).not.toContain("columns-2");
     expect(qr).toContain(print);
     expect(qr).toContain("eventFontFamily(event.titleFont)");
     expect(qr).toContain("posterTitleSize(event.name)");
@@ -165,6 +174,9 @@ describe("event appearance", () => {
     expect(qr).not.toContain("guestFont");
     expect(qr).toContain("`/api/events/${event.id}/qr`");
     expect(qr).toContain('t("qrPosterCta")');
+    expect(qr).toContain('t("downloadA5")');
+    expect(qr).toContain("/poster?locale=");
+    expect(qr).toContain("<PrintButton");
     expect(qr).toContain("print:hidden");
     expect(qr).toContain("qr-poster");
     expect(qr).not.toContain("100vh");

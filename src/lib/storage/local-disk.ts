@@ -130,6 +130,22 @@ export function createLocalDiskStorage(): IStorageService {
         throw error;
       }
     },
+    async getObject(key) {
+      try {
+        return new Uint8Array(await readFile(objectPath(key)));
+      } catch (error) {
+        if (
+          typeof error === "object" &&
+          error !== null &&
+          "code" in error &&
+          error.code === "ENOENT"
+        ) {
+          return null;
+        }
+
+        throw error;
+      }
+    },
     async deleteObject(key) {
       await rm(objectPath(key), { force: true });
       await rm(`${objectPath(key)}.type`, { force: true });

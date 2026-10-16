@@ -63,6 +63,7 @@ function form(overrides: Partial<EventFormValues> = {}): EventFormValues {
     logoSize: "medium",
     logoCorner: "square",
     privacyMode: "FULL_GALLERY",
+    guestDownloadsEnabled: true,
     status: "ACTIVE",
     ...overrides,
   };
@@ -301,6 +302,7 @@ describe("events", () => {
     expect(created.guestFont).toBe("noto-serif");
     expect(created.logoSize).toBe("extra-large");
     expect(created.logoCorner).toBe("rounded");
+    expect(created.guestDownloadsEnabled).toBe(true);
 
     const reloaded = await getCustomerEvent(customer, created.id);
     expect(reloaded?.logoSize).toBe("extra-large");
@@ -314,6 +316,7 @@ describe("events", () => {
         guestFont: "source-sans",
         logoSize: "small",
         logoCorner: "square",
+        guestDownloadsEnabled: false,
       }),
     );
 
@@ -321,6 +324,7 @@ describe("events", () => {
     expect(updated.guestFont).toBe("source-sans");
     expect(updated.logoSize).toBe("small");
     expect(updated.logoCorner).toBe("square");
+    expect(updated.guestDownloadsEnabled).toBe(false);
     expect(updated.name).toBe("Alex and Niki");
   });
 });

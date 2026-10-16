@@ -51,6 +51,7 @@ export function GalleryViewer({
   onClose,
   onIndex,
   onDownload,
+  allowDownload = true,
   actions,
 }: {
   items: GalleryItem[];
@@ -59,6 +60,7 @@ export function GalleryViewer({
   onClose: () => void;
   onIndex: (index: number) => void;
   onDownload: (id: string) => void;
+  allowDownload?: boolean;
   actions?: ReactNode;
 }) {
   const item = items[index];
@@ -185,9 +187,11 @@ export function GalleryViewer({
             </ViewerIconButton>
           </div>
         ) : null}
-        <ViewerIconButton label={labels.download} onClick={() => onDownload(item.id)}>
-          <Download className="size-5" aria-hidden="true" />
-        </ViewerIconButton>
+        {allowDownload ? (
+          <ViewerIconButton label={labels.download} onClick={() => onDownload(item.id)}>
+            <Download className="size-5" aria-hidden="true" />
+          </ViewerIconButton>
+        ) : null}
         {actions}
       </div>
     </div>

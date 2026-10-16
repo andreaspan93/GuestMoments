@@ -297,7 +297,6 @@ export function GuestUploader({
           multiple
           disabled={pending}
           buttonLabel={copy.uploadChoose}
-          emptyLabel={copy.uploadEmpty}
           accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif,video/mp4,video/quicktime,.mp4,.mov"
           formatSelection={(files) =>
             files.length === 1 ? files[0].name : `${files.length} ${copy.uploadCount}`

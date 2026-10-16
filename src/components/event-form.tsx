@@ -46,6 +46,7 @@ export type EventFormDefaults = {
   logoSize: LogoSize;
   logoCorner: LogoCorner;
   privacyMode: "OWN_UPLOADS" | "FULL_GALLERY";
+  guestDownloadsEnabled: boolean;
   status: "ACTIVE" | "DISABLED";
 };
 
@@ -60,6 +61,7 @@ const emptyEvent: EventFormDefaults = {
   accentColor: "#8c3d32",
   ...defaultEventAppearance,
   privacyMode: "FULL_GALLERY",
+  guestDownloadsEnabled: true,
   status: "ACTIVE",
 };
 
@@ -107,19 +109,27 @@ export function EventForm({
   const [state, formAction, pending] = useActionState(action, null);
   const [privacyMode, setPrivacyMode] = useState(values.privacyMode);
   const [status, setStatus] = useState(values.status);
+  const [guestDownloadsEnabled, setGuestDownloadsEnabled] = useState(values.guestDownloadsEnabled);
   const [savedPrivacy, setSavedPrivacy] = useState(values.privacyMode);
   const [savedStatus, setSavedStatus] = useState(values.status);
+  const [savedDownloads, setSavedDownloads] = useState(values.guestDownloadsEnabled);
   const [finishing, setFinishing] = useState(false);
   const [brandingError, setBrandingError] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const stagedFiles = useRef<Partial<Record<BrandingSlot, File>>>({});
   const redirectStarted = useRef(false);
 
-  if (values.privacyMode !== savedPrivacy || values.status !== savedStatus) {
+  if (
+    values.privacyMode !== savedPrivacy ||
+    values.status !== savedStatus ||
+    values.guestDownloadsEnabled !== savedDownloads
+  ) {
     setSavedPrivacy(values.privacyMode);
     setSavedStatus(values.status);
+    setSavedDownloads(values.guestDownloadsEnabled);
     setPrivacyMode(values.privacyMode);
     setStatus(values.status);
+    setGuestDownloadsEnabled(values.guestDownloadsEnabled);
   }
 
   useEffect(() => {
@@ -305,6 +315,25 @@ export function EventForm({
           <option value="OWN_UPLOADS">{t("ownUploads")}</option>
         </select>
       </label>
+      {privacyMode === "FULL_GALLERY" ? (
+        <label className="flex items-start gap-3 text-sm leading-6 font-medium">
+          <input
+            className="mt-1 size-4 accent-primary"
+            type="checkbox"
+            name="guestDownloadsEnabled"
+            value="true"
+            checked={guestDownloadsEnabled}
+            onChange={(event) => setGuestDownloadsEnabled(event.target.checked)}
+          />
+          <span>{t("guestDownloads")}</span>
+        </label>
+      ) : (
+        <input
+          type="hidden"
+          name="guestDownloadsEnabled"
+          value={guestDownloadsEnabled ? "true" : "false"}
+        />
+      )}
       <label className="grid gap-2 text-sm font-medium">
         {t("status")}
         <select

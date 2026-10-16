@@ -38,8 +38,14 @@ function readEventForm(formData: FormData) {
     logoSize: field(formData, "logoSize"),
     logoCorner: field(formData, "logoCorner"),
     privacyMode: field(formData, "privacyMode"),
+    guestDownloadsEnabled: flag(formData, "guestDownloadsEnabled"),
     status: field(formData, "status"),
   };
+}
+
+function flag(formData: FormData, name: string) {
+  const value = formData.get(name);
+  return value === "true" || value === "on";
 }
 
 function formError(error: unknown): EventFormState {

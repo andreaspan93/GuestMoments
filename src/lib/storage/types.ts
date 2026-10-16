@@ -23,6 +23,7 @@ export interface IStorageService {
     downloadName?: string;
   }): Promise<string>;
   headObject(key: string): Promise<StoredObjectHead | null>;
+  getObject?(key: string): Promise<Uint8Array | null>;
   deleteObject(key: string): Promise<void>;
   deletePrefix(prefix: string): Promise<void>;
 }

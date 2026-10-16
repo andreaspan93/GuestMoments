@@ -109,6 +109,12 @@ export default async function EventQrPage({
           >
             {t("downloadQr")}
           </a>
+          <a
+            href={`/api/events/${event.id}/poster?locale=${locale}`}
+            className={buttonVariants({ variant: "outline" })}
+          >
+            {t("downloadA5")}
+          </a>
           <PrintButton label={t("print")} />
         </div>
       </div>

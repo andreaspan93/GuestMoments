@@ -346,6 +346,7 @@ async function requireGuestMedia(
   mediaId: string,
   cookieToken: string | undefined,
   now: Date,
+  options?: { download?: boolean },
 ) {
   const loaded = await prisma.event.findUnique({
     where: { uniqueCode: code },
@@ -371,6 +372,10 @@ async function requireGuestMedia(
 
   if (decision.state !== "ok") {
     throw new GalleryError(decision.state === "not_found" ? "notFound" : "unavailable");
+  }
+
+  if (options?.download && !loaded.guestDownloadsEnabled) {
+    throw new GalleryError("unavailable");
   }
 
   const media = await prisma.media.findFirst({
@@ -419,7 +424,7 @@ export async function downloadGuestMedia(
   storage?: IStorageService,
   now = new Date(),
 ) {
-  const media = await requireGuestMedia(code, mediaId, cookieToken, now);
+  const media = await requireGuestMedia(code, mediaId, cookieToken, now, { download: true });
 
   return downloadUrl(storeOf(storage), media);
 }

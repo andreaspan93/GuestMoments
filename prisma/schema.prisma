@@ -112,6 +112,7 @@ model Event {
   logoCorner           String    @default("square")
   status               String    @default("ACTIVE")
   privacyMode          String    @default("FULL_GALLERY")
+  guestDownloadsEnabled Boolean  @default(true)
   retentionDays        Int
   maxStorageBytes      BigInt
   expiresAt            DateTime

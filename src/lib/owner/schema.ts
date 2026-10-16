@@ -7,13 +7,15 @@ const quotaMib = z.coerce.number().int().min(1).max(10_485_760);
 
 const customerId = z.string().trim().min(1).max(128);
 
+const ownerEventFields = eventFormSchema.omit({ guestDownloadsEnabled: true });
+
 export const ownerCreateSchema = z.strictObject({
-  ...eventFormSchema.shape,
+  ...ownerEventFields.shape,
   customerId,
 });
 
 export const ownerUpdateSchema = z.strictObject({
-  ...eventFormSchema.shape,
+  ...ownerEventFields.shape,
   customerId,
   retentionDays,
   quotaMib,

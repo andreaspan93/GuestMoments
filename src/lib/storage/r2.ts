@@ -116,6 +116,35 @@ export function createR2Storage(config: R2Config): IStorageService {
         throw error;
       }
     },
+    async getObject(key) {
+      try {
+        const response = await client.send(
+          new GetObjectCommand({
+            Bucket: config.bucket,
+            Key: key,
+          }),
+        );
+        const bytes = await response.Body?.transformToByteArray();
+
+        return bytes ? new Uint8Array(bytes) : null;
+      } catch (error) {
+        const status =
+          typeof error === "object" &&
+          error !== null &&
+          "$metadata" in error &&
+          typeof error.$metadata === "object" &&
+          error.$metadata !== null &&
+          "httpStatusCode" in error.$metadata
+            ? error.$metadata.httpStatusCode
+            : undefined;
+
+        if (status === 404) {
+          return null;
+        }
+
+        throw error;
+      }
+    },
     async deleteObject(key) {
       await client.send(
         new DeleteObjectCommand({

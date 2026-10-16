@@ -126,7 +126,12 @@ export default async function GuestEventRoute({
         </section>
         {open ? (
           <div className="mx-auto mt-6 w-full max-w-3xl rounded-3xl bg-card px-6 py-8 shadow-sm">
-            <GuestGallery code={event.uniqueCode} locale={locale} initialItems={galleryItems} />
+            <GuestGallery
+              code={event.uniqueCode}
+              locale={locale}
+              initialItems={galleryItems}
+              downloadsEnabled={event.guestDownloadsEnabled}
+            />
           </div>
         ) : null}
       </div>

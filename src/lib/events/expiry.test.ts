@@ -24,6 +24,7 @@ const validForm = {
   logoSize: "medium",
   logoCorner: "square",
   privacyMode: "FULL_GALLERY",
+  guestDownloadsEnabled: true,
   status: "ACTIVE",
 };
 

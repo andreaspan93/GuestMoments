@@ -65,6 +65,7 @@ function form(name = "Gallery wedding"): EventFormValues {
     logoSize: "medium",
     logoCorner: "square",
     privacyMode: "FULL_GALLERY",
+    guestDownloadsEnabled: true,
     status: "ACTIVE",
   };
 }
@@ -266,6 +267,17 @@ describe("galleries", () => {
 
     expect(download.url).toContain(encodeURIComponent("secret.jpg"));
     expect(storage.gets.at(-1)?.downloadName).toBe("secret.jpg");
+
+    await prisma.event.update({
+      where: { id: eventA.id },
+      data: { guestDownloadsEnabled: false, privacyMode: "OWN_UPLOADS" },
+    });
+    await expect(
+      downloadGuestMedia(eventA.uniqueCode, media.id, token, storage),
+    ).rejects.toMatchObject({ code: "unavailable" });
+    const customerDownload = await downloadCustomerMedia(customerA, eventA.id, media.id, storage);
+
+    expect(customerDownload.url).toContain(encodeURIComponent("secret.jpg"));
 
     await expect(
       mutateCustomerMedia(null, eventA.id, media.id, "hide", storage),
