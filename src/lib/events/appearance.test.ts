@@ -198,6 +198,8 @@ describe("event appearance", () => {
     const print = 'logoImageClass(event.logoSize, event.logoCorner, "print")';
 
     expect(guest).toContain(screen);
+    expect(guest).toContain("mt-2 text-center text-4xl font-semibold tracking-tight break-words");
+    expect(guest).toContain("mt-6 text-center text-lg leading-8 break-words whitespace-pre-wrap");
     expect(guestGallery).toContain("grid-cols-2");
     expect(guestGallery).toContain("aspect-square");
     expect(guestGallery).toContain("object-cover object-center");

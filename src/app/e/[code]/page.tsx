@@ -94,7 +94,7 @@ export default async function GuestEventRoute({
             {formatCalendarDate(calendarDateFromDb(event.eventDate), locale)}
           </p>
           <h1
-            className="mt-2 text-4xl font-semibold tracking-tight"
+            className="mt-2 text-center text-4xl font-semibold tracking-tight break-words"
             style={{
               color: event.accentColor,
               fontFamily: eventFontFamily(event.titleFont),
@@ -110,7 +110,7 @@ export default async function GuestEventRoute({
           ) : (
             <>
               {welcome ? (
-                <p className="mt-6 text-lg leading-8 whitespace-pre-wrap">{welcome}</p>
+                <p className="mt-6 text-center text-lg leading-8 break-words whitespace-pre-wrap">{welcome}</p>
               ) : null}
               {instructions ? (
                 <div className="mt-8">
