@@ -19,6 +19,31 @@ import el from "../../../messages/el.json";
 import en from "../../../messages/en.json";
 import { isLogoSize, type LogoSize } from "@/lib/events/appearance";
 import {
+  POSTER_COVER_CAP_CQH,
+  POSTER_COVER_MM,
+  POSTER_COVER_WITH_LOGO_CAP_CQH,
+  POSTER_COVER_WITH_LOGO_MM,
+  POSTER_CTA_CAP_CQH,
+  POSTER_CTA_GAP_MM,
+  POSTER_CTA_MM,
+  POSTER_DATE_GAP_MM,
+  POSTER_DATE_SIZE_MM,
+  POSTER_PAD_BOTTOM_MM,
+  POSTER_PAD_TOP_MM,
+  POSTER_PAD_X_MM,
+  POSTER_PAGE_CQH_MM,
+  POSTER_PHOTO_GAP_MM,
+  POSTER_QR_CAP_CQH,
+  POSTER_QR_GAP_MM,
+  POSTER_QR_MM,
+  POSTER_QR_WITH_LOGO_CAP_CQH,
+  POSTER_QR_WITH_LOGO_MM,
+  POSTER_STACK_GAP_MM,
+  POSTER_TITLE_MAX_MM,
+  POSTER_TOP_FREE_SHARE,
+  posterFullPageMm,
+} from "@/lib/events/poster-layout";
+import {
   fittedTitleSizeMm,
   posterTitleRuns,
   posterTitleText,
@@ -34,14 +59,11 @@ const MM = 72 / 25.4;
 export const A5_WIDTH_PT = A5_WIDTH_MM * MM;
 export const A5_HEIGHT_PT = A5_HEIGHT_MM * MM;
 
-const padX = 11 * MM;
-const padTop = 11 * MM;
-const padBottom = 12 * MM;
-/** Share of leftover vertical space kept above the poster stack. */
-const TOP_FREE_SHARE = 0.12;
-/** Larger than the on-screen poster so the downloaded title is more prominent. */
-export const PDF_TITLE_MAX_MM = 16.8;
-export const PDF_DATE_SIZE_MM = 6.2;
+const padX = POSTER_PAD_X_MM * MM;
+const padTop = POSTER_PAD_TOP_MM * MM;
+const padBottom = POSTER_PAD_BOTTOM_MM * MM;
+export const PDF_TITLE_MAX_MM = POSTER_TITLE_MAX_MM;
+export const PDF_DATE_SIZE_MM = POSTER_DATE_SIZE_MM;
 export const posterContentWidthPt = A5_WIDTH_PT - padX * 2;
 const contentWidth = posterContentWidthPt;
 const contentHeight = A5_HEIGHT_PT - padTop - padBottom;
@@ -77,7 +99,7 @@ function mm(value: number) {
 
 export function posterContentTop(blockHeight: number) {
   const free = Math.max(0, contentHeight - blockHeight);
-  return A5_HEIGHT_PT - padTop - free * TOP_FREE_SHARE;
+  return A5_HEIGHT_PT - padTop - free * POSTER_TOP_FREE_SHARE;
 }
 
 function fontBytes(fileName: string) {
@@ -91,10 +113,10 @@ export function posterCta(locale: "en" | "el") {
 function logoSizeMm(size: string) {
   const known: LogoSize = isLogoSize(size) ? size : "medium";
   const heights: Record<LogoSize, number> = {
-    small: Math.min(12.5 * 2.1, 26),
-    medium: Math.min(16 * 2.1, 34),
-    large: Math.min(19 * 2.1, 40),
-    "extra-large": Math.min(22 * 2.1, 46),
+    small: Math.min(12.5 * POSTER_PAGE_CQH_MM, 26),
+    medium: Math.min(16 * POSTER_PAGE_CQH_MM, 34),
+    large: Math.min(19 * POSTER_PAGE_CQH_MM, 40),
+    "extra-large": Math.min(22 * POSTER_PAGE_CQH_MM, 46),
   };
 
   return heights[known];
@@ -249,7 +271,11 @@ async function embedTitleFont(pdf: PDFDocument, titleFont: string, text: string)
 }
 
 function coverBox(hasLogo: boolean, scale: number) {
-  return mm(hasLogo ? 30 : 62) * scale;
+  const size = hasLogo
+    ? posterFullPageMm(POSTER_COVER_WITH_LOGO_MM, POSTER_COVER_WITH_LOGO_CAP_CQH)
+    : posterFullPageMm(POSTER_COVER_MM, POSTER_COVER_CAP_CQH);
+
+  return mm(size) * scale;
 }
 
 function drawCover(page: PDFPage, image: DrawnImage, box: number, top: number) {
@@ -343,25 +369,22 @@ export async function buildPosterPdf(input: PosterPdfInput) {
     const titleHeight = titleSize * 1.12;
     const dateSize = singleLineSize(regular, input.dateLabel, mm(PDF_DATE_SIZE_MM) * scale, contentWidth);
     const dateHeight = dateSize * 1.2;
-    const ctaSize = mm(3.15) * scale;
+    const ctaSize = mm(posterFullPageMm(POSTER_CTA_MM, POSTER_CTA_CAP_CQH)) * scale;
     const tracking = ctaSize * 0.2;
     const ctaLines = input.cta
       .split("\n")
       .map((line) => line.toLocaleUpperCase(input.locale));
     const ctaHeight = ctaLines.length * ctaSize * 1.65;
-    const qrBox = mm(hasLogo ? Math.min(38, 18 * 2.1) : Math.min(44, 21 * 2.1)) * scale;
-
-    if (cover) {
-      blocks.push({
-        height: coverBox(hasLogo, scale),
-        gapBefore: 0,
-        draw: (page, top) => drawCover(page, cover, coverBox(hasLogo, scale), top),
-      });
-    }
+    const qrBox =
+      mm(
+        hasLogo
+          ? posterFullPageMm(POSTER_QR_WITH_LOGO_MM, POSTER_QR_WITH_LOGO_CAP_CQH)
+          : posterFullPageMm(POSTER_QR_MM, POSTER_QR_CAP_CQH),
+      ) * scale;
 
     blocks.push({
       height: titleHeight,
-      gapBefore: blocks.length > 0 ? mm(3.4) * scale + mm(hasLogo ? 0 : 2.2) * scale : 0,
+      gapBefore: 0,
       draw: (page, top) => {
         let cursor = (A5_WIDTH_PT - titleWidth(titleSize)) / 2;
 
@@ -388,7 +411,7 @@ export async function buildPosterPdf(input: PosterPdfInput) {
 
     blocks.push({
       height: dateHeight,
-      gapBefore: mm(3.4 - 1.4) * scale,
+      gapBefore: mm(POSTER_DATE_GAP_MM) * scale,
       draw: (page, top) => {
         const width = regular.widthOfTextAtSize(input.dateLabel, dateSize);
 
@@ -402,13 +425,21 @@ export async function buildPosterPdf(input: PosterPdfInput) {
       },
     });
 
+    if (cover) {
+      blocks.push({
+        height: coverBox(hasLogo, scale),
+        gapBefore: mm(POSTER_PHOTO_GAP_MM) * scale,
+        draw: (page, top) => drawCover(page, cover, coverBox(hasLogo, scale), top),
+      });
+    }
+
     if (logo) {
       const box = mm(logoSizeMm(input.logoSize)) * scale;
       const rounded = input.logoCorner === "rounded";
 
       blocks.push({
         height: box,
-        gapBefore: mm(3.4) * scale,
+        gapBefore: mm(POSTER_STACK_GAP_MM) * scale,
         draw: (page, top) => {
           drawContained(page, logo, rounded ? box : contentWidth, box, top, rounded);
         },
@@ -418,7 +449,7 @@ export async function buildPosterPdf(input: PosterPdfInput) {
     if (qr) {
       blocks.push({
         height: qrBox,
-        gapBefore: mm(3.4 + 2.2) * scale,
+        gapBefore: mm(POSTER_QR_GAP_MM) * scale,
         draw: (page, top) => {
           page.drawImage(qr, {
             x: (A5_WIDTH_PT - qrBox) / 2,
@@ -432,7 +463,7 @@ export async function buildPosterPdf(input: PosterPdfInput) {
 
     blocks.push({
       height: ctaHeight,
-      gapBefore: mm(3.4 + 1.4) * scale,
+      gapBefore: mm(POSTER_CTA_GAP_MM) * scale,
       draw: (page, top) => {
         ctaLines.forEach((line, index) => {
           const width = trackedWidth(regular, line, ctaSize, tracking);

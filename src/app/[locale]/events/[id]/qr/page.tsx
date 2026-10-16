@@ -1,12 +1,14 @@
 import { hasLocale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
+import type { CSSProperties } from "react";
 import { PrintButton } from "@/components/print-button";
 import { ServiceAccessNotice } from "@/components/service-access-notice";
 import { buttonVariants } from "@/components/ui/button";
 import { redirect } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
 import { eventFontFamily, eventFontWeight, logoImageClass } from "@/lib/events/appearance";
+import { POSTER_TOP_FREE_SHARE, posterFrameStyle } from "@/lib/events/poster-layout";
 import { posterTitleSize } from "@/lib/events/poster-title";
 import { guestEventUrl } from "@/lib/events/code";
 import { calendarDateFromDb, formatCalendarDate } from "@/lib/events/expiry";
@@ -68,13 +70,9 @@ export default async function EventQrPage({
       </div>
       <div className="qr-poster-stage">
         <div className="qr-poster-scale">
-          <article className={posterClass}>
+          <article className={posterClass} style={posterFrameStyle() as CSSProperties}>
             <div className="qr-poster-sheet">
-              {coverUrl ? (
-                // Signed storage URL; the image optimizer is not used.
-                // eslint-disable-next-line @next/next/no-img-element
-                <img className="qr-poster-cover" src={coverUrl} alt="" />
-              ) : null}
+              <div className="qr-poster-balance" style={{ flexGrow: POSTER_TOP_FREE_SHARE }} aria-hidden="true" />
               <h1
                 className="qr-poster-title"
                 style={{
@@ -88,16 +86,30 @@ export default async function EventQrPage({
               <p className="qr-poster-date">
                 {formatCalendarDate(calendarDateFromDb(event.eventDate), locale)}
               </p>
-              <EventLogo
-                src={logoUrl}
-                className={logoImageClass(event.logoSize, event.logoCorner, "print")}
-              />
+              {coverUrl ? (
+                // Signed storage URL; the image optimizer is not used.
+                // eslint-disable-next-line @next/next/no-img-element
+                <img className="qr-poster-cover" src={coverUrl} alt="" />
+              ) : null}
+              {logoUrl ? (
+                <div className="qr-poster-logo">
+                  <EventLogo
+                    src={logoUrl}
+                    className={logoImageClass(event.logoSize, event.logoCorner, "print")}
+                  />
+                </div>
+              ) : null}
               <div className="qr-poster-qr">
                 {/* Generated locally; the image optimizer is not used. */}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={qrSrc} alt={t("qrAlt")} width={512} height={512} />
               </div>
               <p className="qr-poster-cta">{t("qrPosterCta")}</p>
+              <div
+                className="qr-poster-balance"
+                style={{ flexGrow: 1 - POSTER_TOP_FREE_SHARE }}
+                aria-hidden="true"
+              />
             </div>
           </article>
         </div>

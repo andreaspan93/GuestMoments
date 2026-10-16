@@ -16,6 +16,7 @@ import {
   posterCta,
   posterTitleSizePt,
 } from "@/lib/events/poster-pdf";
+import { POSTER_DATE_GAP_MM, POSTER_PHOTO_GAP_MM } from "@/lib/events/poster-layout";
 import { POSTER_TITLE_WIDTH_MM, posterTitleRuns, posterTitleWidthMm, titleFontFile } from "@/lib/events/poster-title";
 
 const png = Uint8Array.from(
@@ -103,6 +104,49 @@ describe("A5 poster pdf", () => {
     expect(titleShows(longPdf)).toBe(1);
     expect(posterContentTop(220)).toBeGreaterThan(centeredTop);
     expect(posterContentWidthPt).toBeGreaterThan(0);
+  });
+
+  it("keeps the title high, moves the date down a little, and places the photo below the date", async () => {
+    const bytes = await buildPosterPdf({
+      name: "Wedding",
+      dateLabel: "15 Oct 2026",
+      cta: posterCta("en"),
+      locale: "en",
+      logoSize: "medium",
+      logoCorner: "square",
+      cover: { bytes: png },
+      qr: { bytes: png },
+    });
+    const pdf = await PDFDocument.load(bytes);
+    const content = pageContent(pdf);
+    const baselines = [...content.matchAll(/1 0 0 1 [\d.]+ ([\d.]+) Tm/g)].map((match) => Number(match[1]));
+    const images = [
+      ...content.matchAll(/1 0 0 1 ([\d.]+) ([\d.]+) cm\s+1 0 0 1 0 0 cm\s+([\d.]+) 0 0 ([\d.]+) 0 0 cm/g),
+    ]
+      .map((match) => ({
+        width: (Number(match[3]) * 25.4) / 72,
+        height: (Number(match[4]) * 25.4) / 72,
+        top: ((Number(match[2]) + Number(match[4])) * 25.4) / 72,
+        bottom: (Number(match[2]) * 25.4) / 72,
+      }))
+      .filter((image) => image.width > 2);
+    const titleY = (baselines[0] * 25.4) / 72;
+    const dateY = (baselines[1] * 25.4) / 72;
+    const cover = images.reduce((largest, image) => (image.height > largest.height ? image : largest));
+    const page = pdf.getPage(0).getSize();
+
+    expect(pdf.getPageCount()).toBe(1);
+    expect(titleY).toBeGreaterThan(dateY);
+    expect(titleY - dateY).toBeGreaterThan(PDF_DATE_SIZE_MM + POSTER_DATE_GAP_MM);
+    expect(titleY - dateY).toBeLessThan(PDF_DATE_SIZE_MM + POSTER_DATE_GAP_MM + 4);
+    expect(dateY).toBeGreaterThan(cover.top);
+    expect(dateY - cover.top).toBeGreaterThan(POSTER_PHOTO_GAP_MM);
+    expect(cover.bottom).toBeGreaterThan(10);
+    expect(cover.top).toBeLessThan((page.height * 25.4) / 72);
+    for (const image of images) {
+      expect(image.bottom).toBeGreaterThan(0);
+      expect(image.top).toBeLessThan((page.height * 25.4) / 72);
+    }
   });
 
   it("keeps long names, Greek text, and every logo size on one page", async () => {

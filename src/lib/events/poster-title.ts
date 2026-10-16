@@ -2,9 +2,9 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import fontkit from "@pdf-lib/fontkit";
 import { isEventFontId, type EventFontId } from "@/lib/events/appearance";
+import { POSTER_PAGE_CQH_MM, POSTER_TITLE_MAX_MM } from "@/lib/events/poster-layout";
 
-/** Largest poster title, matching the short-name size of 5.6cqh on an A5 page. */
-export const POSTER_TITLE_MAX_MM = 5.6 * 2.1;
+export { POSTER_TITLE_MAX_MM };
 
 /** Width inside the poster’s 11mm side padding. */
 export const POSTER_TITLE_WIDTH_MM = 148 - 11 * 2;
@@ -150,11 +150,6 @@ export function fittedTitleSizeMm(name: string, titleFont = "noto-sans", maxMm =
 
 export function posterTitleSize(name: string, titleFont = "noto-sans") {
   const sizeMm = fittedTitleSizeMm(name, titleFont);
-
-  if (Math.abs(sizeMm - POSTER_TITLE_MAX_MM) < 0.001) {
-    return "5.6cqh";
-  }
-
-  const cqh = Math.floor((sizeMm / 2.1) * 1000) / 1000;
+  const cqh = Math.round((sizeMm / POSTER_PAGE_CQH_MM) * 1000) / 1000;
   return `${cqh}cqh`;
 }

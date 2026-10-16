@@ -9,6 +9,7 @@ import {
   logoImageClass,
   logoSizeClass,
 } from "@/lib/events/appearance";
+import { POSTER_TITLE_MAX_MM } from "@/lib/events/poster-layout";
 import { POSTER_TITLE_WIDTH_MM, posterTitleRuns, posterTitleSize, posterTitleWidthMm } from "@/lib/events/poster-title";
 import { pathAfterEventCreated } from "@/lib/events/create-flow";
 import { brandingSlots } from "@/lib/uploads/branding-client";
@@ -125,9 +126,9 @@ describe("event appearance", () => {
     const longName = posterTitleSize(greekName);
     const longestName = posterTitleSize("Ω".repeat(120), "noto-serif");
 
-    expect(shortName).toBe("5.6cqh");
-    expect(Number.parseFloat(mediumName)).toBeLessThan(5.6);
-    expect(Number.parseFloat(longName)).toBeLessThan(5.6);
+    expect(shortName).toBe("8cqh");
+    expect(Number.parseFloat(mediumName)).toBeLessThan(8);
+    expect(Number.parseFloat(longName)).toBeLessThan(8);
     expect(Number.parseFloat(longestName)).toBeLessThan(Number.parseFloat(mediumName));
     expect(posterTitleWidthMm(greekName, "noto-sans", Number.parseFloat(longName) * 2.1)).toBeLessThanOrEqual(
       POSTER_TITLE_WIDTH_MM,
@@ -139,7 +140,7 @@ describe("event appearance", () => {
       expect(posterTitleWidthMm("Ω".repeat(120), titleFont, sizeMm)).toBeLessThanOrEqual(
         POSTER_TITLE_WIDTH_MM,
       );
-      expect(posterTitleWidthMm("Wedding", titleFont, 5.6 * 2.1)).toBeLessThanOrEqual(
+      expect(posterTitleWidthMm("Wedding", titleFont, POSTER_TITLE_MAX_MM)).toBeLessThanOrEqual(
         POSTER_TITLE_WIDTH_MM,
       );
     }
@@ -209,6 +210,10 @@ describe("event appearance", () => {
     expect(qr).toContain("eventFontFamily(event.titleFont)");
     expect(qr).toContain("eventFontWeight(event.titleFont)");
     expect(qr).toContain("posterTitleSize(event.name, event.titleFont)");
+    expect(qr).toContain("posterFrameStyle()");
+    expect(qr.indexOf("qr-poster-title")).toBeLessThan(qr.indexOf("qr-poster-date"));
+    expect(qr.indexOf("qr-poster-date")).toBeLessThan(qr.indexOf("qr-poster-cover"));
+    expect(qr.indexOf("qr-poster-cover")).toBeLessThan(qr.indexOf("qr-poster-qr"));
     expect(css).toMatch(/\.qr-poster-title \{[^}]*white-space: nowrap;/);
     expect(css).not.toMatch(/\.qr-poster-title \{[^}]*overflow-wrap:/);
     expect(qr).toContain("signedObjectUrl(event.coverKey)");
@@ -230,6 +235,10 @@ describe("event appearance", () => {
     expect(css).toContain("box-sizing: border-box;");
     expect(css).toContain("aspect-ratio: 148 / 210;");
     expect(css).toContain(".qr-poster-cover");
+    expect(css).toContain("--poster-date-gap");
+    expect(css).toContain("--poster-photo-gap");
+    expect(css).toContain("--poster-date-size");
+    expect(css).not.toContain("7.2mm");
     expect(css).toContain("border-radius: 50%;");
     expect(css).toContain("object-fit: cover;");
     expect(css).not.toContain("qr-poster-ornament");
