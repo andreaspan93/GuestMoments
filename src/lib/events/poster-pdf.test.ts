@@ -13,7 +13,7 @@ import {
   posterCta,
   posterTitleSizePt,
 } from "@/lib/events/poster-pdf";
-import { posterTitleText, titleFontFile } from "@/lib/events/poster-title";
+import { posterTitleRuns, titleFontFile } from "@/lib/events/poster-title";
 
 const png = Uint8Array.from(
   Buffer.from(
@@ -103,24 +103,39 @@ describe("A5 poster pdf", () => {
 
         expect(title.width).toBeLessThanOrEqual(posterContentWidthPt + 0.05);
         expect(titleShows(pdf)).toBe(1);
-        expect(embeddedFontNames(pdf)).toContain(titleFontFile(titleFont).replace(".ttf", ""));
+        const usedFont = posterTitleRuns(name, titleFont)[0]?.fontId ?? titleFont;
+        expect(embeddedFontNames(pdf)).toContain(titleFontFile(usedFont).replace(".ttf", ""));
       }
     }
-  }, 20000);
+  }, 60000);
 });
 
 async function measuredTitle(name: string, titleFont: string) {
+  const runs = posterTitleRuns(name, titleFont);
   const pdf = await PDFDocument.create();
   pdf.registerFontkit(fontkit);
-  const font = await pdf.embedFont(
-    readFileSync(path.join(process.cwd(), "src/lib/events/fonts", titleFontFile(titleFont))),
-    { subset: true },
-  );
-  const size = posterTitleSizePt(font, name, titleFont);
+  const faces = new Map<string, Awaited<ReturnType<PDFDocument["embedFont"]>>>();
+
+  for (const run of runs) {
+    const fileName = titleFontFile(run.fontId);
+
+    if (!faces.has(fileName)) {
+      faces.set(
+        fileName,
+        await pdf.embedFont(readFileSync(path.join(process.cwd(), "src/lib/events/fonts", fileName)), {
+          subset: true,
+        }),
+      );
+    }
+  }
+
+  const widthAt = (size: number) =>
+    runs.reduce((sum, run) => sum + (faces.get(titleFontFile(run.fontId))?.widthOfTextAtSize(run.text, size) ?? 0), 0);
+  const size = posterTitleSizePt(widthAt, name, titleFont);
 
   return {
     size,
-    width: font.widthOfTextAtSize(posterTitleText(name), size),
+    width: widthAt(size),
   };
 }
 

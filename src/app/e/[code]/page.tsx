@@ -3,7 +3,7 @@ import { GuestGallery } from "@/components/guest-gallery";
 import { GuestLanguageSwitch } from "@/components/guest-language-switch";
 import { GuestTokenCleanup } from "@/components/guest-token-cleanup";
 import { GuestUploader } from "@/components/guest-uploader";
-import { eventFontFamily, logoImageClass } from "@/lib/events/appearance";
+import { eventFontFamily, eventFontWeight, logoImageClass } from "@/lib/events/appearance";
 import { decideGuestAccess } from "@/lib/events/access";
 import { formatCalendarDate, calendarDateFromDb } from "@/lib/events/expiry";
 import { readGuestLocale } from "@/lib/events/guest-actions";
@@ -95,7 +95,11 @@ export default async function GuestEventRoute({
           </p>
           <h1
             className="mt-2 text-4xl font-semibold tracking-tight"
-            style={{ color: event.accentColor, fontFamily: eventFontFamily(event.titleFont) }}
+            style={{
+              color: event.accentColor,
+              fontFamily: eventFontFamily(event.titleFont),
+              fontWeight: eventFontWeight(event.titleFont),
+            }}
           >
             {event.name}
           </h1>

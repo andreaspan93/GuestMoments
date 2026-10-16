@@ -21,8 +21,10 @@ import { isLogoSize, type LogoSize } from "@/lib/events/appearance";
 import {
   fittedTitleSizeMm,
   POSTER_TITLE_MAX_MM,
+  posterTitleRuns,
   posterTitleText,
   titleFontFile,
+  type PosterTitleRun,
 } from "@/lib/events/poster-title";
 
 export const A5_WIDTH_MM = 148;
@@ -89,11 +91,25 @@ function logoSizeMm(size: string) {
   return heights[known];
 }
 
-export function posterTitleSizePt(font: PDFFont, name: string, titleFont?: string, scale = 1) {
-  const text = posterTitleText(name);
+export function posterTitleSizePt(
+  widthAtSize: (size: number) => number,
+  name: string,
+  titleFont?: string,
+  scale = 1,
+) {
   const fittedTitle = Math.min(mm(POSTER_TITLE_MAX_MM), mm(fittedTitleSizeMm(name, titleFont))) * scale;
+  const width = widthAtSize(fittedTitle);
 
-  return singleLineSize(font, text, fittedTitle, contentWidth);
+  if (!posterTitleText(name) || !Number.isFinite(width) || width <= 0 || width <= contentWidth) {
+    return fittedTitle;
+  }
+
+  return (fittedTitle * contentWidth) / width;
+}
+
+function titleRunWidth(faces: Map<string, PDFFont>, run: PosterTitleRun, size: number) {
+  const face = faces.get(titleFontFile(run.fontId));
+  return face ? face.widthOfTextAtSize(run.text, size) : 0;
 }
 
 function singleLineSize(font: PDFFont, text: string, maxSize: number, maxWidth: number) {
@@ -288,8 +304,19 @@ export async function buildPosterPdf(input: PosterPdfInput) {
   const pdf = await PDFDocument.create();
   pdf.registerFontkit(fontkit);
   const regular = await pdf.embedFont(fontBytes("NotoSans-Regular.ttf"), { subset: true });
-  const titleText = posterTitleText(input.name);
-  const titleFace = await embedTitleFont(pdf, input.titleFont ?? "noto-sans", titleText);
+  const titleRuns = posterTitleRuns(input.name, input.titleFont);
+  const titleFaces = new Map<string, PDFFont>();
+
+  for (const run of titleRuns) {
+    const fileName = titleFontFile(run.fontId);
+
+    if (!titleFaces.has(fileName)) {
+      titleFaces.set(fileName, await embedTitleFont(pdf, run.fontId, run.text));
+    }
+  }
+
+  const titleWidth = (size: number) =>
+    titleRuns.reduce((sum, run) => sum + titleRunWidth(titleFaces, run, size), 0);
   const cover = await embed(pdf, input.cover);
   const logo = await embed(pdf, input.logo);
   const qr = await embed(pdf, input.qr);
@@ -303,7 +330,7 @@ export async function buildPosterPdf(input: PosterPdfInput) {
 
   const measure = (scale: number) => {
     const blocks: Block[] = [];
-    const titleSize = posterTitleSizePt(titleFace, input.name, input.titleFont, scale);
+    const titleSize = posterTitleSizePt(titleWidth, input.name, input.titleFont, scale);
     const titleHeight = titleSize * 1.12;
     const dateSize = singleLineSize(regular, input.dateLabel, mm(7.2) * scale, contentWidth);
     const dateHeight = dateSize * 1.2;
@@ -327,19 +354,26 @@ export async function buildPosterPdf(input: PosterPdfInput) {
       height: titleHeight,
       gapBefore: blocks.length > 0 ? mm(3.4) * scale + mm(hasLogo ? 0 : 2.2) * scale : 0,
       draw: (page, top) => {
-        if (!titleText) {
-          return;
+        let cursor = (A5_WIDTH_PT - titleWidth(titleSize)) / 2;
+
+        for (const run of titleRuns) {
+          const width = titleRunWidth(titleFaces, run, titleSize);
+          const face = titleFaces.get(titleFontFile(run.fontId));
+
+          if (!face || !run.text) {
+            cursor += width;
+            continue;
+          }
+
+          page.drawText(run.text, {
+            x: cursor,
+            y: top - titleSize,
+            size: titleSize,
+            font: face,
+            color: ink,
+          });
+          cursor += width;
         }
-
-        const width = titleFace.widthOfTextAtSize(titleText, titleSize);
-
-        page.drawText(titleText, {
-          x: (A5_WIDTH_PT - width) / 2,
-          y: top - titleSize,
-          size: titleSize,
-          font: titleFace,
-          color: ink,
-        });
       },
     });
 

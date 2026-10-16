@@ -9,7 +9,7 @@ import {
   logoImageClass,
   logoSizeClass,
 } from "@/lib/events/appearance";
-import { POSTER_TITLE_WIDTH_MM, posterTitleSize, posterTitleWidthMm } from "@/lib/events/poster-title";
+import { POSTER_TITLE_WIDTH_MM, posterTitleRuns, posterTitleSize, posterTitleWidthMm } from "@/lib/events/poster-title";
 import { pathAfterEventCreated } from "@/lib/events/create-flow";
 import { brandingSlots } from "@/lib/uploads/branding-client";
 
@@ -145,6 +145,28 @@ describe("event appearance", () => {
     }
   });
 
+  it("previews each font in its own face and accepts the wedding fonts", () => {
+    const fields = readFileSync(
+      new URL("../../components/event-appearance-fields.tsx", import.meta.url),
+      "utf8",
+    );
+
+    expect(fields).toContain('role="listbox"');
+    expect(fields).toContain("fontFamily: font.family");
+    expect(fields).toContain("fontWeight: font.weight");
+    expect(
+      eventFormSchema.safeParse({ ...validForm, titleFont: "great-vibes", guestFont: "montserrat" }).success,
+    ).toBe(true);
+    expect(posterTitleRuns("Wedding", "great-vibes").map((run) => run.fontId)).toEqual(["great-vibes"]);
+    expect(posterTitleRuns("Ανδρέας και Μαρία", "allura").every((run) => run.fontId === "noto-serif")).toBe(
+      true,
+    );
+    expect(posterTitleRuns("Andreas και Μαρία", "montserrat").map((run) => run.fontId)).toEqual([
+      "montserrat",
+      "noto-sans",
+    ]);
+  });
+
   it("accepts the shared create and edit choices and rejects unknown ones", () => {
     expect(eventFormSchema.safeParse(validForm).success).toBe(true);
     expect(
@@ -182,6 +204,7 @@ describe("event appearance", () => {
     expect(guestGallery).not.toContain("columns-2");
     expect(qr).toContain(print);
     expect(qr).toContain("eventFontFamily(event.titleFont)");
+    expect(qr).toContain("eventFontWeight(event.titleFont)");
     expect(qr).toContain("posterTitleSize(event.name, event.titleFont)");
     expect(css).toMatch(/\.qr-poster-title \{[^}]*white-space: nowrap;/);
     expect(css).not.toMatch(/\.qr-poster-title \{[^}]*overflow-wrap:/);

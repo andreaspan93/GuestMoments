@@ -1,9 +1,14 @@
 import {
   Alegreya_Sans,
+  Allura,
+  Cormorant_Garamond,
   EB_Garamond,
+  Great_Vibes,
   Literata,
+  Montserrat,
   Noto_Sans,
   Noto_Serif,
+  Playfair_Display,
   Source_Sans_3,
 } from "next/font/google";
 
@@ -38,6 +43,36 @@ const ebGaramond = EB_Garamond({
   variable: "--font-eb-garamond",
 });
 
+const greatVibes = Great_Vibes({
+  subsets: ["latin"],
+  weight: "400",
+  variable: "--font-great-vibes",
+});
+
+const allura = Allura({
+  subsets: ["latin"],
+  weight: "400",
+  variable: "--font-allura",
+});
+
+const playfairDisplay = Playfair_Display({
+  subsets: ["latin"],
+  weight: "600",
+  variable: "--font-playfair-display",
+});
+
+const cormorantGaramond = Cormorant_Garamond({
+  subsets: ["latin"],
+  weight: "600",
+  variable: "--font-cormorant-garamond",
+});
+
+const montserrat = Montserrat({
+  subsets: ["latin"],
+  weight: "600",
+  variable: "--font-montserrat",
+});
+
 export const guestFontVariables = [
   notoSans.variable,
   notoSerif.variable,
@@ -45,4 +80,9 @@ export const guestFontVariables = [
   alegreyaSans.variable,
   literata.variable,
   ebGaramond.variable,
+  greatVibes.variable,
+  allura.variable,
+  playfairDisplay.variable,
+  cormorantGaramond.variable,
+  montserrat.variable,
 ].join(" ");

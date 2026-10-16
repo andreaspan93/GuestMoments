@@ -6,7 +6,7 @@ import { ServiceAccessNotice } from "@/components/service-access-notice";
 import { buttonVariants } from "@/components/ui/button";
 import { redirect } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
-import { eventFontFamily, logoImageClass } from "@/lib/events/appearance";
+import { eventFontFamily, eventFontWeight, logoImageClass } from "@/lib/events/appearance";
 import { posterTitleSize } from "@/lib/events/poster-title";
 import { guestEventUrl } from "@/lib/events/code";
 import { calendarDateFromDb, formatCalendarDate } from "@/lib/events/expiry";
@@ -80,6 +80,7 @@ export default async function EventQrPage({
                 style={{
                   fontFamily: eventFontFamily(event.titleFont),
                   fontSize: posterTitleSize(event.name, event.titleFont),
+                  fontWeight: eventFontWeight(event.titleFont),
                 }}
               >
                 {event.name}

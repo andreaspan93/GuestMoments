@@ -5,6 +5,11 @@ export const eventFontIds = [
   "alegreya-sans",
   "literata",
   "eb-garamond",
+  "great-vibes",
+  "allura",
+  "playfair-display",
+  "cormorant-garamond",
+  "montserrat",
 ] as const;
 
 export type EventFontId = (typeof eventFontIds)[number];
@@ -15,13 +20,44 @@ export const eventFonts: ReadonlyArray<{
   id: EventFontId;
   label: string;
   family: string;
+  weight: 400 | 600;
 }> = [
-  { id: "noto-sans", label: "Noto Sans", family: 'var(--font-noto-sans), "Noto Sans", sans-serif' },
-  { id: "noto-serif", label: "Noto Serif", family: 'var(--font-noto-serif), "Noto Serif", serif' },
-  { id: "source-sans", label: "Source Sans 3", family: 'var(--font-source-sans-3), "Source Sans 3", sans-serif' },
-  { id: "alegreya-sans", label: "Alegreya Sans", family: 'var(--font-alegreya-sans), "Alegreya Sans", sans-serif' },
-  { id: "literata", label: "Literata", family: 'var(--font-literata), Literata, serif' },
-  { id: "eb-garamond", label: "EB Garamond", family: 'var(--font-eb-garamond), "EB Garamond", serif' },
+  { id: "noto-sans", label: "Noto Sans", family: 'var(--font-noto-sans), "Noto Sans", sans-serif', weight: 600 },
+  { id: "noto-serif", label: "Noto Serif", family: 'var(--font-noto-serif), "Noto Serif", serif', weight: 600 },
+  { id: "source-sans", label: "Source Sans 3", family: 'var(--font-source-sans-3), "Source Sans 3", sans-serif', weight: 600 },
+  { id: "alegreya-sans", label: "Alegreya Sans", family: 'var(--font-alegreya-sans), "Alegreya Sans", sans-serif', weight: 600 },
+  { id: "literata", label: "Literata", family: 'var(--font-literata), Literata, serif', weight: 600 },
+  { id: "eb-garamond", label: "EB Garamond", family: 'var(--font-eb-garamond), "EB Garamond", serif', weight: 600 },
+  {
+    id: "great-vibes",
+    label: "Great Vibes",
+    family: 'var(--font-great-vibes), "Great Vibes", var(--font-noto-serif), "Noto Serif", cursive',
+    weight: 400,
+  },
+  {
+    id: "allura",
+    label: "Allura",
+    family: 'var(--font-allura), Allura, var(--font-noto-serif), "Noto Serif", cursive',
+    weight: 400,
+  },
+  {
+    id: "playfair-display",
+    label: "Playfair Display",
+    family: 'var(--font-playfair-display), "Playfair Display", var(--font-noto-serif), "Noto Serif", serif',
+    weight: 600,
+  },
+  {
+    id: "cormorant-garamond",
+    label: "Cormorant Garamond",
+    family: 'var(--font-cormorant-garamond), "Cormorant Garamond", var(--font-noto-serif), "Noto Serif", serif',
+    weight: 600,
+  },
+  {
+    id: "montserrat",
+    label: "Montserrat",
+    family: 'var(--font-montserrat), Montserrat, var(--font-noto-sans), "Noto Sans", sans-serif',
+    weight: 600,
+  },
 ];
 
 export const logoSizes = ["small", "medium", "large", "extra-large"] as const;
@@ -96,6 +132,11 @@ export function isLogoCorner(value: string): value is LogoCorner {
 export function eventFontFamily(value: string) {
   const match = eventFonts.find((font) => font.id === value);
   return match?.family ?? eventFonts[0].family;
+}
+
+export function eventFontWeight(value: string) {
+  const match = eventFonts.find((font) => font.id === value);
+  return match?.weight ?? eventFonts[0].weight;
 }
 
 export function logoSizeClass(value: string, surface: "screen" | "print") {
