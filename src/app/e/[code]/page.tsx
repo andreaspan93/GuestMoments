@@ -90,7 +90,7 @@ export default async function GuestEventRoute({
             // eslint-disable-next-line @next/next/no-img-element
             <img className="mb-6 max-h-64 w-full rounded-2xl object-cover" src={coverUrl} alt="" />
           ) : null}
-          <p className="text-sm text-foreground/70">
+          <p className="text-center text-sm text-foreground/70">
             {formatCalendarDate(calendarDateFromDb(event.eventDate), locale)}
           </p>
           <h1
