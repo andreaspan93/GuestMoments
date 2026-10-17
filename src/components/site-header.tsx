@@ -45,7 +45,7 @@ export async function SiteHeader() {
         href="/"
         className="min-w-0 shrink truncate text-sm font-semibold tracking-tight"
       >
-        GuestMoments
+        Guest Moments
       </Link>
       <div className="flex shrink-0 flex-nowrap items-center gap-0.5 min-[360px]:gap-1 md:gap-2">
         {session ? (
