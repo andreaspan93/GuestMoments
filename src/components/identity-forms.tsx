@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
 import {
   changePasswordAction,
+  deleteAccountAction,
   forgotPasswordAction,
   loginAction,
   registerAction,
@@ -249,14 +250,17 @@ export function AccountForm({
   name,
   surname,
   email,
+  role,
 }: {
   name: string;
   surname: string;
   email: string;
+  role: string;
 }) {
   const t = useTranslations("auth");
   const [state, action, pending] = useActionState(updateAccountAction, null);
   const [passwordOpen, setPasswordOpen] = useState(false);
+  const [deleteState, deleteAction, deletePending] = useActionState(deleteAccountAction, null);
   const [passwordState, passwordAction, passwordPending] = useActionState(
     changePasswordAction,
     null,
@@ -430,6 +434,38 @@ export function AccountForm({
           {t("changePassword")}
         </Button>
       )}
+      {role === "CUSTOMER" ? (
+        <form action={deleteAction} className="grid gap-4 border-t border-border pt-8">
+          <h2 className="text-lg font-semibold">{t("deleteAccount")}</h2>
+          <p className="text-sm leading-6 text-foreground/80">{t("deleteAccountLead")}</p>
+          <label className="grid gap-2 text-sm font-medium">
+            {t("deleteAccountConfirmLabel")}
+            <input
+              className={fieldClassName}
+              name="confirmEmail"
+              type="email"
+              autoComplete="off"
+              required
+              maxLength={200}
+            />
+          </label>
+          <label className="grid gap-2 text-sm font-medium">
+            {t("currentPassword")}
+            <input
+              className={fieldClassName}
+              name="currentPassword"
+              type="password"
+              autoComplete="current-password"
+              required
+              maxLength={128}
+            />
+          </label>
+          <FormError state={deleteState} />
+          <Button type="submit" variant="outline" disabled={deletePending} aria-busy={deletePending}>
+            {deletePending ? t("pending") : t("deleteAccountSubmit")}
+          </Button>
+        </form>
+      ) : null}
     </div>
   );
 }

@@ -238,35 +238,11 @@ export async function activateCustomerAccess(
   return { accessExpiresAt };
 }
 
-export async function deleteCustomerPermanently(
-  actor: Actor | null,
-  userId: string,
-  confirmEmail: string,
-  storage?: IStorageService,
+export async function eraseCustomerAccount(
+  customer: { id: string; email: string },
+  storage: IStorageService | undefined,
+  deletedBy: { actorType: "owner" | "customer"; actorId?: string },
 ) {
-  const owner = await requireOwner(actor);
-
-  if (owner.id === userId) {
-    throw new OwnerError("forbidden");
-  }
-
-  const customer = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { id: true, email: true, role: true },
-  });
-
-  if (!customer) {
-    throw new OwnerError("notFound");
-  }
-
-  if (customer.role !== "CUSTOMER") {
-    throw new OwnerError("forbidden");
-  }
-
-  if (customer.email.trim().toLowerCase() !== confirmEmail.trim().toLowerCase()) {
-    throw new OwnerError("confirmEmail");
-  }
-
   const events = await prisma.event.findMany({
     where: { customerId: customer.id },
     select: { id: true, uniqueCode: true },
@@ -346,8 +322,8 @@ export async function deleteCustomerPermanently(
 
   await recordApplicationLog({
     eventType: "account.deleted",
-    actorType: "owner",
-    actorId: owner.id,
+    actorType: deletedBy.actorType,
+    ...(deletedBy.actorId ? { actorId: deletedBy.actorId } : {}),
     result: "success",
     metadata: { count: events.length },
   });
@@ -357,6 +333,41 @@ export async function deleteCustomerPermanently(
   } catch {
     await recordUnexpectedError();
   }
+}
+
+export async function deleteCustomerPermanently(
+  actor: Actor | null,
+  userId: string,
+  confirmEmail: string,
+  storage?: IStorageService,
+) {
+  const owner = await requireOwner(actor);
+
+  if (owner.id === userId) {
+    throw new OwnerError("forbidden");
+  }
+
+  const customer = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, email: true, role: true },
+  });
+
+  if (!customer) {
+    throw new OwnerError("notFound");
+  }
+
+  if (customer.role !== "CUSTOMER") {
+    throw new OwnerError("forbidden");
+  }
+
+  if (customer.email.trim().toLowerCase() !== confirmEmail.trim().toLowerCase()) {
+    throw new OwnerError("confirmEmail");
+  }
+
+  await eraseCustomerAccount(customer, storage, {
+    actorType: "owner",
+    actorId: owner.id,
+  });
 }
 
 export async function listOwnerEvents(actor: Actor | null) {

@@ -33,6 +33,10 @@
     "newPassword": "New password",
     "confirmPassword": "Confirm new password",
     "changePassword": "Change password",
+    "deleteAccount": "Delete account",
+    "deleteAccountLead": "This deletes your account, your events, and the photos and videos stored for those events. A backup outside this application may still contain a copy. The backup period has not been set.",
+    "deleteAccountConfirmLabel": "Type your email address to confirm",
+    "deleteAccountSubmit": "Delete my account",
     "cancel": "Cancel",
     "passwordRules": "Use at least 10 characters, including a letter, a number, and a symbol such as ! @ #.",
     "submitLogin": "Log in",
@@ -46,7 +50,7 @@
     "noAccount": "Need an account?",
     "hasAccount": "Already have an account?",
     "backToLogin": "Back to log in",
-    "forgotSuccess": "If an account exists for this email, the reset link was sent. Without email delivery configured, the link is written to the server log.",
+    "forgotSuccess": "If an account exists for this email, a reset link is sent when email delivery is configured.",
     "accountSuccess": "Your changes were saved.",
     "passwordChanged": "Your password was changed.",
     "loginResetNotice": "Password updated. Log in with the new password.",
@@ -63,7 +67,10 @@
       "noPassword": "This account does not have a password to change.",
       "passwordRequired": "The current password is required to change the email or password.",
       "resetInvalid": "This reset link is invalid or has expired.",
-      "sessionExpired": "Your session expired. Log in again."
+      "sessionExpired": "Your session expired. Log in again.",
+      "confirmEmail": "Type the email address of this account.",
+      "forbidden": "This account cannot be deleted here.",
+      "storage": "Deletion stopped because the stored files could not be removed. The account is still here."
     }
   },
   "events": {

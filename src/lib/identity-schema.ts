@@ -41,6 +41,11 @@ export const accountUpdateSchema = z.strictObject({
   surname: z.string().trim().max(120),
 });
 
+export const deleteAccountSchema = z.strictObject({
+  confirmEmail: emailSchema,
+  currentPassword: z.string().min(1).max(128),
+});
+
 export const changePasswordSchema = z
   .strictObject({
     currentPassword: z.string().min(1).max(128),
@@ -67,7 +72,10 @@ export type IdentityErrorCode =
   | "noPassword"
   | "passwordRequired"
   | "resetInvalid"
-  | "sessionExpired";
+  | "sessionExpired"
+  | "confirmEmail"
+  | "forbidden"
+  | "storage";
 
 export type IdentityFormState = {
   error?: IdentityErrorCode;

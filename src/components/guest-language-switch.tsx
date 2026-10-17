@@ -6,9 +6,11 @@ import { cn } from "@/lib/utils";
 export function GuestLanguageSwitch({
   locale,
   accentColor,
+  code,
 }: {
   locale: GuestLocale;
   accentColor: string;
+  code: string;
 }) {
   const copy = guestChrome[locale];
 
@@ -23,6 +25,7 @@ export function GuestLanguageSwitch({
 
         return (
           <form key={item} action={setGuestLocale.bind(null, item)}>
+            <input type="hidden" name="code" value={code} />
             <button
               type="submit"
               aria-label={label}

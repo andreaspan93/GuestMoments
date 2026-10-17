@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { describe, expect, it } from "vitest";
+import { serializeConsent } from "./lib/consent";
 import { proxy } from "./proxy";
 
 function request(pathname: string, acceptLanguage = "el") {
@@ -58,5 +59,22 @@ describe("locale proxy", () => {
     const location = response.headers.get("location") ?? "";
 
     expect(location).not.toContain("/el");
+  });
+
+  it("keeps the language cookie that the locale switch needs", () => {
+    const response = proxy(request("/en", "el"));
+
+    expect(response.cookies.get("NEXT_LOCALE")?.value).toBe("en");
+  });
+
+  it("leaves the language cookie in place after consent is stored", () => {
+    const existing = request("/en", "el");
+    existing.cookies.set(
+      "gm_consent",
+      serializeConsent(true, new Date("2026-10-17T12:00:00.000Z")),
+    );
+    const response = proxy(existing);
+
+    expect(response.cookies.get("NEXT_LOCALE")?.value).toBe("en");
   });
 });

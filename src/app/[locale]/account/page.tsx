@@ -44,6 +44,7 @@ export default async function AccountPage({
         name={session.user.name}
         surname={session.user.surname}
         email={session.user.email}
+        role={session.user.role}
       />
     </AuthCard>
   );

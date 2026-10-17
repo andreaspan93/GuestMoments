@@ -190,6 +190,10 @@ header:has(+ .landing-hero) nav a[aria-current="true"] {
   }
 }
 
+body:has(.cookie-banner) .landing-hero-copy {
+  padding-bottom: 12.5rem;
+}
+
 @media (max-width: 1099px) {
   .landing-hero h1 {
     font-size: clamp(2.55rem, 7.2vw, 3.5rem);

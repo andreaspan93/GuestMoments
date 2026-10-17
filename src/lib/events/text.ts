@@ -12,6 +12,16 @@ export function guestLocaleFromCookie(value: string | undefined): GuestLocale {
   return value === "en" ? "en" : "el";
 }
 
+export function guestLocaleFromQuery(value: string | string[] | undefined): GuestLocale | null {
+  const raw = Array.isArray(value) ? value[0] : value;
+
+  if (raw === "en" || raw === "el") {
+    return raw;
+  }
+
+  return null;
+}
+
 export const guestChrome = {
   el: {
     language: "Γλώσσα",
@@ -42,6 +52,9 @@ export const guestChrome = {
     previous: "Προηγούμενη φωτογραφία",
     next: "Επόμενη φωτογραφία",
     cannotPlay: "Αυτό το βίντεο δεν αναπαράγεται σε αυτόν τον browser. Μπορείτε να το κατεβάσετε.",
+    privacyLead: "Πριν ανεβάσετε, διαβάστε ποια στοιχεία και φωτογραφίες επεξεργάζεται αυτή η σελίδα.",
+    privacyLink: "Ενημέρωση απορρήτου για καλεσμένους",
+    cookieSettings: "Ρυθμίσεις cookies",
   },
   en: {
     language: "Language",
@@ -72,5 +85,8 @@ export const guestChrome = {
     previous: "Previous photo",
     next: "Next photo",
     cannotPlay: "This video cannot play in this browser. You can still download it.",
+    privacyLead: "Before you upload, read what this page processes about you and the photos.",
+    privacyLink: "Guest privacy notice",
+    cookieSettings: "Cookie settings",
   },
 } as const;

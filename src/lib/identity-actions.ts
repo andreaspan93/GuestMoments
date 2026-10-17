@@ -4,11 +4,13 @@ import { APIError } from "better-auth";
 import { headers } from "next/headers";
 import { getLocale } from "next-intl/server";
 import { applyAccountUpdate } from "@/lib/account";
+import { deleteOwnAccount } from "@/lib/account-deletion";
 import { auth } from "@/lib/auth";
 import {
   IdentityError,
   accountUpdateSchema,
   changePasswordSchema,
+  deleteAccountSchema,
   forgotPasswordSchema,
   loginSchema,
   preferredLocaleFromPage,
@@ -19,6 +21,7 @@ import {
 } from "@/lib/identity-schema";
 import { actorTypeForRole, safeRequestId } from "@/lib/logging/catalog";
 import { recordApplicationLog, recordUnexpectedError } from "@/lib/logging/logger";
+import { OwnerError } from "@/lib/owner/schema";
 import { prisma } from "@/lib/prisma";
 import { getRequestSession } from "@/lib/session";
 import { redirect } from "@/i18n/navigation";
@@ -432,4 +435,69 @@ export async function changePasswordAction(
   });
 
   return { success: "passwordChanged" };
+}
+
+export async function deleteAccountAction(
+  _state: IdentityFormState,
+  formData: FormData,
+): Promise<IdentityFormState> {
+  const locale = await getLocale();
+  const session = await getRequestSession();
+
+  if (!session) {
+    redirect({ href: "/login", locale });
+    return { error: "sessionExpired" };
+  }
+
+  const parsed = deleteAccountSchema.safeParse({
+    confirmEmail: field(formData, "confirmEmail"),
+    currentPassword: field(formData, "currentPassword"),
+  });
+
+  if (!parsed.success) {
+    return { error: "invalid" };
+  }
+
+  try {
+    await auth.api.verifyPassword({
+      body: { password: parsed.data.currentPassword },
+      headers: await headers(),
+    });
+    await deleteOwnAccount(session.user.id, parsed.data.confirmEmail);
+  } catch (error) {
+    if (error instanceof OwnerError && error.code === "storage") {
+      return { error: "storage" };
+    }
+
+    if (error instanceof IdentityError) {
+      return formError(error);
+    }
+
+    const code = error instanceof APIError ? String(error.body?.code ?? "") : "";
+
+    await recordApplicationLog({
+      eventType: "account.deleted",
+      actorType: actorTypeForRole(session.user.role),
+      actorId: session.user.id,
+      targetType: "user",
+      targetId: session.user.id,
+      result: "failure",
+      requestId: await requestCorrelationId(),
+      metadata: {
+        reason: code === "INVALID_PASSWORD" ? "invalid_password" : "unexpected",
+      },
+    });
+    return formError(error);
+  }
+
+  try {
+    await auth.api.signOut({
+      headers: await headers(),
+    });
+  } catch {
+    // The account and its sessions are already gone.
+  }
+
+  redirect({ href: "/", locale });
+  return null;
 }
