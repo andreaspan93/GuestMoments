@@ -64,22 +64,25 @@
 
 .landing-hero h1 {
   margin: 0.85rem 0 0;
-  max-width: 12ch;
+  max-width: 100%;
   font-size: clamp(2.7rem, 12vw, 4.4rem);
   font-weight: 600;
-  letter-spacing: -0.035em;
-  line-height: 0.96;
+  letter-spacing: -0.03em;
+  line-height: 1.02;
   text-wrap: balance;
-  text-shadow: 0 10px 32px rgb(12 6 4 / 0.35);
+  text-shadow: 0 10px 32px rgb(12 6 4 / 0.4);
 }
 
 .landing-hero-lead {
   margin: 1.15rem 0 0;
-  max-width: 36rem;
-  color: rgb(255 250 246 / 0.94);
-  font-size: 1.05rem;
-  line-height: 1.7;
-  text-shadow: 0 2px 16px rgb(12 6 4 / 0.4);
+  max-width: 22rem;
+  color: #fffaf6;
+  font-size: 1.12rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  line-height: 1.5;
+  text-wrap: balance;
+  text-shadow: 0 2px 18px rgb(12 6 4 / 0.45);
 }
 
 header:has(+ .landing-hero) {
@@ -162,12 +165,15 @@ header:has(+ .landing-hero) nav a[aria-current="true"] {
   }
 
   .landing-hero h1 {
-    font-size: clamp(4.4rem, 7vw, 6.4rem);
+    max-width: 8.2ch;
+    font-size: clamp(4.2rem, 6.2vw, 6rem);
+    line-height: 0.92;
   }
 
   .landing-hero-lead {
-    font-size: 1.2rem;
-    line-height: 1.75;
+    max-width: 24rem;
+    font-size: 1.32rem;
+    line-height: 1.5;
   }
 
   header:has(+ .landing-hero) a.bg-primary {
