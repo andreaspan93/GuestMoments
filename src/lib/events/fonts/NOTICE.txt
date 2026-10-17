@@ -33,3 +33,18 @@ Copyright 2015 The Cormorant Project Authors (github.com/CatharsisFonts/Cormoran
 
 Montserrat
 Copyright 2011 The Montserrat Project Authors (https://github.com/JulietaUla/Montserrat)
+
+Parisienne
+Copyright 2012 The Parisienne Project Authors
+
+Pinyon Script
+Copyright 2010 The Pinyon Script Project Authors
+
+Cinzel
+Copyright 2012 The Cinzel Project Authors (https://github.com/NDISCOVER/Cinzel), with Reserved Font Name "Cinzel".
+
+DM Serif Display
+Copyright 2018 The DM Serif Display Project Authors
+
+Libre Baskerville
+Copyright 2012 The Libre Baskerville Project Authors (https://github.com/impallari/Libre-Baskerville)

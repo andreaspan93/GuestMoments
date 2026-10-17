@@ -10,6 +10,11 @@ export const eventFontIds = [
   "playfair-display",
   "cormorant-garamond",
   "montserrat",
+  "parisienne",
+  "pinyon-script",
+  "cinzel",
+  "dm-serif-display",
+  "libre-baskerville",
 ] as const;
 
 export type EventFontId = (typeof eventFontIds)[number];
@@ -20,7 +25,7 @@ export const eventFonts: ReadonlyArray<{
   id: EventFontId;
   label: string;
   family: string;
-  weight: 400 | 600;
+  weight: 400 | 600 | 700;
 }> = [
   { id: "noto-sans", label: "Noto Sans", family: 'var(--font-noto-sans), "Noto Sans", sans-serif', weight: 600 },
   { id: "noto-serif", label: "Noto Serif", family: 'var(--font-noto-serif), "Noto Serif", serif', weight: 600 },
@@ -57,6 +62,36 @@ export const eventFonts: ReadonlyArray<{
     label: "Montserrat",
     family: 'var(--font-montserrat), Montserrat, var(--font-noto-sans), "Noto Sans", sans-serif',
     weight: 600,
+  },
+  {
+    id: "parisienne",
+    label: "Parisienne",
+    family: 'var(--font-parisienne), Parisienne, var(--font-noto-serif), "Noto Serif", cursive',
+    weight: 400,
+  },
+  {
+    id: "pinyon-script",
+    label: "Pinyon Script",
+    family: 'var(--font-pinyon-script), "Pinyon Script", var(--font-noto-serif), "Noto Serif", cursive',
+    weight: 400,
+  },
+  {
+    id: "cinzel",
+    label: "Cinzel",
+    family: 'var(--font-cinzel), Cinzel, var(--font-noto-serif), "Noto Serif", serif',
+    weight: 600,
+  },
+  {
+    id: "dm-serif-display",
+    label: "DM Serif Display",
+    family: 'var(--font-dm-serif-display), "DM Serif Display", var(--font-noto-serif), "Noto Serif", serif',
+    weight: 400,
+  },
+  {
+    id: "libre-baskerville",
+    label: "Libre Baskerville",
+    family: 'var(--font-libre-baskerville), "Libre Baskerville", var(--font-noto-serif), "Noto Serif", serif',
+    weight: 700,
   },
 ];
 

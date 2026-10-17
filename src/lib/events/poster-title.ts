@@ -23,6 +23,11 @@ const titleFontFiles: Record<EventFontId, string> = {
   "playfair-display": "PlayfairDisplay-SemiBold.ttf",
   "cormorant-garamond": "CormorantGaramond-SemiBold.ttf",
   montserrat: "Montserrat-SemiBold.ttf",
+  parisienne: "Parisienne-Regular.ttf",
+  "pinyon-script": "PinyonScript-Regular.ttf",
+  cinzel: "Cinzel-SemiBold.ttf",
+  "dm-serif-display": "DMSerifDisplay-Regular.ttf",
+  "libre-baskerville": "LibreBaskerville-Bold.ttf",
 };
 
 const serifFallback = new Set<EventFontId>([
@@ -33,6 +38,11 @@ const serifFallback = new Set<EventFontId>([
   "cormorant-garamond",
   "great-vibes",
   "allura",
+  "parisienne",
+  "pinyon-script",
+  "cinzel",
+  "dm-serif-display",
+  "libre-baskerville",
 ]);
 
 type LayoutFont = {

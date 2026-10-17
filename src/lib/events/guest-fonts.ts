@@ -1,13 +1,18 @@
 import {
   Alegreya_Sans,
   Allura,
+  Cinzel,
   Cormorant_Garamond,
+  DM_Serif_Display,
   EB_Garamond,
   Great_Vibes,
+  Libre_Baskerville,
   Literata,
   Montserrat,
   Noto_Sans,
   Noto_Serif,
+  Parisienne,
+  Pinyon_Script,
   Playfair_Display,
   Source_Sans_3,
 } from "next/font/google";
@@ -73,6 +78,36 @@ const montserrat = Montserrat({
   variable: "--font-montserrat",
 });
 
+const parisienne = Parisienne({
+  subsets: ["latin"],
+  weight: "400",
+  variable: "--font-parisienne",
+});
+
+const pinyonScript = Pinyon_Script({
+  subsets: ["latin"],
+  weight: "400",
+  variable: "--font-pinyon-script",
+});
+
+const cinzel = Cinzel({
+  subsets: ["latin"],
+  weight: "600",
+  variable: "--font-cinzel",
+});
+
+const dmSerifDisplay = DM_Serif_Display({
+  subsets: ["latin"],
+  weight: "400",
+  variable: "--font-dm-serif-display",
+});
+
+const libreBaskerville = Libre_Baskerville({
+  subsets: ["latin"],
+  weight: "700",
+  variable: "--font-libre-baskerville",
+});
+
 export const guestFontVariables = [
   notoSans.variable,
   notoSerif.variable,
@@ -85,4 +120,9 @@ export const guestFontVariables = [
   playfairDisplay.variable,
   cormorantGaramond.variable,
   montserrat.variable,
+  parisienne.variable,
+  pinyonScript.variable,
+  cinzel.variable,
+  dmSerifDisplay.variable,
+  libreBaskerville.variable,
 ].join(" ");

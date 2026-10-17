@@ -35,7 +35,7 @@ export default async function HomePage({
   const t = await getTranslations("landing");
 
   return (
-    <main className="landing-hero">
+    <main className="landing-hero" data-locale={locale}>
       <div className="landing-hero-media" aria-hidden="true">
         <Image
           src="/landing-hero.jpg"

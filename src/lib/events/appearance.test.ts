@@ -166,6 +166,14 @@ describe("event appearance", () => {
       "montserrat",
       "noto-sans",
     ]);
+    expect(eventFormSchema.safeParse({ ...validForm, titleFont: "cinzel", guestFont: "parisienne" }).success).toBe(
+      true,
+    );
+    expect(posterTitleRuns("Wedding", "parisienne").map((run) => run.fontId)).toEqual(["parisienne"]);
+    expect(posterTitleRuns("Ανδρέας και Μαρία", "cinzel").every((run) => run.fontId === "noto-serif")).toBe(true);
+    expect(posterTitleRuns("Ανδρέας και Μαρία", "libre-baskerville").every((run) => run.fontId === "noto-serif")).toBe(
+      true,
+    );
   });
 
   it("accepts the shared create and edit choices and rejects unknown ones", () => {
