@@ -1,8 +1,8 @@
 import { z } from "zod";
 import { isCalendarDate } from "@/lib/events/expiry";
+import { retentionDaysSchema } from "@/lib/events/retention";
 import { eventFormSchema } from "@/lib/events/schema";
 
-const retentionDays = z.coerce.number().int().min(0).max(3650);
 const quotaMib = z.coerce.number().int().min(1).max(10_485_760);
 
 const customerId = z.string().trim().min(1).max(128);
@@ -17,12 +17,11 @@ export const ownerCreateSchema = z.strictObject({
 export const ownerUpdateSchema = z.strictObject({
   ...ownerEventFields.shape,
   customerId,
-  retentionDays,
   quotaMib,
 });
 
 export const ownerSettingsSchema = z.strictObject({
-  defaultRetentionDays: retentionDays,
+  defaultRetentionDays: retentionDaysSchema,
   defaultQuotaMib: quotaMib,
   maxPhotoMib: z.coerce.number().int().min(1).max(2048),
   maxVideoMib: z.coerce.number().int().min(1).max(10_240),

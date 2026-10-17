@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { createR2Storage } from "@/lib/storage/r2";
+import { createR2Storage, storageDeleteIncomplete } from "@/lib/storage/r2";
+
+describe("R2 deletion", () => {
+  it("treats a partial object-delete response as incomplete", () => {
+    expect(storageDeleteIncomplete(0)).toBe(false);
+    expect(storageDeleteIncomplete(2)).toBe(true);
+  });
+});
 
 describe("R2 presign", () => {
   it("signs content type and content length", async () => {

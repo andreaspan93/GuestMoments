@@ -24,6 +24,7 @@ type DocumentCopy = { title: string; description: string; sections: Section[] };
 export type PrivacyCopy = {
   draft: string;
   footerLabel: string;
+  footerLead: string;
   consent: {
     title: string;
     body: string;
@@ -49,6 +50,8 @@ const en = {
   draft:
     "Draft for the operator and for legal review. It describes this application as it works today. It is not a statement that Guest Moments is GDPR-compliant, and a lawyer has not approved it.",
   footerLabel: "Legal",
+  footerLead:
+    "A private gallery for the photographs and videos guests share on the day.",
   consent: {
     title: "Cookies",
     body: "Guest Moments uses cookies to sign in, to keep a guest upload with the right event, to remember the language you choose, and to store this choice. It does not use analytics or advertising cookies.",
@@ -153,7 +156,7 @@ const en = {
         {
           heading: "How long information is kept",
           paragraphs: [
-            "New events take the platform retention default unless an administrator has changed it. The default in the code is 90 days after the event date. An administrator can set a different period on one event. After that time, the daily cleanup deletes the stored files and the media records, clears the cover, logo, and background, and marks the event expired. The event name, date, and welcome text remain, and so do album names.",
+            "Each event stores 30, 60, or 90 days of retention. A new event starts from the platform default, which is one of those three, and the couple or an administrator can choose another before saving. The period runs from the event date to the end of that later day in Athens. Guests cannot open the gallery after that moment. The daily cleanup then permanently deletes the stored photos and videos, and deletes the event, its albums, and its related records. It does not delete the customer account. Security and operation logs keep their own retention. This application has no archive for restoring an expired event.",
             "Deleting an event removes that event, its media records, its albums, and its stored files. Deleting one photo or video removes that item. A couple can delete their own account from the account page. An administrator can delete a customer account. Either deletion removes the account, the events, and the stored files from the application database and from object storage.",
             "This deletion does not promise that a database backup, a hosting backup, or an object-storage backup is erased. Those backup periods are not recorded in this repository.",
           ],
@@ -215,7 +218,7 @@ const en = {
         {
           heading: "How long it stays",
           paragraphs: [
-            "The couple sets, or inherits, a retention period. After the event expires, the daily cleanup deletes the files and the media records from the application. The couple can also delete items or the whole event sooner. Deleting their account deletes their events and files from the application.",
+            "The couple chooses 30, 60, or 90 days, starting from the platform default. After the event expires, guests cannot open it, and the daily cleanup deletes the files and the event from the application. The couple can also delete items or the whole event sooner. Deleting their account deletes their events and files from the application.",
             "A backup held by the database, hosting, or storage provider may keep a copy. The length of that backup is not set in this application, so this notice cannot say that every copy is already gone.",
           ],
         },
@@ -385,6 +388,8 @@ const el: PrivacyCopy = {
   draft:
     "Προσχέδιο για τον υπεύθυνο λειτουργίας και για νομικό έλεγχο. Περιγράφει την εφαρμογή όπως λειτουργεί σήμερα. Δεν αποτελεί δήλωση ότι το Guest Moments είναι συμβατό με τον GDPR και δεν έχει εγκριθεί από δικηγόρο.",
   footerLabel: "Νομικά",
+  footerLead:
+    "Μια ιδιωτική συλλογή για τις φωτογραφίες και τα βίντεο που μοιράζονται οι καλεσμένοι την ημέρα της εκδήλωσης.",
   consent: {
     title: "Cookies",
     body: "Το Guest Moments χρησιμοποιεί cookies για τη σύνδεση, για να μείνει το ανέβασμα ενός καλεσμένου στη σωστή εκδήλωση, για να θυμάται τη γλώσσα που επιλέγετε, και για να αποθηκεύει αυτή την επιλογή. Δεν χρησιμοποιεί cookies ανάλυσης ή διαφήμισης.",
@@ -489,7 +494,7 @@ const el: PrivacyCopy = {
         {
           heading: "Διάρκεια",
           paragraphs: [
-            "Οι νέες εκδηλώσεις παίρνουν την προεπιλογή διατήρησης της πλατφόρμας, εκτός αν ο διαχειριστής την έχει αλλάξει. Η προεπιλογή στον κώδικα είναι 90 ημέρες μετά την ημερομηνία της εκδήλωσης. Ο διαχειριστής μπορεί να ορίσει άλλη διάρκεια σε μία εκδήλωση. Μετά τη λήξη, ο ημερήσιος καθαρισμός διαγράφει τα αρχεία και τις εγγραφές μέσων, καθαρίζει εξώφυλλο, λογότυπο και φόντο, και σημειώνει την εκδήλωση ως ληγμένη. Το όνομα, η ημερομηνία και το κείμενο καλωσορίσματος μένουν, όπως και τα ονόματα των άλμπουμ.",
+            "Κάθε εκδήλωση αποθηκεύει φύλαξη 30, 60 ή 90 ημερών. Μια νέα εκδήλωση ξεκινά από την προεπιλογή της πλατφόρμας, που είναι μία από αυτές τις τρεις, και το ζευγάρι ή ο διαχειριστής μπορεί να επιλέξει άλλη πριν την αποθήκευση. Η περίοδος μετρά από την ημερομηνία της εκδήλωσης έως το τέλος της αντίστοιχης ημέρας στην Αθήνα. Μετά από εκείνη τη στιγμή οι καλεσμένοι δεν ανοίγουν τη συλλογή. Ο ημερήσιος καθαρισμός διαγράφει οριστικά τις φωτογραφίες και τα βίντεο και διαγράφει την εκδήλωση, τα άλμπουμ και τις σχετικές εγγραφές. Δεν διαγράφει τον λογαριασμό του πελάτη. Τα αρχεία ασφαλείας και λειτουργίας έχουν τη δική τους διάρκεια. Η εφαρμογή δεν έχει αρχείο για επαναφορά μιας ληγμένης εκδήλωσης.",
             "Η διαγραφή εκδήλωσης αφαιρεί την εκδήλωση, τα μέσα, τα άλμπουμ και τα αρχεία. Η διαγραφή μιας φωτογραφίας ή ενός βίντεο αφαιρεί αυτό το στοιχείο. Το ζευγάρι μπορεί να διαγράψει τον λογαριασμό του από τη σελίδα λογαριασμού. Ο διαχειριστής μπορεί να διαγράψει λογαριασμό πελάτη. Και οι δύο διαγραφές αφαιρούν τον λογαριασμό, τις εκδηλώσεις και τα αρχεία από τη βάση και από τον αποθηκευτικό χώρο αντικειμένων.",
             "Η διαγραφή αυτή δεν υπόσχεται ότι σβήνεται και ένα αντίγραφο ασφαλείας της βάσης, της φιλοξενίας ή του αποθηκευτικού χώρου. Οι διάρκειες αυτών των αντιγράφων δεν είναι γραμμένες στο αποθετήριο.",
           ],
@@ -551,7 +556,7 @@ const el: PrivacyCopy = {
         {
           heading: "Πόσο μένουν",
           paragraphs: [
-            "Το ζευγάρι ορίζει, ή κληρονομεί, μια περίοδο διατήρησης. Μετά τη λήξη, ο ημερήσιος καθαρισμός διαγράφει τα αρχεία και τις εγγραφές από την εφαρμογή. Το ζευγάρι μπορεί επίσης να διαγράψει στοιχεία ή ολόκληρη την εκδήλωση νωρίτερα. Η διαγραφή του λογαριασμού του διαγράφει τις εκδηλώσεις και τα αρχεία από την εφαρμογή.",
+            "Το ζευγάρι επιλέγει 30, 60 ή 90 ημέρες, ξεκινώντας από την προεπιλογή της πλατφόρμας. Μετά τη λήξη οι καλεσμένοι δεν ανοίγουν την εκδήλωση, και ο ημερήσιος καθαρισμός διαγράφει τα αρχεία και την εκδήλωση από την εφαρμογή. Το ζευγάρι μπορεί επίσης να διαγράψει στοιχεία ή ολόκληρη την εκδήλωση νωρίτερα. Η διαγραφή του λογαριασμού του διαγράφει τις εκδηλώσεις και τα αρχεία από την εφαρμογή.",
             "Ένα αντίγραφο ασφαλείας της βάσης, της φιλοξενίας ή του αποθηκευτικού χώρου μπορεί να κρατά αντίγραφο. Η διάρκεια αυτού του αντιγράφου δεν ορίζεται στην εφαρμογή, άρα αυτή η ενημέρωση δεν μπορεί να πει ότι κάθε αντίγραφο έχει ήδη σβηστεί.",
           ],
         },

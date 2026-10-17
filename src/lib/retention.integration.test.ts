@@ -61,6 +61,7 @@ function form(name: string): EventFormValues {
     logoCorner: "square",
     privacyMode: "FULL_GALLERY",
     guestDownloadsEnabled: true,
+    retentionDays: 90,
     status: "ACTIVE",
   };
 }
@@ -101,7 +102,13 @@ class MemoryStorage implements IStorageService {
     this.objects.delete(key);
   }
 
+  failDeletePrefix = false;
+
   async deletePrefix(prefix: string) {
+    if (this.failDeletePrefix) {
+      throw new Error("r2 unavailable");
+    }
+
     for (const key of this.objects.keys()) {
       if (key.startsWith(prefix)) {
         this.objects.delete(key);
@@ -174,7 +181,7 @@ describe("retention purge", () => {
     });
   });
 
-  it("closes the guest gallery before the purge, then keeps the event", async () => {
+  it("closes the guest gallery before the purge, then deletes the event", async () => {
     const customer = await signUpCustomer("Retention");
     const storage = new MemoryStorage();
     const event = await createCustomerEvent(customer, form("Retention wedding"));
@@ -200,26 +207,23 @@ describe("retention purge", () => {
     expect(storage.objects.has(photoKey)).toBe(true);
 
     const first = await runStorageCleanup(storage, new Date());
-    const stored = await prisma.event.findUniqueOrThrow({ where: { id: event.id } });
 
     expect(first.purgedEvents).toBeGreaterThanOrEqual(1);
     expect(storage.objects.has(photoKey)).toBe(false);
     expect(storage.objects.has(coverKey)).toBe(false);
+    expect(await prisma.event.findUnique({ where: { id: event.id } })).toBeNull();
     expect(await prisma.media.count({ where: { eventId: event.id } })).toBe(0);
-    expect(stored.status).toBe("EXPIRED");
-    expect(stored.storagePurgedAt).not.toBeNull();
-    expect(stored.coverKey).toBeNull();
-    expect(stored.name).toBe("Retention wedding");
+    await expect(prisma.user.findUnique({ where: { id: customer.id } })).resolves.not.toBeNull();
+    await expect(
+      listGuestGallery(event.uniqueCode, createGuestToken(), storage),
+    ).rejects.toMatchObject({ code: "notFound" });
     expect(storage.objects.has(keptKey)).toBe(true);
     expect(await prisma.media.count({ where: { eventId: kept.id } })).toBe(1);
 
-    const markedAt = stored.storagePurgedAt?.toISOString();
     const second = await runStorageCleanup(storage, new Date());
-    const again = await prisma.event.findUniqueOrThrow({ where: { id: event.id } });
 
     expect(second.purgedEvents).toBe(0);
-    expect(again.storagePurgedAt?.toISOString()).toBe(markedAt);
-    expect(again.status).toBe("EXPIRED");
+    expect(await prisma.event.findUnique({ where: { id: event.id } })).toBeNull();
     expect(storage.objects.has(keptKey)).toBe(true);
     expect(await prisma.media.count({ where: { eventId: kept.id } })).toBe(1);
   });
@@ -236,12 +240,10 @@ describe("retention purge", () => {
     });
     await runStorageCleanup(storage, new Date());
 
-    const stored = await prisma.event.findUniqueOrThrow({ where: { id: event.id } });
-
     expect(storage.objects.has(photoKey)).toBe(false);
+    expect(await prisma.event.findUnique({ where: { id: event.id } })).toBeNull();
     expect(await prisma.media.count({ where: { eventId: event.id } })).toBe(0);
-    expect(stored.status).toBe("EXPIRED");
-    expect(stored.storagePurgedAt).not.toBeNull();
+    await expect(prisma.user.findUnique({ where: { id: customer.id } })).resolves.not.toBeNull();
   });
 
   it("does nothing when the cron secret is missing or wrong", async () => {
@@ -462,6 +464,66 @@ describe("retention purge", () => {
     } finally {
       await prisma.rateLimitHit.deleteMany({ where: { bucket } });
     }
+  });
+
+  it("retries an expired event after storage deletion fails", async () => {
+    const customer = await signUpCustomer("Storage retry");
+    const storage = new MemoryStorage();
+    const event = await createCustomerEvent(customer, form("Storage retry wedding"));
+    const photoKey = await storePhoto(storage, event.uniqueCode, "retry");
+
+    await prisma.event.update({
+      where: { id: event.id },
+      data: { expiresAt: new Date("2020-04-01T00:00:00.000Z") },
+    });
+    storage.failDeletePrefix = true;
+
+    await expect(runStorageCleanup(storage, new Date())).rejects.toThrow("event_cleanup_incomplete");
+    expect(storage.objects.has(photoKey)).toBe(true);
+    await expect(prisma.event.findUnique({ where: { id: event.id } })).resolves.not.toBeNull();
+    await expect(prisma.media.count({ where: { eventId: event.id } })).resolves.toBe(1);
+    const failure = await prisma.applicationLog.findFirst({
+      where: { eventType: "app.error", targetId: event.id, result: "failure" },
+    });
+    expect(failure).not.toBeNull();
+
+    storage.failDeletePrefix = false;
+    const retry = await runStorageCleanup(storage, new Date());
+
+    expect(retry.purgedEvents).toBeGreaterThanOrEqual(1);
+    expect(storage.objects.has(photoKey)).toBe(false);
+    await expect(prisma.event.findUnique({ where: { id: event.id } })).resolves.toBeNull();
+    await expect(prisma.user.findUnique({ where: { id: customer.id } })).resolves.not.toBeNull();
+  });
+
+  it("retries database deletion after storage was already removed", async () => {
+    const customer = await signUpCustomer("Database retry");
+    const storage = new MemoryStorage();
+    const event = await createCustomerEvent(customer, form("Database retry wedding"));
+    const photoKey = await storePhoto(storage, event.uniqueCode, "database");
+
+    await prisma.event.update({
+      where: { id: event.id },
+      data: { expiresAt: new Date("2020-05-01T00:00:00.000Z") },
+    });
+    const spy = vi.spyOn(prisma.event, "delete").mockRejectedValueOnce(new Error("database failed"));
+
+    try {
+      await expect(runStorageCleanup(storage, new Date())).rejects.toThrow("event_cleanup_incomplete");
+    } finally {
+      spy.mockRestore();
+    }
+
+    expect(storage.objects.has(photoKey)).toBe(false);
+    await expect(prisma.event.findUnique({ where: { id: event.id } })).resolves.not.toBeNull();
+    await expect(prisma.media.count({ where: { eventId: event.id } })).resolves.toBe(1);
+
+    const retry = await runStorageCleanup(storage, new Date());
+
+    expect(retry.purgedEvents).toBeGreaterThanOrEqual(1);
+    await expect(prisma.event.findUnique({ where: { id: event.id } })).resolves.toBeNull();
+    await expect(prisma.media.count({ where: { eventId: event.id } })).resolves.toBe(0);
+    await expect(prisma.user.findUnique({ where: { id: customer.id } })).resolves.not.toBeNull();
   });
 
   it("reports a failure when expired-session cleanup fails", async () => {

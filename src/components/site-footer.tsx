@@ -1,24 +1,42 @@
 import { getLocale } from "next-intl/server";
 import { CookieSettingsButton } from "@/components/cookie-settings-button";
-import { legalRoutes, privacyCopy, privacyLanguage } from "@/content/privacy-copy";
 import { Link } from "@/i18n/navigation";
+import { legalRoutes, privacyCopy } from "@/content/privacy-copy";
+
+const linkClassName =
+  "text-sm tracking-wide text-[#f6f0e8]/90 transition-colors hover:text-[#e7c9a4]";
 
 export async function SiteFooter() {
-  const copy = privacyCopy[privacyLanguage(await getLocale())];
+  const locale = await getLocale();
+  const copy = locale === "el" ? privacyCopy.el : privacyCopy.en;
 
   return (
-    <footer className="mt-auto border-t border-border print:hidden">
-      <nav
-        aria-label={copy.footerLabel}
-        className="mx-auto flex w-full max-w-3xl flex-wrap gap-x-4 gap-y-2 px-6 py-8 text-sm text-foreground/80"
-      >
-        {legalRoutes.map((route) => (
-          <Link key={route.slug} href={route.href} className="underline underline-offset-4">
-            {copy.nav[route.slug]}
-          </Link>
-        ))}
-        <CookieSettingsButton label={copy.nav.cookieSettings} />
-      </nav>
+    <footer className="mt-16 bg-[#2c241f] text-[#f6f0e8] print:hidden">
+      <div className="mx-auto grid w-full max-w-5xl gap-10 px-6 py-14 sm:px-10 md:grid-cols-2 md:items-start md:gap-16">
+        <div className="max-w-md">
+          <p className="font-[family-name:var(--font-cormorant-garamond)] text-4xl leading-none tracking-tight">
+            Guest Moments
+          </p>
+          <p className="mt-5 text-sm leading-7 text-[#f6f0e8]/75">{copy.footerLead}</p>
+        </div>
+        <nav aria-label={copy.footerLabel} className="md:justify-self-end">
+          <p className="text-xs font-medium tracking-[0.18em] text-[#e7c9a4] uppercase">
+            {copy.footerLabel}
+          </p>
+          <ul className="mt-5 grid gap-3">
+            {legalRoutes.map((route) => (
+              <li key={route.slug}>
+                <Link href={route.href} className={linkClassName}>
+                  {copy.nav[route.slug]}
+                </Link>
+              </li>
+            ))}
+            <li>
+              <CookieSettingsButton label={copy.nav.cookieSettings} className={linkClassName} />
+            </li>
+          </ul>
+        </nav>
+      </div>
     </footer>
   );
 }

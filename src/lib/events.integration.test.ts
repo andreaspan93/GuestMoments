@@ -64,6 +64,7 @@ function form(overrides: Partial<EventFormValues> = {}): EventFormValues {
     logoCorner: "square",
     privacyMode: "FULL_GALLERY",
     guestDownloadsEnabled: true,
+    retentionDays: 90,
     status: "ACTIVE",
     ...overrides,
   };
@@ -109,10 +110,13 @@ describe("events", () => {
     });
   });
 
-  it("copies retention and quota, then leaves them when settings change", async () => {
+  it("stores the chosen retention and leaves it when the platform default changes", async () => {
     const customer = await signUpCustomer("Copy Customer");
-    await setRetention(30);
-    const created = await createCustomerEvent(customer, form({ eventDate: "2027-08-01" }));
+    await setRetention(60);
+    const created = await createCustomerEvent(
+      customer,
+      form({ eventDate: "2027-08-01", retentionDays: 30 }),
+    );
     const originalExpiry = created.expiresAt;
 
     expect(created.retentionDays).toBe(30);
@@ -122,7 +126,7 @@ describe("events", () => {
     );
     expect(created.uniqueCode.length).toBeGreaterThanOrEqual(21);
 
-    await setRetention(10);
+    await setRetention(90);
     const untouched = await prisma.event.findUniqueOrThrow({
       where: { id: created.id },
     });
@@ -133,22 +137,21 @@ describe("events", () => {
     const updated = await updateCustomerEvent(
       customer,
       created.id,
-      form({ eventDate: "2027-09-01", name: "Updated wedding" }),
+      form({ eventDate: "2027-09-01", name: "Updated wedding", retentionDays: 60 }),
     );
 
-    expect(updated.retentionDays).toBe(30);
+    expect(updated.retentionDays).toBe(60);
     expect(updated.name).toBe("Updated wedding");
     expect(updated.expiresAt.toISOString()).toBe(
-      expiresAtFor("2027-09-01", 30).toISOString(),
+      expiresAtFor("2027-09-01", 60).toISOString(),
     );
   });
 
   it("rejects a date whose expiry is already past", async () => {
     const customer = await signUpCustomer("Past Customer");
-    await setRetention(1);
 
     await expect(
-      createCustomerEvent(customer, form({ eventDate: "2020-01-01" })),
+      createCustomerEvent(customer, form({ eventDate: "2020-01-01", retentionDays: 30 })),
     ).rejects.toMatchObject({ code: "pastExpiry" });
 
     await expect(

@@ -92,6 +92,7 @@ export default async function EditEventPage({
               privacyMode:
                 event.privacyMode === "OWN_UPLOADS" ? "OWN_UPLOADS" : "FULL_GALLERY",
               guestDownloadsEnabled: event.guestDownloadsEnabled,
+              retentionDays: event.retentionDays,
               status: event.status === "DISABLED" ? "DISABLED" : "ACTIVE",
             }}
             brandingPreviews={{ cover, logo, background }}

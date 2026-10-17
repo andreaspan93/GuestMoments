@@ -25,6 +25,7 @@ const validForm = {
   logoCorner: "square",
   privacyMode: "FULL_GALLERY",
   guestDownloadsEnabled: true,
+  retentionDays: 90,
   status: "ACTIVE",
 };
 
@@ -57,6 +58,20 @@ describe("event expiry", () => {
     expect(addCalendarDays("2026-01-31", 1)).toBe("2026-02-01");
   });
 
+  it("calculates 30, 60, and 90 days from the event date", () => {
+    expect(expiresAtFor("2026-06-01", 30).toISOString()).toBe("2026-07-01T20:59:59.999Z");
+    expect(expiresAtFor("2026-06-01", 60).toISOString()).toBe("2026-07-31T20:59:59.999Z");
+    expect(expiresAtFor("2026-06-01", 90).toISOString()).toBe("2026-08-30T20:59:59.999Z");
+  });
+
+  it("keeps an event available until the end of its retention day", () => {
+    const expiresAt = expiresAtFor("2026-06-01", 60);
+    const stillOpen = new Date(expiresAt.getTime() - 1);
+
+    expect(isExpiryPast(expiresAt, stillOpen)).toBe(false);
+    expect(isExpiryPast(expiresAt, expiresAt)).toBe(true);
+  });
+
   it("treats an expiry equal to now as already past", () => {
     const expiresAt = expiresAtFor("2026-06-01", 0);
 
@@ -76,10 +91,24 @@ describe("guest text", () => {
 });
 
 describe("event form", () => {
-  it("rejects retention and storage fields", () => {
+  it("accepts only 30, 60, and 90 days of retention", () => {
+    for (const retentionDays of [30, 60, 90, "30", "60", "90"]) {
+      const parsed = eventFormSchema.safeParse({ ...validForm, retentionDays });
+
+      expect(parsed.success).toBe(true);
+      if (parsed.success) {
+        expect(parsed.data.retentionDays).toBe(Number(retentionDays));
+      }
+    }
+
+    expect(eventFormSchema.safeParse({ ...validForm, retentionDays: 10 }).success).toBe(false);
+    expect(eventFormSchema.safeParse({ ...validForm, retentionDays: 120 }).success).toBe(false);
+    expect(eventFormSchema.safeParse({ ...validForm, retentionDays: 0 }).success).toBe(false);
+  });
+
+  it("rejects storage fields", () => {
     const parsed = eventFormSchema.safeParse({
       ...validForm,
-      retentionDays: 10,
       maxStorageBytes: "5",
     });
 
@@ -108,6 +137,25 @@ describe("guest access decision", () => {
 
   it("returns not found when there is no event", () => {
     expect(decideGuestAccess(null, now)).toEqual({ state: "not_found" });
+  });
+
+  it("refuses guest access after each retention period has ended", () => {
+    for (const days of [30, 60, 90]) {
+      const expiresAt = expiresAtFor("2026-06-01", days);
+
+      expect(
+        decideGuestAccess(
+          { status: "ACTIVE", expiresAt, customerDisabled: false },
+          new Date(expiresAt.getTime() - 1),
+        ),
+      ).toEqual({ state: "ok" });
+      expect(
+        decideGuestAccess(
+          { status: "ACTIVE", expiresAt, customerDisabled: false },
+          expiresAt,
+        ),
+      ).toEqual({ state: "unavailable" });
+    }
   });
 
   it("refuses an expired event and a disabled customer", () => {

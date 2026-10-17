@@ -66,6 +66,7 @@ function form(name = "Gallery wedding"): EventFormValues {
     logoCorner: "square",
     privacyMode: "FULL_GALLERY",
     guestDownloadsEnabled: true,
+    retentionDays: 90,
     status: "ACTIVE",
   };
 }

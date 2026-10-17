@@ -20,6 +20,10 @@ export type R2Config = {
 
 const signedPutHeaders = new Set(["content-type", "content-length"]);
 
+export function storageDeleteIncomplete(errorCount: number) {
+  return errorCount > 0;
+}
+
 export function r2ConfigFromEnv(): R2Config | null {
   const accountId = process.env.R2_ACCOUNT_ID;
   const accessKeyId = process.env.R2_ACCESS_KEY_ID;
@@ -170,12 +174,16 @@ export function createR2Storage(config: R2Config): IStorageService {
           .map((key) => ({ Key: key }));
 
         if (objects.length > 0) {
-          await client.send(
+          const deleted = await client.send(
             new DeleteObjectsCommand({
               Bucket: config.bucket,
               Delete: { Objects: objects },
             }),
           );
+
+          if (storageDeleteIncomplete(deleted.Errors?.length ?? 0)) {
+            throw new Error("storage_delete_incomplete");
+          }
         }
 
         token = listed.IsTruncated ? listed.NextContinuationToken : undefined;

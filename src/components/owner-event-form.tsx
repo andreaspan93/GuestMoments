@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { EventAppearanceFields } from "@/components/event-appearance-fields";
+import { RetentionField } from "@/components/retention-field";
 import { Button } from "@/components/ui/button";
 import { type EventFontId, type LogoCorner, type LogoSize } from "@/lib/events/appearance";
 import {
@@ -160,21 +161,9 @@ export function OwnerEventForm({
           defaultValue={defaults.eventDate}
         />
       </label>
+      <RetentionField value={defaults.retentionDays} className={fieldClassName} />
       {eventId ? (
         <>
-          <label className="grid gap-2 text-sm font-medium">
-            {t("retention")}
-            <input
-              className={fieldClassName}
-              name="retentionDays"
-              type="number"
-              required
-              min={0}
-              max={3650}
-              step={1}
-              defaultValue={defaults.retentionDays ?? 0}
-            />
-          </label>
           <label className="grid gap-2 text-sm font-medium">
             {t("quota")}
             <input
@@ -188,7 +177,6 @@ export function OwnerEventForm({
               defaultValue={defaults.quotaMib ?? 1}
             />
           </label>
-          <p className="text-sm leading-6 text-foreground/80">{t("retentionHint")}</p>
         </>
       ) : null}
       <label className="grid gap-2 text-sm font-medium">

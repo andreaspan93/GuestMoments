@@ -25,6 +25,7 @@ const validForm = {
   accentColor: "#8c3d32",
   privacyMode: "FULL_GALLERY",
   guestDownloadsEnabled: true,
+  retentionDays: 90,
   status: "ACTIVE",
   ...defaultEventAppearance,
 };

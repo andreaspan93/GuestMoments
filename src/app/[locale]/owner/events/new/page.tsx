@@ -1,6 +1,7 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import { OwnerEventForm } from "@/components/owner-event-form";
 import { defaultEventAppearance } from "@/lib/events/appearance";
+import { defaultRetentionChoice } from "@/lib/events/service";
 import { requireOwnerPage } from "@/lib/owner/page";
 import { listOwnerCustomers } from "@/lib/owner/service";
 
@@ -8,6 +9,7 @@ export default async function NewOwnerEventPage() {
   const actor = await requireOwnerPage(await getLocale());
   const t = await getTranslations("owner");
   const customers = await listOwnerCustomers(actor);
+  const retentionDays = await defaultRetentionChoice();
 
   return (
     <main className="rounded-3xl border border-border bg-card px-6 py-10 shadow-sm sm:px-12">
@@ -37,6 +39,7 @@ export default async function NewOwnerEventPage() {
               ...defaultEventAppearance,
               privacyMode: "FULL_GALLERY",
               status: "ACTIVE",
+              retentionDays,
             }}
           />
         </div>

@@ -92,6 +92,12 @@ export function athensEndOfDay(isoDate: string) {
   return new Date(utc);
 }
 
+/**
+ * The retention clock starts on the event date, which is the wedding date
+ * stored on the event. It ends at the close of the Europe/Athens calendar
+ * day that falls `retentionDays` later. It does not start on the day the
+ * event record was created.
+ */
 export function expiresAtFor(eventDate: string, retentionDays: number) {
   if (!Number.isInteger(retentionDays) || retentionDays < 0) {
     throw new Error("Invalid retention");

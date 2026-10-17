@@ -417,6 +417,7 @@ export async function createOwnerEvent(actor: Actor | null, input: OwnerCreateVa
       logoCorner: input.logoCorner,
       privacyMode: input.privacyMode,
       guestDownloadsEnabled: true,
+      retentionDays: input.retentionDays,
       status: input.status,
     },
     new Date(),

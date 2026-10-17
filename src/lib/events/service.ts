@@ -9,6 +9,7 @@ import {
   expiresAtFor,
   isExpiryPast,
 } from "@/lib/events/expiry";
+import { retentionChoice } from "@/lib/events/retention";
 import { EventError, type EventFormValues } from "@/lib/events/schema";
 import { actorTypeForRole } from "@/lib/logging/catalog";
 import { recordCrossCustomerEventAccess } from "@/lib/logging/access";
@@ -37,6 +38,12 @@ async function platformSettings() {
   }
 
   return settings;
+}
+
+export async function defaultRetentionChoice() {
+  const settings = await platformSettings();
+
+  return retentionChoice(settings.defaultRetentionDays);
 }
 
 async function insertEvent(data: {
@@ -133,7 +140,7 @@ export async function createCustomerEvent(
 ) {
   await ensureCustomerService(actor, now, options?.enforceServiceAccess !== false);
   const settings = await platformSettings();
-  const expiresAt = expiresAtFor(input.eventDate, settings.defaultRetentionDays);
+  const expiresAt = expiresAtFor(input.eventDate, input.retentionDays);
 
   if (isExpiryPast(expiresAt, now)) {
     throw new EventError("pastExpiry");
@@ -166,7 +173,7 @@ export async function createCustomerEvent(
     status: input.status,
     privacyMode: input.privacyMode,
     guestDownloadsEnabled: input.guestDownloadsEnabled,
-    retentionDays: settings.defaultRetentionDays,
+    retentionDays: input.retentionDays,
     maxStorageBytes: settings.defaultMaxStorageBytes,
     expiresAt,
   });
@@ -207,7 +214,7 @@ export async function updateCustomerEvent(
     throw new EventError("notFound");
   }
 
-  const expiresAt = expiresAtFor(input.eventDate, existing.retentionDays);
+  const expiresAt = expiresAtFor(input.eventDate, input.retentionDays);
 
   if (isExpiryPast(expiresAt, now)) {
     throw new EventError("pastExpiry");
@@ -231,6 +238,7 @@ export async function updateCustomerEvent(
       status: input.status,
       privacyMode: input.privacyMode,
       guestDownloadsEnabled: input.guestDownloadsEnabled,
+      retentionDays: input.retentionDays,
       expiresAt,
     },
   });
@@ -239,6 +247,7 @@ export async function updateCustomerEvent(
     ...(existing.guestDownloadsEnabled !== input.guestDownloadsEnabled
       ? ["guestDownloadsEnabled" as const]
       : []),
+    ...(existing.retentionDays !== input.retentionDays ? ["retentionDays" as const] : []),
     ...(existing.status !== input.status ? ["status" as const] : []),
   ];
 

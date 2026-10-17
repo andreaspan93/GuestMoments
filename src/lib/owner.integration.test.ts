@@ -96,6 +96,7 @@ function form(overrides: Partial<EventFormValues> = {}): EventFormValues {
     logoCorner: "square",
     privacyMode: "FULL_GALLERY",
     guestDownloadsEnabled: true,
+    retentionDays: 90,
     status: "ACTIVE",
     ...overrides,
   };
@@ -184,12 +185,13 @@ describe("owner administration", () => {
     ).rejects.toMatchObject({ code: "notFound" });
 
     const created = await createOwnerEvent(owner, {
-      ...form(),
+      ...form({ retentionDays: 30 }),
       customerId: customer.id,
     });
 
     expect(created.customerId).toBe(customer.id);
-    expect(created.retentionDays).toBe(90);
+    expect(created.retentionDays).toBe(30);
+    expect(created.expiresAt.toISOString()).toBe(expiresAtFor("2027-09-01", 30).toISOString());
     expect(created.maxStorageBytes).toBe(DEFAULT_MAX_STORAGE_BYTES);
 
     expect(
@@ -204,31 +206,31 @@ describe("owner administration", () => {
     const extended = await updateOwnerEvent(owner, created.id, {
       ...form({ name: "Extended wedding" }),
       customerId: customer.id,
-      retentionDays: 120,
+      retentionDays: 60,
       quotaMib: 2048,
     });
 
-    expect(extended.retentionDays).toBe(120);
+    expect(extended.retentionDays).toBe(60);
     expect(extended.maxStorageBytes).toBe(quota);
     expect(extended.expiresAt.toISOString()).toBe(
-      expiresAtFor("2027-09-01", 120).toISOString(),
+      expiresAtFor("2027-09-01", 60).toISOString(),
     );
 
     const renamed = await updateCustomerEvent(
       customer,
       created.id,
-      form({ name: "Couple rename", guestDownloadsEnabled: false }),
+      form({ name: "Couple rename", guestDownloadsEnabled: false, retentionDays: 60 }),
     );
 
     expect(renamed.name).toBe("Couple rename");
-    expect(renamed.retentionDays).toBe(120);
+    expect(renamed.retentionDays).toBe(60);
     expect(renamed.maxStorageBytes).toBe(quota);
     expect(renamed.customerId).toBe(customer.id);
 
     const reassigned = await updateOwnerEvent(owner, created.id, {
       ...form({ name: "Couple rename" }),
       customerId: other.id,
-      retentionDays: 120,
+      retentionDays: 60,
       quotaMib: 2048,
     });
 
@@ -253,7 +255,7 @@ describe("owner administration", () => {
     const heldExpiry = event.expiresAt.toISOString();
 
     await updateOwnerSettings(owner, {
-      defaultRetentionDays: 15,
+      defaultRetentionDays: 60,
       defaultQuotaMib: bytesToMib(DEFAULT_MAX_STORAGE_BYTES),
       maxPhotoMib: bytesToMib(DEFAULT_MAX_PHOTO_BYTES),
       maxVideoMib: bytesToMib(DEFAULT_MAX_VIDEO_BYTES),
@@ -272,15 +274,15 @@ describe("owner administration", () => {
     const extended = await updateOwnerEvent(owner, event.id, {
       ...form({ name: "Held wedding" }),
       customerId: customer.id,
-      retentionDays: 200,
+      retentionDays: 60,
       quotaMib: bytesToMib(DEFAULT_MAX_STORAGE_BYTES),
     });
 
     const after = await prisma.event.findUniqueOrThrow({ where: { id: other.id } });
 
-    expect(extended.retentionDays).toBe(200);
+    expect(extended.retentionDays).toBe(60);
     expect(extended.expiresAt.toISOString()).toBe(
-      expiresAtFor("2027-09-01", 200).toISOString(),
+      expiresAtFor("2027-09-01", 60).toISOString(),
     );
     expect(after.retentionDays).toBe(90);
     expect(after.expiresAt.toISOString()).toBe(other.expiresAt.toISOString());

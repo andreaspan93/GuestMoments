@@ -49,6 +49,7 @@ function readEventFields(formData: FormData) {
     logoSize: field(formData, "logoSize"),
     logoCorner: field(formData, "logoCorner"),
     privacyMode: field(formData, "privacyMode"),
+    retentionDays: field(formData, "retentionDays"),
     status: field(formData, "status"),
   };
 }
@@ -131,7 +132,6 @@ export async function updateOwnerEventAction(
 
   const parsed = ownerUpdateSchema.safeParse({
     ...readEventFields(formData),
-    retentionDays: field(formData, "retentionDays"),
     quotaMib: field(formData, "quotaMib"),
   });
 
