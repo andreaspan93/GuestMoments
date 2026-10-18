@@ -30,3 +30,12 @@ Copyright 2020 The Brygada 1918 Project Authors (https://github.com/noscite/Bryg
 
 GFS Didot
 Copyright 2006 The Greek Font Society (https://www.greekfontsociety-gfs.gr/)
+
+Mansalva
+Copyright 2022 The Mansalva Project Authors (https://github.com/carolinashort/mansalva)
+
+Mynerve
+Copyright 2022 The Mynerve Project Authors (https://github.com/carolinashort/MyNerve)
+
+Playpen Sans
+Copyright 2023 The Playpen Sans Project Authors (https://github.com/TypeTogether/Playpen-Sans)

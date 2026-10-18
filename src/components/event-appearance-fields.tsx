@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import {
+  eventFontGroups,
   eventFonts,
   eventTextWeight,
   logoCorners,
@@ -86,21 +87,32 @@ function FontField({
           aria-labelledby={labelId}
           className="absolute top-full z-20 mt-2 max-h-72 w-full overflow-auto rounded-3xl border border-border bg-background p-1 shadow-lg"
         >
-          {eventFonts.map((font) => (
-            <li key={font.id} role="none">
-              <button
-                type="button"
-                role="option"
-                aria-selected={font.id === selected}
-                className="w-full rounded-2xl px-4 py-2 text-left text-base hover:bg-muted"
-                style={{ fontFamily: font.family, fontWeight: font.weight }}
-                onClick={() => {
-                  setSelected(font.id);
-                  setOpen(false);
-                }}
-              >
-                {font.label}
-              </button>
+          {eventFontGroups.map((group) => (
+            <li key={group} role="presentation">
+              <p className="px-4 pt-2 pb-1 font-sans text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                {t(`fontGroups.${group}`)}
+              </p>
+              <ul role="presentation">
+                {eventFonts
+                  .filter((font) => font.group === group)
+                  .map((font) => (
+                    <li key={font.id} role="none">
+                      <button
+                        type="button"
+                        role="option"
+                        aria-selected={font.id === selected}
+                        className="w-full rounded-2xl px-4 py-2 text-left text-base hover:bg-muted"
+                        style={{ fontFamily: font.family, fontWeight: font.weight }}
+                        onClick={() => {
+                          setSelected(font.id);
+                          setOpen(false);
+                        }}
+                      >
+                        {font.label}
+                      </button>
+                    </li>
+                  ))}
+              </ul>
             </li>
           ))}
         </ul>

@@ -1,4 +1,7 @@
 export const eventFontIds = [
+  "mansalva",
+  "mynerve",
+  "playpen-sans",
   "alegreya",
   "gfs-didot",
   "eb-garamond",
@@ -30,22 +33,30 @@ const legacyEventFonts: Record<string, EventFontId> = {
   montserrat: "source-sans",
 };
 
+export const eventFontGroups = ["handwritten", "classic"] as const;
+
+export type EventFontGroup = (typeof eventFontGroups)[number];
+
 export const eventFonts: ReadonlyArray<{
   id: EventFontId;
   label: string;
   family: string;
   weight: 400 | 600 | 700;
+  group: EventFontGroup;
 }> = [
-  { id: "alegreya", label: "Alegreya", family: 'var(--font-alegreya), Alegreya, serif', weight: 600 },
-  { id: "gfs-didot", label: "GFS Didot", family: 'var(--font-gfs-didot), "GFS Didot", serif', weight: 400 },
-  { id: "eb-garamond", label: "EB Garamond", family: 'var(--font-eb-garamond), "EB Garamond", serif', weight: 600 },
-  { id: "brygada-1918", label: "Brygada 1918", family: 'var(--font-brygada-1918), "Brygada 1918", serif', weight: 600 },
-  { id: "source-serif-4", label: "Source Serif 4", family: 'var(--font-source-serif-4), "Source Serif 4", serif', weight: 600 },
-  { id: "literata", label: "Literata", family: 'var(--font-literata), Literata, serif', weight: 600 },
-  { id: "noto-serif", label: "Noto Serif", family: 'var(--font-noto-serif), "Noto Serif", serif', weight: 600 },
-  { id: "alegreya-sans", label: "Alegreya Sans", family: 'var(--font-alegreya-sans), "Alegreya Sans", sans-serif', weight: 700 },
-  { id: "source-sans", label: "Source Sans 3", family: 'var(--font-source-sans-3), "Source Sans 3", sans-serif', weight: 600 },
-  { id: "noto-sans", label: "Noto Sans", family: 'var(--font-noto-sans), "Noto Sans", sans-serif', weight: 600 },
+  { id: "mansalva", label: "Mansalva", family: 'var(--font-mansalva), Mansalva, cursive', weight: 400, group: "handwritten" },
+  { id: "mynerve", label: "Mynerve", family: 'var(--font-mynerve), Mynerve, cursive', weight: 400, group: "handwritten" },
+  { id: "playpen-sans", label: "Playpen Sans", family: 'var(--font-playpen-sans), "Playpen Sans", cursive', weight: 400, group: "handwritten" },
+  { id: "alegreya", label: "Alegreya", family: 'var(--font-alegreya), Alegreya, serif', weight: 600, group: "classic" },
+  { id: "gfs-didot", label: "GFS Didot", family: 'var(--font-gfs-didot), "GFS Didot", serif', weight: 400, group: "classic" },
+  { id: "eb-garamond", label: "EB Garamond", family: 'var(--font-eb-garamond), "EB Garamond", serif', weight: 600, group: "classic" },
+  { id: "brygada-1918", label: "Brygada 1918", family: 'var(--font-brygada-1918), "Brygada 1918", serif', weight: 600, group: "classic" },
+  { id: "source-serif-4", label: "Source Serif 4", family: 'var(--font-source-serif-4), "Source Serif 4", serif', weight: 600, group: "classic" },
+  { id: "literata", label: "Literata", family: 'var(--font-literata), Literata, serif', weight: 600, group: "classic" },
+  { id: "noto-serif", label: "Noto Serif", family: 'var(--font-noto-serif), "Noto Serif", serif', weight: 600, group: "classic" },
+  { id: "alegreya-sans", label: "Alegreya Sans", family: 'var(--font-alegreya-sans), "Alegreya Sans", sans-serif', weight: 700, group: "classic" },
+  { id: "source-sans", label: "Source Sans 3", family: 'var(--font-source-sans-3), "Source Sans 3", sans-serif', weight: 600, group: "classic" },
+  { id: "noto-sans", label: "Noto Sans", family: 'var(--font-noto-sans), "Noto Sans", sans-serif', weight: 600, group: "classic" },
 ];
 
 export const logoSizes = ["small", "medium", "large", "extra-large"] as const;

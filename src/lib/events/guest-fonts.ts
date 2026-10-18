@@ -5,8 +5,11 @@ import {
   EB_Garamond,
   GFS_Didot,
   Literata,
+  Mansalva,
+  Mynerve,
   Noto_Sans,
   Noto_Serif,
+  Playpen_Sans,
   Source_Sans_3,
   Source_Serif_4,
 } from "next/font/google";
@@ -66,6 +69,24 @@ const gfsDidot = GFS_Didot({
   variable: "--font-gfs-didot",
 });
 
+const mansalva = Mansalva({
+  subsets: ["latin", "greek"],
+  weight: "400",
+  variable: "--font-mansalva",
+});
+
+const mynerve = Mynerve({
+  subsets: ["latin", "greek"],
+  weight: "400",
+  variable: "--font-mynerve",
+});
+
+const playpenSans = Playpen_Sans({
+  subsets: ["latin", "greek"],
+  weight: ["400", "700"],
+  variable: "--font-playpen-sans",
+});
+
 export const guestFontVariables = [
   notoSans.variable,
   notoSerif.variable,
@@ -77,4 +98,7 @@ export const guestFontVariables = [
   ebGaramond.variable,
   brygada.variable,
   gfsDidot.variable,
+  mansalva.variable,
+  mynerve.variable,
+  playpenSans.variable,
 ].join(" ");

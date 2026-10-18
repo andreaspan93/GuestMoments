@@ -12,6 +12,9 @@ export const POSTER_TITLE_WIDTH_MM = 148 - 11 * 2;
 const TITLE_FIT = 0.96;
 
 const titleFontFiles: Record<EventFontId, string> = {
+  mansalva: "Mansalva-Regular.ttf",
+  mynerve: "Mynerve-Regular.ttf",
+  "playpen-sans": "PlaypenSans-Regular.ttf",
   alegreya: "Alegreya-SemiBold.ttf",
   "gfs-didot": "GFSDidot-Regular.ttf",
   "eb-garamond": "EBGaramond-SemiBold.ttf",

@@ -96,6 +96,10 @@
     "guestFont": "Guest page font",
     "welcomeFont": "Welcome message font",
     "fontBold": "Bold",
+    "fontGroups": {
+      "handwritten": "Handwritten",
+      "classic": "Classic"
+    },
     "logoSize": "Logo size",
     "logoSizes": {
       "small": "Small",
