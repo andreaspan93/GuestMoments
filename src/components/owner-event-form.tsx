@@ -36,6 +36,10 @@ export type OwnerEventDefaults = {
   accentColor: string;
   titleFont: EventFontId;
   guestFont: EventFontId;
+  welcomeFont: EventFontId;
+  titleBold: boolean;
+  guestBold: boolean;
+  welcomeBold: boolean;
   logoSize: LogoSize;
   logoCorner: LogoCorner;
   privacyMode: "OWN_UPLOADS" | "FULL_GALLERY";
@@ -243,6 +247,10 @@ export function OwnerEventForm({
       <EventAppearanceFields
         titleFont={defaults.titleFont}
         guestFont={defaults.guestFont}
+        welcomeFont={defaults.welcomeFont}
+        titleBold={defaults.titleBold}
+        guestBold={defaults.guestBold}
+        welcomeBold={defaults.welcomeBold}
         logoSize={defaults.logoSize}
         logoCorner={defaults.logoCorner}
       />

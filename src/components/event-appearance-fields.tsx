@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import {
   eventFonts,
+  eventTextWeight,
   logoCorners,
   logoSizes,
   type EventFontId,
@@ -18,12 +19,18 @@ function FontField({
   name,
   label,
   value,
+  boldName,
+  bold,
 }: {
   name: string;
   label: string;
   value: EventFontId;
+  boldName: string;
+  bold: boolean;
 }) {
+  const t = useTranslations("events");
   const [selected, setSelected] = useState(value);
+  const [isBold, setIsBold] = useState(bold);
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const labelId = useId();
@@ -55,13 +62,14 @@ function FontField({
   }, [open]);
 
   return (
-    <div ref={rootRef} className="relative grid gap-2 text-sm font-medium">
+    <div className="grid gap-2 text-sm font-medium">
       <span id={labelId}>{label}</span>
+      <div ref={rootRef} className="relative">
       <input type="hidden" name={name} value={selected} />
       <button
         type="button"
         className={`${fieldClassName} flex w-full items-center justify-between text-left`}
-        style={{ fontFamily: selectedFont.family, fontWeight: selectedFont.weight }}
+        style={{ fontFamily: selectedFont.family, fontWeight: eventTextWeight(isBold) }}
         aria-labelledby={labelId}
         aria-haspopup="listbox"
         aria-expanded={open}
@@ -97,6 +105,19 @@ function FontField({
           ))}
         </ul>
       ) : null}
+      </div>
+      <label className="flex items-center gap-3 text-sm font-medium">
+        <input
+          className="size-4 accent-primary"
+          type="checkbox"
+          name={boldName}
+          value="true"
+          checked={isBold}
+          aria-label={`${label} ${t("fontBold")}`}
+          onChange={(event) => setIsBold(event.target.checked)}
+        />
+        <span>{t("fontBold")}</span>
+      </label>
     </div>
   );
 }
@@ -104,11 +125,19 @@ function FontField({
 export function EventAppearanceFields({
   titleFont,
   guestFont,
+  welcomeFont,
+  titleBold,
+  guestBold,
+  welcomeBold,
   logoSize,
   logoCorner,
 }: {
   titleFont: EventFontId;
   guestFont: EventFontId;
+  welcomeFont: EventFontId;
+  titleBold: boolean;
+  guestBold: boolean;
+  welcomeBold: boolean;
   logoSize: LogoSize;
   logoCorner: LogoCorner;
 }) {
@@ -116,8 +145,27 @@ export function EventAppearanceFields({
 
   return (
     <>
-      <FontField name="titleFont" label={t("titleFont")} value={titleFont} />
-      <FontField name="guestFont" label={t("guestFont")} value={guestFont} />
+      <FontField
+        name="titleFont"
+        label={t("titleFont")}
+        value={titleFont}
+        boldName="titleBold"
+        bold={titleBold}
+      />
+      <FontField
+        name="guestFont"
+        label={t("guestFont")}
+        value={guestFont}
+        boldName="guestBold"
+        bold={guestBold}
+      />
+      <FontField
+        name="welcomeFont"
+        label={t("welcomeFont")}
+        value={welcomeFont}
+        boldName="welcomeBold"
+        bold={welcomeBold}
+      />
       <label className="grid gap-2 text-sm font-medium">
         {t("logoSize")}
         <select className={fieldClassName} name="logoSize" defaultValue={logoSize}>

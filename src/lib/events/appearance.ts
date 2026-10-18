@@ -63,6 +63,10 @@ export const defaultLogoCorner: LogoCorner = "square";
 export const defaultEventAppearance = {
   titleFont: defaultTitleFont,
   guestFont: defaultEventFont,
+  welcomeFont: defaultEventFont,
+  titleBold: true,
+  guestBold: false,
+  welcomeBold: false,
   logoSize: defaultLogoSize,
   logoCorner: defaultLogoCorner,
 } as const;
@@ -135,6 +139,10 @@ export function eventFontWeight(value: string) {
   const id = resolveEventFontId(value);
   const match = eventFonts.find((font) => font.id === id);
   return match?.weight ?? eventFonts[eventFonts.length - 1].weight;
+}
+
+export function eventTextWeight(bold: boolean) {
+  return bold ? 700 : 400;
 }
 
 export function logoSizeClass(value: string, surface: "screen" | "print") {

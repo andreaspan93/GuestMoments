@@ -33,6 +33,11 @@ function field(formData: FormData, name: string) {
   return typeof value === "string" ? value : "";
 }
 
+function flag(formData: FormData, name: string) {
+  const value = formData.get(name);
+  return value === "true" || value === "on";
+}
+
 function readEventFields(formData: FormData) {
   return {
     customerId: field(formData, "customerId"),
@@ -47,6 +52,10 @@ function readEventFields(formData: FormData) {
     accentColor: field(formData, "accentColor"),
     titleFont: field(formData, "titleFont"),
     guestFont: field(formData, "guestFont"),
+    welcomeFont: field(formData, "welcomeFont"),
+    titleBold: flag(formData, "titleBold"),
+    guestBold: flag(formData, "guestBold"),
+    welcomeBold: flag(formData, "welcomeBold"),
     logoSize: field(formData, "logoSize"),
     logoCorner: field(formData, "logoCorner"),
     privacyMode: field(formData, "privacyMode"),

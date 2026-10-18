@@ -28,19 +28,19 @@ const sourceSans = Source_Sans_3({
 
 const sourceSerif = Source_Serif_4({
   subsets: ["latin", "greek"],
-  weight: "600",
+  weight: ["400", "700"],
   variable: "--font-source-serif-4",
 });
 
 const alegreyaSans = Alegreya_Sans({
   subsets: ["latin", "greek"],
-  weight: "700",
+  weight: ["400", "700"],
   variable: "--font-alegreya-sans",
 });
 
 const alegreya = Alegreya({
   subsets: ["latin", "greek"],
-  weight: "600",
+  weight: ["400", "700"],
   variable: "--font-alegreya",
 });
 
@@ -56,7 +56,7 @@ const ebGaramond = EB_Garamond({
 
 const brygada = Brygada_1918({
   subsets: ["latin", "greek"],
-  weight: "600",
+  weight: ["400", "700"],
   variable: "--font-brygada-1918",
 });
 

@@ -4,7 +4,7 @@ import { GuestGallery } from "@/components/guest-gallery";
 import { GuestLanguageSwitch } from "@/components/guest-language-switch";
 import { GuestTokenCleanup } from "@/components/guest-token-cleanup";
 import { GuestUploader } from "@/components/guest-uploader";
-import { eventFontFamily, eventFontWeight, guestPanelClass, logoImageClass } from "@/lib/events/appearance";
+import { eventFontFamily, eventTextWeight, guestPanelClass, logoImageClass } from "@/lib/events/appearance";
 import { cn } from "@/lib/utils";
 import { decideGuestAccess } from "@/lib/events/access";
 import { formatCalendarDate, calendarDateFromDb } from "@/lib/events/expiry";
@@ -87,7 +87,10 @@ export default async function GuestEventRoute({
       ) : null}
       <div
         className="guest-page relative z-10 flex flex-1 flex-col px-6 py-8"
-        style={{ fontFamily: eventFontFamily(event.guestFont) }}
+        style={{
+          fontFamily: eventFontFamily(event.guestFont),
+          fontWeight: eventTextWeight(event.guestBold),
+        }}
       >
       <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col">
         <GuestTokenCleanup />
@@ -119,11 +122,11 @@ export default async function GuestEventRoute({
             {formatCalendarDate(calendarDateFromDb(event.eventDate), locale)}
           </p>
           <h1
-            className="mt-2 text-center text-4xl font-semibold tracking-tight break-words"
+            className="mt-2 text-center text-4xl tracking-tight break-words"
             style={{
               color: event.accentColor,
               fontFamily: eventFontFamily(event.titleFont),
-              fontWeight: eventFontWeight(event.titleFont),
+              fontWeight: eventTextWeight(event.titleBold),
             }}
           >
             {event.name}
@@ -147,7 +150,15 @@ export default async function GuestEventRoute({
           ) : (
             <>
               {welcome ? (
-                <p className="mt-6 text-center text-lg leading-8 break-words whitespace-pre-wrap">{welcome}</p>
+                <p
+                  className="mt-6 text-center text-lg leading-8 break-words whitespace-pre-wrap"
+                  style={{
+                    fontFamily: eventFontFamily(event.welcomeFont),
+                    fontWeight: eventTextWeight(event.welcomeBold),
+                  }}
+                >
+                  {welcome}
+                </p>
               ) : null}
               {instructions ? (
                 <div className="mt-8">

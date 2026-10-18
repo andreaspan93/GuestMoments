@@ -34,6 +34,10 @@ h3 {
   font-family: inherit;
 }
 
+.guest-page :is(h2, h3, p) {
+  font-weight: inherit;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);

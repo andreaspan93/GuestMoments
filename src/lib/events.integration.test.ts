@@ -60,6 +60,10 @@ function form(overrides: Partial<EventFormValues> = {}): EventFormValues {
     accentColor: "#8c3d32",
     titleFont: "noto-sans",
     guestFont: "noto-sans",
+    welcomeFont: "noto-sans",
+    titleBold: true,
+    guestBold: false,
+    welcomeBold: false,
     logoSize: "medium",
     logoCorner: "square",
     privacyMode: "FULL_GALLERY",
@@ -266,6 +270,10 @@ describe("events", () => {
       form({
         titleFont: "literata",
         guestFont: "noto-serif",
+        welcomeFont: "gfs-didot",
+        titleBold: false,
+        guestBold: true,
+        welcomeBold: true,
         logoSize: "extra-large",
         logoCorner: "rounded",
       }),
@@ -273,6 +281,10 @@ describe("events", () => {
 
     expect(created.titleFont).toBe("literata");
     expect(created.guestFont).toBe("noto-serif");
+    expect(created.welcomeFont).toBe("gfs-didot");
+    expect(created.titleBold).toBe(false);
+    expect(created.guestBold).toBe(true);
+    expect(created.welcomeBold).toBe(true);
     expect(created.logoSize).toBe("extra-large");
     expect(created.logoCorner).toBe("rounded");
     expect(created.guestDownloadsEnabled).toBe(true);
@@ -287,6 +299,10 @@ describe("events", () => {
       form({
         titleFont: "eb-garamond",
         guestFont: "source-sans",
+        welcomeFont: "alegreya",
+        titleBold: true,
+        guestBold: false,
+        welcomeBold: false,
         logoSize: "small",
         logoCorner: "square",
         guestDownloadsEnabled: false,
@@ -295,6 +311,10 @@ describe("events", () => {
 
     expect(updated.titleFont).toBe("eb-garamond");
     expect(updated.guestFont).toBe("source-sans");
+    expect(updated.welcomeFont).toBe("alegreya");
+    expect(updated.titleBold).toBe(true);
+    expect(updated.guestBold).toBe(false);
+    expect(updated.welcomeBold).toBe(false);
     expect(updated.logoSize).toBe("small");
     expect(updated.logoCorner).toBe("square");
     expect(updated.guestDownloadsEnabled).toBe(false);

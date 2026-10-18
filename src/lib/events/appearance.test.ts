@@ -37,6 +37,10 @@ describe("event appearance", () => {
     expect(defaultEventAppearance).toEqual({
       titleFont: "alegreya",
       guestFont: "source-sans",
+      welcomeFont: "source-sans",
+      titleBold: true,
+      guestBold: false,
+      welcomeBold: false,
       logoSize: "medium",
       logoCorner: "square",
     });
@@ -160,6 +164,17 @@ describe("event appearance", () => {
     expect(fields).toContain("fontWeight: font.weight");
     const greekNames = "Ανδρέας και Μαρία άέήίόύώς";
 
+    const legacyForm = Object.fromEntries(
+      Object.entries(validForm).filter(
+        ([key]) => !["welcomeFont", "titleBold", "guestBold", "welcomeBold"].includes(key),
+      ),
+    );
+    expect(eventFormSchema.parse(legacyForm)).toMatchObject({
+      welcomeFont: "source-sans",
+      titleBold: true,
+      guestBold: false,
+      welcomeBold: false,
+    });
     expect(eventFormSchema.safeParse({ ...validForm, titleFont: "alegreya", guestFont: "source-sans" }).success).toBe(
       true,
     );
@@ -213,7 +228,11 @@ describe("event appearance", () => {
     expect(guest).toContain(screen);
     expect(guest).toContain('backgroundUrl ? "mt-0 flex flex-col" : "mt-6 flex flex-1 flex-col"');
     expect(guest).toContain("text-center text-sm text-foreground/70");
-    expect(guest).toContain("mt-2 text-center text-4xl font-semibold tracking-tight break-words");
+    expect(guest).toContain("mt-2 text-center text-4xl tracking-tight break-words");
+    expect(guest).toContain("eventTextWeight(event.titleBold)");
+    expect(guest).toContain("eventTextWeight(event.guestBold)");
+    expect(guest).toContain("eventTextWeight(event.welcomeBold)");
+    expect(guest).toContain("eventFontFamily(event.welcomeFont)");
     expect(guest).toContain("mt-6 text-center text-lg leading-8 break-words whitespace-pre-wrap");
     expect(guestGallery).toContain("grid-cols-2");
     expect(guestGallery).toContain("aspect-square");

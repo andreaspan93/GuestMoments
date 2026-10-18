@@ -47,6 +47,10 @@ export type EventFormDefaults = {
   accentColor: string;
   titleFont: EventFontId;
   guestFont: EventFontId;
+  welcomeFont: EventFontId;
+  titleBold: boolean;
+  guestBold: boolean;
+  welcomeBold: boolean;
   logoSize: LogoSize;
   logoCorner: LogoCorner;
   privacyMode: "OWN_UPLOADS" | "FULL_GALLERY";
@@ -301,6 +305,10 @@ export function EventForm({
       <EventAppearanceFields
         titleFont={values.titleFont}
         guestFont={values.guestFont}
+        welcomeFont={values.welcomeFont}
+        titleBold={values.titleBold}
+        guestBold={values.guestBold}
+        welcomeBold={values.welcomeBold}
         logoSize={values.logoSize}
         logoCorner={values.logoCorner}
       />

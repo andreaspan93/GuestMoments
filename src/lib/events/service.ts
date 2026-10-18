@@ -47,6 +47,10 @@ async function insertEvent(data: {
   accentColor: string;
   titleFont: string;
   guestFont: string;
+  welcomeFont: string;
+  titleBold: boolean;
+  guestBold: boolean;
+  welcomeBold: boolean;
   logoSize: string;
   logoCorner: string;
   status: string;
@@ -151,6 +155,10 @@ export async function createCustomerEvent(
     accentColor: input.accentColor,
     titleFont: input.titleFont,
     guestFont: input.guestFont,
+    welcomeFont: input.welcomeFont,
+    titleBold: input.titleBold,
+    guestBold: input.guestBold,
+    welcomeBold: input.welcomeBold,
     logoSize: input.logoSize,
     logoCorner: input.logoCorner,
     status: input.status,
@@ -209,6 +217,10 @@ export async function updateCustomerEvent(
       accentColor: input.accentColor,
       titleFont: input.titleFont,
       guestFont: input.guestFont,
+      welcomeFont: input.welcomeFont,
+      titleBold: input.titleBold,
+      guestBold: input.guestBold,
+      welcomeBold: input.welcomeBold,
       logoSize: input.logoSize,
       logoCorner: input.logoCorner,
       status: input.status,

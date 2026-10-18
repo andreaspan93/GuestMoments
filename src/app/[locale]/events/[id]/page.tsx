@@ -90,6 +90,10 @@ export default async function EditEventPage({
               accentColor: event.accentColor,
               titleFont: resolveEventFontId(event.titleFont),
               guestFont: resolveEventFontId(event.guestFont),
+              welcomeFont: resolveEventFontId(event.welcomeFont),
+              titleBold: event.titleBold,
+              guestBold: event.guestBold,
+              welcomeBold: event.welcomeBold,
               logoSize: isLogoSize(event.logoSize) ? event.logoSize : "medium",
               logoCorner: isLogoCorner(event.logoCorner) ? event.logoCorner : "square",
               privacyMode:

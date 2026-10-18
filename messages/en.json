@@ -94,6 +94,8 @@
     "accent": "Accent color",
     "titleFont": "Event name font",
     "guestFont": "Guest page font",
+    "welcomeFont": "Welcome message font",
+    "fontBold": "Bold",
     "logoSize": "Logo size",
     "logoSizes": {
       "small": "Small",

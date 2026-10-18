@@ -108,6 +108,10 @@ model Event {
   accentColor          String
   titleFont            String    @default("noto-sans")
   guestFont            String    @default("noto-sans")
+  welcomeFont          String    @default("noto-sans")
+  titleBold            Boolean   @default(true)
+  guestBold            Boolean   @default(false)
+  welcomeBold          Boolean   @default(false)
   logoSize             String    @default("medium")
   logoCorner           String    @default("square")
   status               String    @default("ACTIVE")
