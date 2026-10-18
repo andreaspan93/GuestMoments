@@ -9,6 +9,7 @@ import {
   logoCornerClass,
   logoImageClass,
   logoSizeClass,
+  resolveEventFontId,
 } from "@/lib/events/appearance";
 import { POSTER_TITLE_MAX_MM } from "@/lib/events/poster-layout";
 import { POSTER_TITLE_WIDTH_MM, posterTitleRuns, posterTitleSize, posterTitleWidthMm } from "@/lib/events/poster-title";
@@ -32,10 +33,10 @@ const validForm = {
 };
 
 describe("event appearance", () => {
-  it("keeps Noto Sans, a medium logo, and square corners as defaults", () => {
+  it("keeps Alegreya titles, Source Sans body text, a medium logo, and square corners as defaults", () => {
     expect(defaultEventAppearance).toEqual({
-      titleFont: "noto-sans",
-      guestFont: "noto-sans",
+      titleFont: "alegreya",
+      guestFont: "source-sans",
       logoSize: "medium",
       logoCorner: "square",
     });
@@ -157,25 +158,26 @@ describe("event appearance", () => {
     expect(fields).toContain('role="listbox"');
     expect(fields).toContain("fontFamily: font.family");
     expect(fields).toContain("fontWeight: font.weight");
-    expect(
-      eventFormSchema.safeParse({ ...validForm, titleFont: "great-vibes", guestFont: "montserrat" }).success,
-    ).toBe(true);
-    expect(posterTitleRuns("Wedding", "great-vibes").map((run) => run.fontId)).toEqual(["great-vibes"]);
-    expect(posterTitleRuns("Ανδρέας και Μαρία", "allura").every((run) => run.fontId === "noto-serif")).toBe(
+    const greekNames = "Ανδρέας και Μαρία άέήίόύώς";
+
+    expect(eventFormSchema.safeParse({ ...validForm, titleFont: "alegreya", guestFont: "source-sans" }).success).toBe(
       true,
     );
-    expect(posterTitleRuns("Andreas και Μαρία", "montserrat").map((run) => run.fontId)).toEqual([
-      "montserrat",
-      "noto-sans",
-    ]);
-    expect(eventFormSchema.safeParse({ ...validForm, titleFont: "cinzel", guestFont: "parisienne" }).success).toBe(
-      true,
+    expect(eventFormSchema.safeParse({ ...validForm, titleFont: "great-vibes", guestFont: "montserrat" }).success).toBe(
+      false,
     );
-    expect(posterTitleRuns("Wedding", "parisienne").map((run) => run.fontId)).toEqual(["parisienne"]);
-    expect(posterTitleRuns("Ανδρέας και Μαρία", "cinzel").every((run) => run.fontId === "noto-serif")).toBe(true);
-    expect(posterTitleRuns("Ανδρέας και Μαρία", "libre-baskerville").every((run) => run.fontId === "noto-serif")).toBe(
-      true,
-    );
+    expect(resolveEventFontId("great-vibes")).toBe("gfs-didot");
+    expect(resolveEventFontId("cormorant-garamond")).toBe("alegreya");
+    expect(resolveEventFontId("montserrat")).toBe("source-sans");
+    expect(resolveEventFontId("libre-baskerville")).toBe("source-serif-4");
+    expect(posterTitleRuns(greekNames, "alegreya").map((run) => run.fontId)).toEqual(["alegreya"]);
+    expect(posterTitleRuns("Andreas και Μαρία", "source-sans").map((run) => run.fontId)).toEqual(["source-sans"]);
+    expect(posterTitleRuns(greekNames, "gfs-didot").map((run) => run.fontId)).toEqual(["gfs-didot"]);
+
+    for (const titleFont of eventFontIds) {
+      expect(posterTitleRuns(greekNames, titleFont).map((run) => run.fontId)).toEqual([titleFont]);
+      expect(posterTitleRuns("Andreas and Maria", titleFont).map((run) => run.fontId)).toEqual([titleFont]);
+    }
   });
 
   it("accepts the shared create and edit choices and rejects unknown ones", () => {

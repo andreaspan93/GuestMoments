@@ -1,20 +1,14 @@
 import {
+  Alegreya,
   Alegreya_Sans,
-  Allura,
-  Cinzel,
-  Cormorant_Garamond,
-  DM_Serif_Display,
+  Brygada_1918,
   EB_Garamond,
-  Great_Vibes,
-  Libre_Baskerville,
+  GFS_Didot,
   Literata,
-  Montserrat,
   Noto_Sans,
   Noto_Serif,
-  Parisienne,
-  Pinyon_Script,
-  Playfair_Display,
   Source_Sans_3,
+  Source_Serif_4,
 } from "next/font/google";
 
 const notoSans = Noto_Sans({
@@ -32,10 +26,22 @@ const sourceSans = Source_Sans_3({
   variable: "--font-source-sans-3",
 });
 
+const sourceSerif = Source_Serif_4({
+  subsets: ["latin", "greek"],
+  weight: "600",
+  variable: "--font-source-serif-4",
+});
+
 const alegreyaSans = Alegreya_Sans({
   subsets: ["latin", "greek"],
-  weight: ["400", "500", "700"],
+  weight: "700",
   variable: "--font-alegreya-sans",
+});
+
+const alegreya = Alegreya({
+  subsets: ["latin", "greek"],
+  weight: "600",
+  variable: "--font-alegreya",
 });
 
 const literata = Literata({
@@ -48,81 +54,27 @@ const ebGaramond = EB_Garamond({
   variable: "--font-eb-garamond",
 });
 
-const greatVibes = Great_Vibes({
-  subsets: ["latin"],
-  weight: "400",
-  variable: "--font-great-vibes",
-});
-
-const allura = Allura({
-  subsets: ["latin"],
-  weight: "400",
-  variable: "--font-allura",
-});
-
-const playfairDisplay = Playfair_Display({
-  subsets: ["latin"],
+const brygada = Brygada_1918({
+  subsets: ["latin", "greek"],
   weight: "600",
-  variable: "--font-playfair-display",
+  variable: "--font-brygada-1918",
 });
 
-const cormorantGaramond = Cormorant_Garamond({
-  subsets: ["latin"],
-  weight: "600",
-  variable: "--font-cormorant-garamond",
-});
-
-const montserrat = Montserrat({
-  subsets: ["latin"],
-  weight: "600",
-  variable: "--font-montserrat",
-});
-
-const parisienne = Parisienne({
-  subsets: ["latin"],
+const gfsDidot = GFS_Didot({
+  subsets: ["latin", "greek"],
   weight: "400",
-  variable: "--font-parisienne",
-});
-
-const pinyonScript = Pinyon_Script({
-  subsets: ["latin"],
-  weight: "400",
-  variable: "--font-pinyon-script",
-});
-
-const cinzel = Cinzel({
-  subsets: ["latin"],
-  weight: "600",
-  variable: "--font-cinzel",
-});
-
-const dmSerifDisplay = DM_Serif_Display({
-  subsets: ["latin"],
-  weight: "400",
-  variable: "--font-dm-serif-display",
-});
-
-const libreBaskerville = Libre_Baskerville({
-  subsets: ["latin"],
-  weight: "700",
-  variable: "--font-libre-baskerville",
+  variable: "--font-gfs-didot",
 });
 
 export const guestFontVariables = [
   notoSans.variable,
   notoSerif.variable,
   sourceSans.variable,
+  sourceSerif.variable,
   alegreyaSans.variable,
+  alegreya.variable,
   literata.variable,
   ebGaramond.variable,
-  greatVibes.variable,
-  allura.variable,
-  playfairDisplay.variable,
-  cormorantGaramond.variable,
-  montserrat.variable,
-  parisienne.variable,
-  pinyonScript.variable,
-  cinzel.variable,
-  dmSerifDisplay.variable,
-  libreBaskerville.variable,
+  brygada.variable,
+  gfsDidot.variable,
 ].join(" ");

@@ -20,7 +20,18 @@
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-ring: var(--ring);
-  --font-sans: var(--font-noto-sans), "Noto Sans", sans-serif;
+  --font-sans: var(--font-source-sans-3), "Source Sans 3", sans-serif;
+  --font-display: var(--font-alegreya), Alegreya, serif;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display), Alegreya, serif;
+}
+
+.guest-page :is(h1, h2, h3) {
+  font-family: inherit;
 }
 
 body {

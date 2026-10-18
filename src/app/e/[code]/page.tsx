@@ -86,7 +86,7 @@ export default async function GuestEventRoute({
         />
       ) : null}
       <div
-        className="relative z-10 flex flex-1 flex-col px-6 py-8"
+        className="guest-page relative z-10 flex flex-1 flex-col px-6 py-8"
         style={{ fontFamily: eventFontFamily(event.guestFont) }}
       >
       <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col">

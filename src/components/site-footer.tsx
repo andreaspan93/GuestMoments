@@ -14,7 +14,7 @@ export async function SiteFooter() {
     <footer className="mt-16 bg-[#2c241f] text-[#f6f0e8] print:hidden">
       <div className="mx-auto grid w-full max-w-5xl gap-10 px-6 py-14 sm:px-10 md:grid-cols-2 md:items-start md:gap-16">
         <div className="max-w-md">
-          <p className="font-[family-name:var(--font-cormorant-garamond)] text-4xl leading-none tracking-tight">
+          <p className="font-display text-4xl leading-none font-semibold tracking-tight">
             Guest Moments
           </p>
           <p className="mt-5 text-sm leading-7 text-[#f6f0e8]/75">{copy.footerLead}</p>

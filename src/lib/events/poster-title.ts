@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import fontkit from "@pdf-lib/fontkit";
-import { isEventFontId, type EventFontId } from "@/lib/events/appearance";
+import { resolveEventFontId, type EventFontId } from "@/lib/events/appearance";
 import { POSTER_PAGE_CQH_MM, POSTER_TITLE_MAX_MM } from "@/lib/events/poster-layout";
 
 export { POSTER_TITLE_MAX_MM };
@@ -12,37 +12,26 @@ export const POSTER_TITLE_WIDTH_MM = 148 - 11 * 2;
 const TITLE_FIT = 0.96;
 
 const titleFontFiles: Record<EventFontId, string> = {
-  "noto-sans": "NotoSans-SemiBold.ttf",
-  "noto-serif": "NotoSerif-SemiBold.ttf",
-  "source-sans": "SourceSans3-Semibold.ttf",
-  "alegreya-sans": "AlegreyaSans-Bold.ttf",
-  literata: "Literata-SemiBold.ttf",
+  alegreya: "Alegreya-SemiBold.ttf",
+  "gfs-didot": "GFSDidot-Regular.ttf",
   "eb-garamond": "EBGaramond-SemiBold.ttf",
-  "great-vibes": "GreatVibes-Regular.ttf",
-  allura: "Allura-Regular.ttf",
-  "playfair-display": "PlayfairDisplay-SemiBold.ttf",
-  "cormorant-garamond": "CormorantGaramond-SemiBold.ttf",
-  montserrat: "Montserrat-SemiBold.ttf",
-  parisienne: "Parisienne-Regular.ttf",
-  "pinyon-script": "PinyonScript-Regular.ttf",
-  cinzel: "Cinzel-SemiBold.ttf",
-  "dm-serif-display": "DMSerifDisplay-Regular.ttf",
-  "libre-baskerville": "LibreBaskerville-Bold.ttf",
+  "brygada-1918": "Brygada1918-SemiBold.ttf",
+  "source-serif-4": "SourceSerif4-SemiBold.ttf",
+  literata: "Literata-SemiBold.ttf",
+  "noto-serif": "NotoSerif-SemiBold.ttf",
+  "alegreya-sans": "AlegreyaSans-Bold.ttf",
+  "source-sans": "SourceSans3-Semibold.ttf",
+  "noto-sans": "NotoSans-SemiBold.ttf",
 };
 
 const serifFallback = new Set<EventFontId>([
-  "noto-serif",
-  "literata",
+  "alegreya",
+  "gfs-didot",
   "eb-garamond",
-  "playfair-display",
-  "cormorant-garamond",
-  "great-vibes",
-  "allura",
-  "parisienne",
-  "pinyon-script",
-  "cinzel",
-  "dm-serif-display",
-  "libre-baskerville",
+  "brygada-1918",
+  "source-serif-4",
+  "literata",
+  "noto-serif",
 ]);
 
 type LayoutFont = {
@@ -61,8 +50,7 @@ export type PosterTitleRun = {
 const fontCache = new Map<string, LayoutFont>();
 
 export function titleFontFile(titleFont: string) {
-  const id: EventFontId = isEventFontId(titleFont) ? titleFont : "noto-sans";
-  return titleFontFiles[id];
+  return titleFontFiles[resolveEventFontId(titleFont)];
 }
 
 function layoutFont(titleFont: string) {
@@ -99,7 +87,7 @@ function hasGlyph(font: LayoutFont, character: string) {
 
 export function posterTitleRuns(name: string, titleFont = "noto-sans"): PosterTitleRun[] {
   const text = posterTitleText(name);
-  const primaryId: EventFontId = isEventFontId(titleFont) ? titleFont : "noto-sans";
+  const primaryId = resolveEventFontId(titleFont);
   const fallbackId = fallbackFont(primaryId);
   const primary = layoutFont(primaryId);
   const runs: PosterTitleRun[] = [];
