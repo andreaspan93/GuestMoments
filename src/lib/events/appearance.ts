@@ -183,6 +183,32 @@ export function logoCornerClass(value: string) {
   return value === "rounded" ? "overflow-hidden rounded-full object-cover" : "rounded-none";
 }
 
+export const panelStyles = ["solid", "glass", "frosted"] as const;
+
+export type PanelStyle = (typeof panelStyles)[number];
+
+export const defaultPanelStyle: PanelStyle = "solid";
+
+export function isPanelStyle(value: string): value is PanelStyle {
+  return panelStyles.some((style) => style === value);
+}
+
+export function guestPanelClass(style: string, hasBackgroundImage: boolean) {
+  if (!hasBackgroundImage) {
+    return "guest-panel-solid";
+  }
+
+  if (style === "glass") {
+    return "guest-panel-glass";
+  }
+
+  if (style === "frosted") {
+    return "guest-panel-frosted";
+  }
+
+  return "guest-panel-solid";
+}
+
 export function logoImageClass(size: string, corner: string, surface: "screen" | "print") {
   if (corner === "rounded") {
     const known = isLogoSize(size) ? size : defaultLogoSize;

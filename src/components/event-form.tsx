@@ -8,9 +8,12 @@ import { Button } from "@/components/ui/button";
 import { useRouter } from "@/i18n/navigation";
 import {
   defaultEventAppearance,
+  defaultPanelStyle,
+  isPanelStyle,
   type EventFontId,
   type LogoCorner,
   type LogoSize,
+  type PanelStyle,
 } from "@/lib/events/appearance";
 import {
   createEventAction,
@@ -40,6 +43,7 @@ export type EventFormDefaults = {
   uploadInstructionsEl: string;
   uploadInstructionsEn: string;
   backgroundColor: string;
+  panelStyle: PanelStyle;
   accentColor: string;
   titleFont: EventFontId;
   guestFont: EventFontId;
@@ -58,6 +62,7 @@ const emptyEvent: EventFormDefaults = {
   uploadInstructionsEl: "",
   uploadInstructionsEn: "",
   backgroundColor: "#f7f1ea",
+  panelStyle: defaultPanelStyle,
   accentColor: "#8c3d32",
   ...defaultEventAppearance,
   privacyMode: "FULL_GALLERY",
@@ -353,6 +358,7 @@ export function EventForm({
         previews={brandingPreviews}
         disabled={pending || finishing}
         uploadOnSave={Boolean(eventId)}
+        panelStyle={isPanelStyle(values.panelStyle) ? values.panelStyle : defaultPanelStyle}
         onStagedChange={(files) => {
           stagedFiles.current = files;
         }}

@@ -57,6 +57,7 @@ function form(): EventFormValues {
     uploadInstructionsEl: "",
     uploadInstructionsEn: "",
     backgroundColor: "#f7f1ea",
+    panelStyle: "solid",
     accentColor: "#8c3d32",
     titleFont: "noto-sans",
     guestFont: "noto-sans",

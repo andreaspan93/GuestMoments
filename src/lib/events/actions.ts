@@ -32,6 +32,7 @@ function readEventForm(formData: FormData) {
     uploadInstructionsEl: field(formData, "uploadInstructionsEl"),
     uploadInstructionsEn: field(formData, "uploadInstructionsEn"),
     backgroundColor: field(formData, "backgroundColor"),
+    panelStyle: field(formData, "panelStyle") || "solid",
     accentColor: field(formData, "accentColor"),
     titleFont: field(formData, "titleFont"),
     guestFont: field(formData, "guestFont"),

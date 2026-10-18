@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { OwnerDeleteButton } from "@/components/owner-delete-button";
 import { OwnerEventForm } from "@/components/owner-event-form";
 import { Link } from "@/i18n/navigation";
-import { isEventFontId, isLogoCorner, isLogoSize } from "@/lib/events/appearance";
+import { isEventFontId, isLogoCorner, isLogoSize, isPanelStyle } from "@/lib/events/appearance";
 import { calendarDateFromDb, formatAthensDateTime } from "@/lib/events/expiry";
 import { bytesToMib } from "@/lib/owner/bytes";
 import { requireOwnerPage } from "@/lib/owner/page";
@@ -69,6 +69,7 @@ export default async function OwnerEditEventPage({
             uploadInstructionsEl: event.uploadInstructionsEl,
             uploadInstructionsEn: event.uploadInstructionsEn,
             backgroundColor: event.backgroundColor,
+            panelStyle: isPanelStyle(event.panelStyle) ? event.panelStyle : "solid",
             accentColor: event.accentColor,
             titleFont: isEventFontId(event.titleFont) ? event.titleFont : "noto-sans",
             guestFont: isEventFontId(event.guestFont) ? event.guestFont : "noto-sans",

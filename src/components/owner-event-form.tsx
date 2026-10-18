@@ -4,7 +4,13 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { EventAppearanceFields } from "@/components/event-appearance-fields";
 import { Button } from "@/components/ui/button";
-import { type EventFontId, type LogoCorner, type LogoSize } from "@/lib/events/appearance";
+import {
+  defaultPanelStyle,
+  type EventFontId,
+  type LogoCorner,
+  type LogoSize,
+  type PanelStyle,
+} from "@/lib/events/appearance";
 import {
   createOwnerEventAction,
   updateOwnerEventAction,
@@ -26,6 +32,7 @@ export type OwnerEventDefaults = {
   uploadInstructionsEl: string;
   uploadInstructionsEn: string;
   backgroundColor: string;
+  panelStyle: PanelStyle;
   accentColor: string;
   titleFont: EventFontId;
   guestFont: EventFontId;
@@ -269,6 +276,7 @@ export function OwnerEventForm({
           <option value="DISABLED">{events("disabled")}</option>
         </select>
       </label>
+      <input type="hidden" name="panelStyle" value={defaults.panelStyle ?? defaultPanelStyle} />
       <FormMessage state={state} />
       <Button type="submit" disabled={pending} aria-busy={pending}>
         {pending ? t("pending") : eventId ? t("save") : t("createSubmit")}

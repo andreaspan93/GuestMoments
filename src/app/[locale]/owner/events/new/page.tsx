@@ -1,6 +1,6 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import { OwnerEventForm } from "@/components/owner-event-form";
-import { defaultEventAppearance } from "@/lib/events/appearance";
+import { defaultEventAppearance, defaultPanelStyle } from "@/lib/events/appearance";
 import { requireOwnerPage } from "@/lib/owner/page";
 import { listOwnerCustomers } from "@/lib/owner/service";
 
@@ -33,6 +33,7 @@ export default async function NewOwnerEventPage() {
               uploadInstructionsEl: "",
               uploadInstructionsEn: "",
               backgroundColor: "#f7f1ea",
+              panelStyle: defaultPanelStyle,
               accentColor: "#8c3d32",
               ...defaultEventAppearance,
               privacyMode: "FULL_GALLERY",

@@ -6,6 +6,10 @@ import { useTranslations } from "next-intl";
 import { FilePicker } from "@/components/file-picker";
 import { buttonVariants } from "@/components/ui/button";
 import {
+  panelStyles,
+  type PanelStyle,
+} from "@/lib/events/appearance";
+import {
   brandingSlots,
   removeBrandingFile,
   uploadBrandingFile,
@@ -18,6 +22,7 @@ export function BrandingUploads({
   disabled = false,
   uploadOnSave = false,
   onStagedChange,
+  panelStyle = "solid",
 }: {
   eventId?: string;
   previews?: {
@@ -28,6 +33,7 @@ export function BrandingUploads({
   disabled?: boolean;
   uploadOnSave?: boolean;
   onStagedChange?: (files: Partial<Record<BrandingSlot, File>>) => void;
+  panelStyle?: PanelStyle;
 }) {
   const t = useTranslations("events");
   const router = useRouter();
@@ -38,6 +44,7 @@ export function BrandingUploads({
   const [pickerGeneration, setPickerGeneration] = useState<Partial<Record<BrandingSlot, number>>>(
     {},
   );
+  const [cardStyle, setCardStyle] = useState<PanelStyle>(panelStyle);
   const staged = useRef<Partial<Record<BrandingSlot, File>>>({});
   const previewUrls = useRef<string[]>([]);
 
@@ -135,6 +142,14 @@ export function BrandingUploads({
     }
   }
 
+  const storedBackground = cleared.background ? null : (previews?.background ?? null);
+  const backgroundPreview = localPreviews.background ?? storedBackground;
+  const hintKey = {
+    solid: "panelStyleSolidHint",
+    glass: "panelStyleGlassHint",
+    frosted: "panelStyleFrostedHint",
+  } as const;
+
   return (
     <section className="mt-2 grid gap-4 border-t border-border pt-8">
       <div>
@@ -181,9 +196,44 @@ export function BrandingUploads({
               </button>
             ) : null}
             {pendingSlot === slot ? <span>{t("pending")}</span> : null}
+            {slot === "background" && preview ? (
+              <label className="grid gap-2 font-medium">
+                {t("panelStyle")}
+                <select
+                  className="h-10 rounded-full border border-border bg-background px-4 text-base text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  name="panelStyle"
+                  value={cardStyle}
+                  aria-describedby="panel-style-hint"
+                  onChange={(event) => {
+                    const next = event.target.value;
+                    if (next === "solid" || next === "glass" || next === "frosted") {
+                      setCardStyle(next);
+                    }
+                  }}
+                >
+                  {panelStyles.map((style) => (
+                    <option key={style} value={style}>
+                      {t(
+                        style === "solid"
+                          ? "panelStyleSolid"
+                          : style === "glass"
+                            ? "panelStyleGlass"
+                            : "panelStyleFrosted",
+                      )}
+                    </option>
+                  ))}
+                </select>
+                <span id="panel-style-hint" className="text-sm font-normal leading-6 text-foreground/70">
+                  {t(hintKey[cardStyle])}
+                </span>
+              </label>
+            ) : null}
           </div>
         );
       })}
+      {backgroundPreview ? null : (
+        <input type="hidden" name="panelStyle" value={cardStyle} />
+      )}
       {message ? (
         <p role="status" className="text-sm text-foreground/80">
           {message}

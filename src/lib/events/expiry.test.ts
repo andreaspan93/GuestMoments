@@ -18,6 +18,7 @@ const validForm = {
   uploadInstructionsEl: "Ανεβάστε φωτογραφίες",
   uploadInstructionsEn: "",
   backgroundColor: "#f7f1ea",
+  panelStyle: "solid",
   accentColor: "#8c3d32",
   titleFont: "noto-sans",
   guestFont: "noto-sans",
@@ -95,6 +96,25 @@ describe("event form", () => {
     expect(eventFormSchema.safeParse({ ...validForm, retentionDays: 30 }).success).toBe(false);
     expect(eventFormSchema.safeParse({ ...validForm, retentionDays: 60 }).success).toBe(false);
     expect(eventFormSchema.safeParse({ ...validForm, retentionDays: 90 }).success).toBe(false);
+  });
+
+  it("accepts the three card styles and defaults a missing style to solid", () => {
+    for (const panelStyle of ["solid", "glass", "frosted"]) {
+      const parsed = eventFormSchema.safeParse({ ...validForm, panelStyle });
+      expect(parsed.success).toBe(true);
+      if (parsed.success) {
+        expect(parsed.data.panelStyle).toBe(panelStyle);
+      }
+    }
+
+    const { panelStyle: omitted, ...withoutStyle } = validForm;
+    expect(omitted).toBe("solid");
+    const fallback = eventFormSchema.safeParse(withoutStyle);
+    expect(fallback.success).toBe(true);
+    if (fallback.success) {
+      expect(fallback.data.panelStyle).toBe("solid");
+    }
+    expect(eventFormSchema.safeParse({ ...validForm, panelStyle: "crystal" }).success).toBe(false);
   });
 
   it("rejects storage fields", () => {

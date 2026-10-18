@@ -43,6 +43,7 @@ async function insertEvent(data: {
   uploadInstructionsEl: string;
   uploadInstructionsEn: string;
   backgroundColor: string;
+  panelStyle: string;
   accentColor: string;
   titleFont: string;
   guestFont: string;
@@ -146,6 +147,7 @@ export async function createCustomerEvent(
     uploadInstructionsEl: input.uploadInstructionsEl,
     uploadInstructionsEn: input.uploadInstructionsEn,
     backgroundColor: input.backgroundColor,
+    panelStyle: input.panelStyle,
     accentColor: input.accentColor,
     titleFont: input.titleFont,
     guestFont: input.guestFont,
@@ -203,6 +205,7 @@ export async function updateCustomerEvent(
       uploadInstructionsEl: input.uploadInstructionsEl,
       uploadInstructionsEn: input.uploadInstructionsEn,
       backgroundColor: input.backgroundColor,
+      panelStyle: input.panelStyle,
       accentColor: input.accentColor,
       titleFont: input.titleFont,
       guestFont: input.guestFont,

@@ -56,6 +56,7 @@ function form(overrides: Partial<EventFormValues> = {}): EventFormValues {
     uploadInstructionsEl: "Ανεβάστε τις στιγμές σας",
     uploadInstructionsEn: "",
     backgroundColor: "#f7f1ea",
+    panelStyle: "solid",
     accentColor: "#8c3d32",
     titleFont: "noto-sans",
     guestFont: "noto-sans",
@@ -123,6 +124,17 @@ describe("events", () => {
     );
 
     expect(updated.name).toBe("Updated wedding");
+    expect(created.panelStyle).toBe("solid");
+
+    const styled = await updateCustomerEvent(
+      customer,
+      created.id,
+      form({ panelStyle: "frosted" }),
+    );
+
+    expect(styled.panelStyle).toBe("frosted");
+    const reloaded = await prisma.event.findUniqueOrThrow({ where: { id: created.id } });
+    expect(reloaded.panelStyle).toBe("frosted");
   });
 
   it("stops a customer at the event limit without deleting events they already have", async () => {

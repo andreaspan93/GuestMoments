@@ -104,6 +104,7 @@ model Event {
   logoKey              String?
   backgroundColor      String
   backgroundImageKey   String?
+  panelStyle           String    @default("solid")
   accentColor          String
   titleFont            String    @default("noto-sans")
   guestFont            String    @default("noto-sans")

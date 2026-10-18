@@ -11,7 +11,7 @@ import {
   calendarDateFromDb,
   formatAthensDateTime,
 } from "@/lib/events/expiry";
-import { isEventFontId, isLogoCorner, isLogoSize } from "@/lib/events/appearance";
+import { isEventFontId, isLogoCorner, isLogoSize, isPanelStyle } from "@/lib/events/appearance";
 import { getCustomerEvent } from "@/lib/events/service";
 import { signedObjectUrl } from "@/lib/storage/links";
 import { getRequestSession } from "@/lib/session";
@@ -86,6 +86,7 @@ export default async function EditEventPage({
               uploadInstructionsEl: event.uploadInstructionsEl,
               uploadInstructionsEn: event.uploadInstructionsEn,
               backgroundColor: event.backgroundColor,
+              panelStyle: isPanelStyle(event.panelStyle) ? event.panelStyle : "solid",
               accentColor: event.accentColor,
               titleFont: isEventFontId(event.titleFont) ? event.titleFont : "noto-sans",
               guestFont: isEventFontId(event.guestFont) ? event.guestFont : "noto-sans",

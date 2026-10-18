@@ -28,6 +28,29 @@ body {
   color: var(--foreground);
 }
 
+.guest-panel-solid {
+  background-color: var(--card);
+}
+
+.guest-panel-glass {
+  background-color: rgb(255 250 246 / 0.72);
+}
+
+.guest-panel-frosted {
+  background-color: rgb(255 250 246 / 0.78);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .guest-panel-glass,
+  .guest-panel-frosted {
+    background-color: var(--card);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
 .qr-poster-stage {
   display: flex;
   justify-content: center;

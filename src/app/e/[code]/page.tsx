@@ -4,7 +4,8 @@ import { GuestGallery } from "@/components/guest-gallery";
 import { GuestLanguageSwitch } from "@/components/guest-language-switch";
 import { GuestTokenCleanup } from "@/components/guest-token-cleanup";
 import { GuestUploader } from "@/components/guest-uploader";
-import { eventFontFamily, eventFontWeight, logoImageClass } from "@/lib/events/appearance";
+import { eventFontFamily, eventFontWeight, guestPanelClass, logoImageClass } from "@/lib/events/appearance";
+import { cn } from "@/lib/utils";
 import { decideGuestAccess } from "@/lib/events/access";
 import { formatCalendarDate, calendarDateFromDb } from "@/lib/events/expiry";
 import { readGuestLocale } from "@/lib/events/guest-actions";
@@ -44,13 +45,13 @@ export default async function GuestEventRoute({
   const copy = guestChrome[locale];
   const event = loaded.event;
   const open = decision.state === "ok";
-  const [coverUrl, logoUrl, backgroundUrl] = open
+  const [coverUrl, logoUrl] = open
     ? await Promise.all([
         signedObjectUrl(event.coverKey),
         signedObjectUrl(event.logoKey),
-        signedObjectUrl(event.backgroundImageKey),
       ])
-    : [null, null, null];
+    : [null, null];
+  const backgroundUrl = await signedObjectUrl(event.backgroundImageKey);
   const galleryItems = open
     ? await guestGalleryItems({
         event,
@@ -59,6 +60,7 @@ export default async function GuestEventRoute({
         cookieToken: await readGuestCookie(code),
       })
     : [];
+  const panelClass = guestPanelClass(event.panelStyle, Boolean(backgroundUrl));
   const welcome = guestText(locale, event.welcomeMessageEl, event.welcomeMessageEn);
   const instructions = guestText(
     locale,
@@ -68,21 +70,38 @@ export default async function GuestEventRoute({
 
   return (
     <main
-      className="flex flex-1 flex-col px-6 py-8"
-      style={{
-        backgroundColor: event.backgroundColor,
-        backgroundImage: backgroundUrl ? `url("${backgroundUrl}")` : undefined,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        fontFamily: eventFontFamily(event.guestFont),
-      }}
+      className="relative flex flex-1 flex-col"
+      style={backgroundUrl ? undefined : { backgroundColor: event.backgroundColor }}
     >
+      {backgroundUrl ? (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none fixed inset-0 z-0"
+          style={{
+            backgroundColor: event.backgroundColor,
+            backgroundImage: `url("${backgroundUrl}")`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+          }}
+        />
+      ) : null}
+      <div
+        className="relative z-10 flex flex-1 flex-col px-6 py-8"
+        style={{ fontFamily: eventFontFamily(event.guestFont) }}
+      >
       <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col">
         <GuestTokenCleanup />
         <div className="flex justify-end">
           <GuestLanguageSwitch locale={locale} accentColor={event.accentColor} code={event.uniqueCode} />
         </div>
-        <section className="mx-auto mt-6 flex w-full max-w-lg flex-1 flex-col rounded-3xl bg-card px-6 py-10 shadow-sm">
+        {backgroundUrl ? <div className="min-h-[42vh] sm:min-h-[50vh]" aria-hidden="true" /> : null}
+        <section
+          className={cn(
+            "mx-auto w-full max-w-lg rounded-3xl px-6 py-10 shadow-sm",
+            backgroundUrl ? "mt-0" : "mt-6 flex flex-1 flex-col",
+            panelClass,
+          )}
+        >
           {logoUrl ? (
             // Signed storage URL; the image optimizer is not used.
             // eslint-disable-next-line @next/next/no-img-element
@@ -158,7 +177,7 @@ export default async function GuestEventRoute({
           )}
         </section>
         {open ? (
-          <div className="mx-auto mt-6 w-full max-w-3xl rounded-3xl bg-card px-6 py-8 shadow-sm">
+          <div className={cn("mx-auto mt-6 w-full max-w-3xl rounded-3xl px-6 py-8 shadow-sm", panelClass)}>
             <GuestGallery
               code={event.uniqueCode}
               locale={locale}
@@ -167,6 +186,7 @@ export default async function GuestEventRoute({
             />
           </div>
         ) : null}
+      </div>
       </div>
     </main>
   );

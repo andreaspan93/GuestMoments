@@ -5,6 +5,7 @@ import {
   defaultEventAppearance,
   eventFontFamily,
   eventFontIds,
+  guestPanelClass,
   logoCornerClass,
   logoImageClass,
   logoSizeClass,
@@ -22,6 +23,7 @@ const validForm = {
   uploadInstructionsEl: "Ανεβάστε φωτογραφίες",
   uploadInstructionsEn: "",
   backgroundColor: "#f7f1ea",
+  panelStyle: "solid",
   accentColor: "#8c3d32",
   privacyMode: "FULL_GALLERY",
   guestDownloadsEnabled: true,
@@ -250,6 +252,21 @@ describe("event appearance", () => {
     expect(css).toContain("border-radius: 50%;");
     expect(css).toContain("object-fit: cover;");
     expect(css).not.toContain("qr-poster-ornament");
+  });
+
+  it("uses solid cards unless a background image and another style are both set", () => {
+    expect(guestPanelClass("solid", true)).toBe("guest-panel-solid");
+    expect(guestPanelClass("glass", true)).toBe("guest-panel-glass");
+    expect(guestPanelClass("frosted", true)).toBe("guest-panel-frosted");
+    expect(guestPanelClass("glass", false)).toBe("guest-panel-solid");
+    expect(guestPanelClass("frosted", false)).toBe("guest-panel-solid");
+    expect(guestPanelClass("unknown", true)).toBe("guest-panel-solid");
+    const css = readFileSync("src/app/globals.css", "utf8");
+    const branding = readFileSync("src/components/branding-uploads.tsx", "utf8");
+    expect(css).toContain("@media (prefers-reduced-transparency: reduce)");
+    expect(css).toContain(".guest-panel-frosted");
+    expect(branding).toContain('slot === "background" && preview');
+    expect(branding).toContain('type="hidden" name="panelStyle"');
   });
 
   it("sends a new event to the event list and offers the same image slots as edit", () => {
