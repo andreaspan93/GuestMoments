@@ -98,7 +98,7 @@ export default async function GuestEventRoute({
         <section
           className={cn(
             "mx-auto w-full max-w-lg rounded-3xl px-6 py-10 shadow-sm",
-            backgroundUrl ? "mt-0" : "mt-6 flex flex-1 flex-col",
+            backgroundUrl ? "mt-0 flex flex-col" : "mt-6 flex flex-1 flex-col",
             panelClass,
           )}
         >
