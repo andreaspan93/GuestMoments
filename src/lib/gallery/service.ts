@@ -49,7 +49,6 @@ type GalleryEvent = {
   id: string;
   privacyMode: string;
   status: string;
-  expiresAt: Date;
 };
 
 const mediaSelect = {
@@ -114,6 +113,7 @@ export async function guestGalleryItems(
   input: {
     event: GalleryEvent;
     customerDisabled: boolean;
+    customerAccessExpiresAt: Date | null;
     cookieToken: string | undefined;
     now?: Date;
     storage?: IStorageService;
@@ -123,8 +123,8 @@ export async function guestGalleryItems(
   const decision = decideGuestAccess(
     {
       status: input.event.status,
-      expiresAt: input.event.expiresAt,
       customerDisabled: input.customerDisabled,
+      customerAccessExpiresAt: input.customerAccessExpiresAt,
     },
     now,
   );
@@ -173,7 +173,7 @@ export async function listGuestGallery(
     where: { uniqueCode: code },
     include: {
       customer: {
-        select: { disabled: true },
+        select: { disabled: true, accessExpiresAt: true },
       },
     },
   });
@@ -185,17 +185,18 @@ export async function listGuestGallery(
   return guestGalleryItems({
     event: loaded,
     customerDisabled: loaded.customer.disabled,
+    customerAccessExpiresAt: loaded.customer.accessExpiresAt,
     cookieToken,
     now,
     storage,
   });
 }
 
-function customerClosed(event: { status: string; expiresAt: Date }, now: Date) {
-  return event.status === "EXPIRED" || event.expiresAt.getTime() <= now.getTime();
+function customerClosed(event: { status: string }) {
+  return event.status !== "ACTIVE";
 }
 
-async function requireCustomerEvent(actor: Actor, eventId: string, now: Date) {
+async function requireCustomerEvent(actor: Actor, eventId: string) {
   const event = await prisma.event.findFirst({
     where: {
       id: eventId,
@@ -204,7 +205,6 @@ async function requireCustomerEvent(actor: Actor, eventId: string, now: Date) {
     select: {
       id: true,
       status: true,
-      expiresAt: true,
     },
   });
 
@@ -213,7 +213,7 @@ async function requireCustomerEvent(actor: Actor, eventId: string, now: Date) {
     throw new GalleryError("notFound");
   }
 
-  if (customerClosed(event, now)) {
+  if (customerClosed(event)) {
     throw new GalleryError("unavailable");
   }
 
@@ -225,9 +225,8 @@ export async function listCustomerGallery(
   eventId: string,
   sort: "newest" | "oldest" = "newest",
   storage?: IStorageService,
-  now = new Date(),
 ): Promise<CustomerGalleryItem[]> {
-  const event = await requireCustomerEvent(actor, eventId, now);
+  const event = await requireCustomerEvent(actor, eventId);
   const rows = await prisma.media.findMany({
     where: { eventId: event.id },
     select: mediaSelect,
@@ -247,9 +246,8 @@ async function requireCustomerMedia(
   actor: Actor,
   eventId: string,
   mediaId: string,
-  now: Date,
 ) {
-  const event = await requireCustomerEvent(actor, eventId, now);
+  const event = await requireCustomerEvent(actor, eventId);
   const media = await prisma.media.findFirst({
     where: {
       id: mediaId,
@@ -285,7 +283,7 @@ export async function mutateCustomerMedia(
   }
 
   await ensureCustomerService(actor, now);
-  const media = await requireCustomerMedia(actor, eventId, mediaId, now);
+  const media = await requireCustomerMedia(actor, eventId, mediaId);
 
   if (action === "delete") {
     const files = storeOf(storage);
@@ -352,7 +350,7 @@ async function requireGuestMedia(
     where: { uniqueCode: code },
     include: {
       customer: {
-        select: { disabled: true },
+        select: { disabled: true, accessExpiresAt: true },
       },
     },
   });
@@ -364,8 +362,8 @@ async function requireGuestMedia(
   const decision = decideGuestAccess(
     {
       status: loaded.status,
-      expiresAt: loaded.expiresAt,
       customerDisabled: loaded.customer.disabled,
+      customerAccessExpiresAt: loaded.customer.accessExpiresAt,
     },
     now,
   );
@@ -449,7 +447,7 @@ export async function downloadCustomerMedia(
   }
 
   await ensureCustomerService(actor, now);
-  const media = await requireCustomerMedia(actor, eventId, mediaId, now);
+  const media = await requireCustomerMedia(actor, eventId, mediaId);
 
   return downloadUrl(storeOf(storage), media);
 }
@@ -500,8 +498,8 @@ export async function mediaTotals(eventIds: string[]) {
   return totals;
 }
 
-export async function listCustomerAlbums(actor: Actor, eventId: string, now = new Date()) {
-  const event = await requireCustomerEvent(actor, eventId, now);
+export async function listCustomerAlbums(actor: Actor, eventId: string) {
+  const event = await requireCustomerEvent(actor, eventId);
   const albums = await prisma.album.findMany({
     where: { eventId: event.id },
     select: { id: true, name: true },
@@ -530,7 +528,7 @@ export async function createCustomerAlbum(
   }
 
   await ensureCustomerService(actor, now);
-  const event = await requireCustomerEvent(actor, eventId, now);
+  const event = await requireCustomerEvent(actor, eventId);
   const album = await prisma.album.create({
     data: {
       id: randomUUID(),
@@ -572,7 +570,7 @@ export async function renameCustomerAlbum(
   }
 
   await ensureCustomerService(actor, now);
-  const event = await requireCustomerEvent(actor, eventId, now);
+  const event = await requireCustomerEvent(actor, eventId);
   const existing = await prisma.album.findFirst({
     where: { id: albumId, eventId: event.id },
     select: { id: true },
@@ -619,7 +617,7 @@ export async function deleteCustomerAlbum(
   }
 
   await ensureCustomerService(actor, now);
-  const event = await requireCustomerEvent(actor, eventId, now);
+  const event = await requireCustomerEvent(actor, eventId);
   const existing = await prisma.album.findFirst({
     where: { id: albumId, eventId: event.id },
     select: { id: true },
@@ -665,7 +663,7 @@ export async function assignCustomerMediaAlbum(
   }
 
   await ensureCustomerService(actor, now);
-  const media = await requireCustomerMedia(actor, eventId, mediaId, now);
+  const media = await requireCustomerMedia(actor, eventId, mediaId);
 
   if (albumId) {
     const album = await prisma.album.findFirst({
@@ -706,7 +704,7 @@ export async function assignCustomerMediaAlbums(
   }
 
   await ensureCustomerService(actor, now);
-  const event = await requireCustomerEvent(actor, eventId, now);
+  const event = await requireCustomerEvent(actor, eventId);
   const ids = [...new Set(mediaIds)];
   const album = await prisma.album.findFirst({
     where: { id: albumId, eventId: event.id },
@@ -763,7 +761,7 @@ export async function prepareBulkDownload(
   }
 
   await ensureCustomerService(actor, now);
-  const event = await requireCustomerEvent(actor, eventId, now);
+  const event = await requireCustomerEvent(actor, eventId);
   const ids = [...new Set(mediaIds)];
   const rows = await prisma.media.findMany({
     where: {

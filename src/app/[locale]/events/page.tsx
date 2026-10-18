@@ -45,7 +45,14 @@ export default async function EventsPage({
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-6 pb-16">
       <ServiceAccessNotice user={session.user} />
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-3xl font-semibold tracking-tight">{t("title")}</h1>
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight">{t("title")}</h1>
+          {session.user.accessExpiresAt ? (
+            <p className="mt-1 text-sm text-foreground/80">
+              {t("expires")} {formatAthensDateTime(session.user.accessExpiresAt, locale)}
+            </p>
+          ) : null}
+        </div>
         {blocked ? null : (
           <Link href="/events/new" className={buttonVariants()}>
             {t("create")}
@@ -88,9 +95,6 @@ export default async function EventsPage({
                 {event.privacyMode === "FULL_GALLERY"
                   ? t("fullGallery")
                   : t("ownUploads")}
-              </p>
-              <p className="mt-1 text-sm text-foreground/80">
-                {t("expires")} {formatAthensDateTime(event.expiresAt, locale)}
               </p>
               <p className="mt-1 text-sm text-foreground/80">
                 {t("counts", {

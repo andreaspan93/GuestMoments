@@ -35,7 +35,7 @@ export default async function EventGalleryPage({
   }
 
   const t = await getTranslations("events");
-  const closed = event.status === "EXPIRED" || event.expiresAt.getTime() <= new Date().getTime();
+  const closed = event.status !== "ACTIVE";
   const items = closed ? [] : await listCustomerGallery(session.user, event.id);
   const albums = closed ? [] : await listCustomerAlbums(session.user, event.id);
 

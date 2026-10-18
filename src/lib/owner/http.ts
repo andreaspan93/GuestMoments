@@ -65,9 +65,7 @@ export function readOwnerEvents(actor: Actor) {
       id: event.id,
       name: event.name,
       customerId: event.customerId,
-      retentionDays: event.retentionDays,
       maxStorageBytes: event.maxStorageBytes.toString(),
-      expiresAt: event.expiresAt.toISOString(),
     })),
   }));
 }
@@ -84,7 +82,6 @@ export function readOwnerCounts(actor: Actor) {
 
 export function readOwnerSettings(actor: Actor) {
   return getOwnerSettings(actor).then((settings) => ({
-    defaultRetentionDays: settings.defaultRetentionDays,
     defaultMaxStorageBytes: settings.defaultMaxStorageBytes.toString(),
     maxPhotoBytes: settings.maxPhotoBytes.toString(),
     maxVideoBytes: settings.maxVideoBytes.toString(),
@@ -95,16 +92,12 @@ export function readOwnerSettings(actor: Actor) {
 function publicEvent(event: {
   id: string;
   customerId: string;
-  retentionDays: number;
   maxStorageBytes: bigint;
-  expiresAt: Date;
 }) {
   return {
     id: event.id,
     customerId: event.customerId,
-    retentionDays: event.retentionDays,
     maxStorageBytes: event.maxStorageBytes.toString(),
-    expiresAt: event.expiresAt.toISOString(),
   };
 }
 
@@ -122,7 +115,6 @@ export function removeOwnerEvent(actor: Actor, eventId: string) {
 
 export function patchOwnerSettings(actor: Actor, body: unknown) {
   return updateOwnerSettings(actor, ownerSettingsSchema.parse(body)).then((settings) => ({
-    defaultRetentionDays: settings.defaultRetentionDays,
     defaultMaxStorageBytes: settings.defaultMaxStorageBytes.toString(),
     maxPhotoBytes: settings.maxPhotoBytes.toString(),
     maxVideoBytes: settings.maxVideoBytes.toString(),

@@ -64,7 +64,6 @@ function form(): EventFormValues {
     logoCorner: "square",
     privacyMode: "FULL_GALLERY",
     guestDownloadsEnabled: true,
-    retentionDays: 90,
     status: "ACTIVE",
   };
 }
@@ -126,7 +125,6 @@ describe("uploads", () => {
       where: { id: PLATFORM_SETTINGS_ID },
       create: {
         id: PLATFORM_SETTINGS_ID,
-        defaultRetentionDays: 90,
         maxPhotoBytes: DEFAULT_MAX_PHOTO_BYTES,
         maxVideoBytes: DEFAULT_MAX_VIDEO_BYTES,
         defaultMaxStorageBytes: DEFAULT_MAX_STORAGE_BYTES,

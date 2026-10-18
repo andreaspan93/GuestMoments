@@ -15,7 +15,6 @@ export default async function OwnerSettingsPage() {
       <p className="mt-3 max-w-xl text-sm leading-6 text-foreground/80">{t("settingsLead")}</p>
       <div className="mt-8 max-w-xl">
         <OwnerSettingsForm
-          defaultRetentionDays={settings.defaultRetentionDays}
           defaultQuotaMib={bytesToMib(settings.defaultMaxStorageBytes)}
           maxPhotoMib={bytesToMib(settings.maxPhotoBytes)}
           maxVideoMib={bytesToMib(settings.maxVideoBytes)}

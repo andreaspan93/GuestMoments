@@ -47,11 +47,11 @@ export default async function OwnerEventsPage({
                 {formatCalendarDate(calendarDateFromDb(event.eventDate), locale)}
                 {" · "}
                 {eventsT(eventStatusLabelKey(event.status))}
-                {" · "}
-                {t("retentionValue", { days: event.retentionDays })}
               </p>
               <p className="mt-1 text-sm text-foreground/80">
-                {eventsT("expires")} {formatAthensDateTime(event.expiresAt, locale)}
+                {event.customer.accessExpiresAt
+                  ? `${t("accessExpires")} ${formatAthensDateTime(event.customer.accessExpiresAt, locale)}`
+                  : t("accessNone")}
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
                 <Link

@@ -9,7 +9,6 @@ import {
   DEFAULT_MAX_VIDEO_BYTES,
   PLATFORM_SETTINGS_ID,
 } from "@/lib/events/defaults";
-import { expiresAtFor } from "@/lib/events/expiry";
 import { eventFormSchema, type EventFormValues } from "@/lib/events/schema";
 import { updateCustomerEvent } from "@/lib/events/service";
 import { GalleryError } from "@/lib/gallery/errors";
@@ -96,7 +95,6 @@ function form(overrides: Partial<EventFormValues> = {}): EventFormValues {
     logoCorner: "square",
     privacyMode: "FULL_GALLERY",
     guestDownloadsEnabled: true,
-    retentionDays: 90,
     status: "ACTIVE",
     ...overrides,
   };
@@ -124,7 +122,6 @@ async function restoreSettings() {
   await prisma.platformSettings.update({
     where: { id: PLATFORM_SETTINGS_ID },
     data: {
-      defaultRetentionDays: 90,
       defaultMaxStorageBytes: DEFAULT_MAX_STORAGE_BYTES,
       maxPhotoBytes: DEFAULT_MAX_PHOTO_BYTES,
       maxVideoBytes: DEFAULT_MAX_VIDEO_BYTES,
@@ -185,20 +182,17 @@ describe("owner administration", () => {
     ).rejects.toMatchObject({ code: "notFound" });
 
     const created = await createOwnerEvent(owner, {
-      ...form({ retentionDays: 30 }),
+      ...form(),
       customerId: customer.id,
     });
 
     expect(created.customerId).toBe(customer.id);
-    expect(created.retentionDays).toBe(30);
-    expect(created.expiresAt.toISOString()).toBe(expiresAtFor("2027-09-01", 30).toISOString());
     expect(created.maxStorageBytes).toBe(DEFAULT_MAX_STORAGE_BYTES);
 
     expect(
       eventFormSchema.safeParse({
         ...form(),
-        retentionDays: 1,
-        maxStorageBytes: "1",
+        retentionDays: 30,
       }).success,
     ).toBe(false);
 
@@ -206,31 +200,24 @@ describe("owner administration", () => {
     const extended = await updateOwnerEvent(owner, created.id, {
       ...form({ name: "Extended wedding" }),
       customerId: customer.id,
-      retentionDays: 60,
       quotaMib: 2048,
     });
 
-    expect(extended.retentionDays).toBe(60);
     expect(extended.maxStorageBytes).toBe(quota);
-    expect(extended.expiresAt.toISOString()).toBe(
-      expiresAtFor("2027-09-01", 60).toISOString(),
-    );
 
     const renamed = await updateCustomerEvent(
       customer,
       created.id,
-      form({ name: "Couple rename", guestDownloadsEnabled: false, retentionDays: 60 }),
+      form({ name: "Couple rename", guestDownloadsEnabled: false }),
     );
 
     expect(renamed.name).toBe("Couple rename");
-    expect(renamed.retentionDays).toBe(60);
     expect(renamed.maxStorageBytes).toBe(quota);
     expect(renamed.customerId).toBe(customer.id);
 
     const reassigned = await updateOwnerEvent(owner, created.id, {
       ...form({ name: "Couple rename" }),
       customerId: other.id,
-      retentionDays: 60,
       quotaMib: 2048,
     });
 
@@ -252,11 +239,8 @@ describe("owner administration", () => {
       ...form({ name: "Other wedding" }),
       customerId: untouchedCustomer.id,
     });
-    const heldExpiry = event.expiresAt.toISOString();
-
     await updateOwnerSettings(owner, {
-      defaultRetentionDays: 60,
-      defaultQuotaMib: bytesToMib(DEFAULT_MAX_STORAGE_BYTES),
+      defaultQuotaMib: 2048,
       maxPhotoMib: bytesToMib(DEFAULT_MAX_PHOTO_BYTES),
       maxVideoMib: bytesToMib(DEFAULT_MAX_VIDEO_BYTES),
       maxEventsPerCustomer: 10,
@@ -265,27 +249,20 @@ describe("owner administration", () => {
     const stored = await prisma.event.findUniqueOrThrow({ where: { id: event.id } });
     const storedOther = await prisma.event.findUniqueOrThrow({ where: { id: other.id } });
 
-    expect(stored.retentionDays).toBe(90);
-    expect(stored.expiresAt.toISOString()).toBe(heldExpiry);
     expect(stored.maxStorageBytes).toBe(DEFAULT_MAX_STORAGE_BYTES);
-    expect(storedOther.retentionDays).toBe(90);
-    expect(storedOther.expiresAt.toISOString()).toBe(other.expiresAt.toISOString());
+    expect(storedOther.maxStorageBytes).toBe(DEFAULT_MAX_STORAGE_BYTES);
 
     const extended = await updateOwnerEvent(owner, event.id, {
       ...form({ name: "Held wedding" }),
       customerId: customer.id,
-      retentionDays: 60,
       quotaMib: bytesToMib(DEFAULT_MAX_STORAGE_BYTES),
     });
 
     const after = await prisma.event.findUniqueOrThrow({ where: { id: other.id } });
 
-    expect(extended.retentionDays).toBe(60);
-    expect(extended.expiresAt.toISOString()).toBe(
-      expiresAtFor("2027-09-01", 60).toISOString(),
-    );
-    expect(after.retentionDays).toBe(90);
-    expect(after.expiresAt.toISOString()).toBe(other.expiresAt.toISOString());
+    expect(extended.maxStorageBytes).toBe(DEFAULT_MAX_STORAGE_BYTES);
+    expect(after.maxStorageBytes).toBe(DEFAULT_MAX_STORAGE_BYTES);
+    expect(after.customerId).toBe(untouchedCustomer.id);
   });
 
   it("disables a customer, then restores guest access", async () => {
@@ -338,15 +315,15 @@ describe("owner administration", () => {
 
     const loaded = await prisma.event.findUniqueOrThrow({
       where: { id: event.id },
-      include: { customer: { select: { disabled: true } } },
+      include: { customer: { select: { disabled: true, accessExpiresAt: true } } },
     });
 
     expect(
       decideGuestAccess(
         {
           status: loaded.status,
-          expiresAt: loaded.expiresAt,
           customerDisabled: loaded.customer.disabled,
+          customerAccessExpiresAt: loaded.customer.accessExpiresAt,
         },
         new Date(),
       ).state,

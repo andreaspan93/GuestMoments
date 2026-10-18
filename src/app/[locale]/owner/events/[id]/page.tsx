@@ -23,7 +23,6 @@ export default async function OwnerEditEventPage({
   }
 
   const t = await getTranslations("owner");
-  const eventsT = await getTranslations("events");
   const customers = await listOwnerCustomers(actor);
 
   return (
@@ -32,7 +31,9 @@ export default async function OwnerEditEventPage({
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">{t("editTitle")}</h1>
           <p className="mt-3 text-sm text-foreground/80">
-            {eventsT("expires")} {formatAthensDateTime(event.expiresAt, locale)}
+            {event.customer.accessExpiresAt
+              ? `${t("accessExpires")} ${formatAthensDateTime(event.customer.accessExpiresAt, locale)}`
+              : t("accessNone")}
           </p>
         </div>
         <div className="flex flex-wrap gap-4">
@@ -75,7 +76,6 @@ export default async function OwnerEditEventPage({
             logoCorner: isLogoCorner(event.logoCorner) ? event.logoCorner : "square",
             privacyMode: event.privacyMode === "OWN_UPLOADS" ? "OWN_UPLOADS" : "FULL_GALLERY",
             status: event.status === "DISABLED" ? "DISABLED" : "ACTIVE",
-            retentionDays: event.retentionDays,
             quotaMib: bytesToMib(event.maxStorageBytes),
           }}
         />

@@ -4,7 +4,6 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { BrandingUploads } from "@/components/branding-uploads";
 import { EventAppearanceFields } from "@/components/event-appearance-fields";
-import { RetentionField } from "@/components/retention-field";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "@/i18n/navigation";
 import {
@@ -48,7 +47,6 @@ export type EventFormDefaults = {
   logoCorner: LogoCorner;
   privacyMode: "OWN_UPLOADS" | "FULL_GALLERY";
   guestDownloadsEnabled: boolean;
-  retentionDays: number;
   status: "ACTIVE" | "DISABLED";
 };
 
@@ -64,7 +62,6 @@ const emptyEvent: EventFormDefaults = {
   ...defaultEventAppearance,
   privacyMode: "FULL_GALLERY",
   guestDownloadsEnabled: true,
-  retentionDays: 90,
   status: "ACTIVE",
 };
 
@@ -239,7 +236,6 @@ export function EventForm({
           defaultValue={values.eventDate}
         />
       </label>
-      <RetentionField value={values.retentionDays} className={fieldClassName} />
       <label className="grid gap-2 text-sm font-medium">
         {t("welcomeEl")}
         <textarea

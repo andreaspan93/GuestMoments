@@ -49,7 +49,6 @@ function readEventFields(formData: FormData) {
     logoSize: field(formData, "logoSize"),
     logoCorner: field(formData, "logoCorner"),
     privacyMode: field(formData, "privacyMode"),
-    retentionDays: field(formData, "retentionDays"),
     status: field(formData, "status"),
   };
 }
@@ -163,7 +162,6 @@ export async function updateOwnerSettingsAction(
   }
 
   const parsed = ownerSettingsSchema.safeParse({
-    defaultRetentionDays: field(formData, "defaultRetentionDays"),
     defaultQuotaMib: field(formData, "defaultQuotaMib"),
     maxPhotoMib: field(formData, "maxPhotoMib"),
     maxVideoMib: field(formData, "maxVideoMib"),

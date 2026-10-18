@@ -39,7 +39,6 @@ function readEventForm(formData: FormData) {
     logoCorner: field(formData, "logoCorner"),
     privacyMode: field(formData, "privacyMode"),
     guestDownloadsEnabled: flag(formData, "guestDownloadsEnabled"),
-    retentionDays: field(formData, "retentionDays"),
     status: field(formData, "status"),
   };
 }

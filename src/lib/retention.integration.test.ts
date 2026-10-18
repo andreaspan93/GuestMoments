@@ -61,7 +61,6 @@ function form(name: string): EventFormValues {
     logoCorner: "square",
     privacyMode: "FULL_GALLERY",
     guestDownloadsEnabled: true,
-    retentionDays: 90,
     status: "ACTIVE",
   };
 }
@@ -103,9 +102,10 @@ class MemoryStorage implements IStorageService {
   }
 
   failDeletePrefix = false;
+  failPrefixes = new Set<string>();
 
   async deletePrefix(prefix: string) {
-    if (this.failDeletePrefix) {
+    if (this.failDeletePrefix || this.failPrefixes.has(prefix)) {
       throw new Error("r2 unavailable");
     }
 
@@ -152,13 +152,23 @@ async function storePhoto(
   return key;
 }
 
+async function lapseAccess(userId: string) {
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      accessExpiresAt: new Date("2020-01-01T00:00:00.000Z"),
+      accessStatus: "ACTIVE",
+      disabled: false,
+    },
+  });
+}
+
 describe("retention purge", () => {
   beforeAll(async () => {
     await prisma.platformSettings.upsert({
       where: { id: PLATFORM_SETTINGS_ID },
       create: {
         id: PLATFORM_SETTINGS_ID,
-        defaultRetentionDays: 90,
         maxPhotoBytes: DEFAULT_MAX_PHOTO_BYTES,
         maxVideoBytes: DEFAULT_MAX_VIDEO_BYTES,
         defaultMaxStorageBytes: DEFAULT_MAX_STORAGE_BYTES,
@@ -181,54 +191,111 @@ describe("retention purge", () => {
     });
   });
 
-  it("closes the guest gallery before the purge, then deletes the event", async () => {
+  it("closes the guest gallery before the purge, then deletes every event for that customer", async () => {
     const customer = await signUpCustomer("Retention");
+    const other = await signUpCustomer("Retention neighbour");
     const storage = new MemoryStorage();
     const event = await createCustomerEvent(customer, form("Retention wedding"));
-    const kept = await createCustomerEvent(customer, form("Still open"));
+    const secondEvent = await createCustomerEvent(customer, form("Second wedding"));
+    const kept = await createCustomerEvent(other, form("Still open"));
     const photoKey = await storePhoto(storage, event.uniqueCode, "due");
     const keptKey = await storePhoto(storage, kept.uniqueCode, "kept");
+    const albumId = randomUUID();
+    const intentId = randomUUID();
     const coverKey = `events/${event.id}/branding/cover-${randomUUID()}`;
     storage.objects.set(coverKey, {
       bytes: new Uint8Array(4),
       contentType: "image/jpeg",
     });
-    const past = new Date("2020-01-01T00:00:00.000Z");
-
     await prisma.event.update({
       where: { id: event.id },
-      data: { expiresAt: past, coverKey },
+      data: { coverKey },
     });
+    await prisma.album.create({
+      data: { id: albumId, eventId: event.id, name: "Ceremony" },
+    });
+    await prisma.uploadIntent.create({
+      data: {
+        id: intentId,
+        eventId: secondEvent.id,
+        storageKey: `events/${secondEvent.id}/pending-${randomUUID()}`,
+        kind: "original",
+        originalFileName: "pending.jpg",
+        contentType: "image/jpeg",
+        contentLength: BigInt(8),
+        expiresAt: new Date("2099-01-01T00:00:00.000Z"),
+      },
+    });
+    await lapseAccess(customer.id);
 
     await expect(
       listGuestGallery(event.uniqueCode, createGuestToken(), storage),
     ).rejects.toMatchObject({ code: "unavailable" });
     expect(await prisma.media.count({ where: { eventId: event.id } })).toBe(1);
+    expect(await prisma.event.findUnique({ where: { id: event.id } })).not.toBeNull();
     expect(storage.objects.has(photoKey)).toBe(true);
 
     const first = await runStorageCleanup(storage, new Date());
 
-    expect(first.purgedEvents).toBeGreaterThanOrEqual(1);
+    expect(first.purgedEvents).toBeGreaterThanOrEqual(2);
     expect(storage.objects.has(photoKey)).toBe(false);
     expect(storage.objects.has(coverKey)).toBe(false);
     expect(await prisma.event.findUnique({ where: { id: event.id } })).toBeNull();
+    expect(await prisma.event.findUnique({ where: { id: secondEvent.id } })).toBeNull();
     expect(await prisma.media.count({ where: { eventId: event.id } })).toBe(0);
-    await expect(prisma.user.findUnique({ where: { id: customer.id } })).resolves.not.toBeNull();
+    expect(await prisma.album.findUnique({ where: { id: albumId } })).toBeNull();
+    expect(await prisma.uploadIntent.findUnique({ where: { id: intentId } })).toBeNull();
+    await expect(prisma.user.findUnique({ where: { id: customer.id } })).resolves.toMatchObject({
+      disabled: true,
+      accessStatus: "EXPIRED",
+      role: "CUSTOMER",
+    });
     await expect(
       listGuestGallery(event.uniqueCode, createGuestToken(), storage),
     ).rejects.toMatchObject({ code: "notFound" });
     expect(storage.objects.has(keptKey)).toBe(true);
-    expect(await prisma.media.count({ where: { eventId: kept.id } })).toBe(1);
+    expect(await prisma.event.findUnique({ where: { id: kept.id } })).not.toBeNull();
+    await expect(prisma.user.findUnique({ where: { id: other.id } })).resolves.toMatchObject({
+      disabled: false,
+      accessStatus: "ACTIVE",
+    });
 
     const second = await runStorageCleanup(storage, new Date());
 
     expect(second.purgedEvents).toBe(0);
-    expect(await prisma.event.findUnique({ where: { id: event.id } })).toBeNull();
+    expect(await prisma.event.findUnique({ where: { id: kept.id } })).not.toBeNull();
     expect(storage.objects.has(keptKey)).toBe(true);
-    expect(await prisma.media.count({ where: { eventId: kept.id } })).toBe(1);
   });
 
-  it("purges a disabled event after it expires", async () => {
+  it("leaves events in place when access is extended before cleanup", async () => {
+    const customer = await signUpCustomer("Extended retention");
+    const storage = new MemoryStorage();
+    const event = await createCustomerEvent(customer, form("Extended wedding"));
+    await prisma.event.update({
+      where: { id: event.id },
+      data: { eventDate: new Date("2020-01-01T00:00:00.000Z") },
+    });
+    await lapseAccess(customer.id);
+    await prisma.user.update({
+      where: { id: customer.id },
+      data: {
+        accessExpiresAt: new Date("2099-01-01T00:00:00.000Z"),
+        accessStatus: "ACTIVE",
+        disabled: false,
+      },
+    });
+
+    const result = await runStorageCleanup(storage, new Date());
+
+    expect(result.purgedEvents).toBe(0);
+    expect(await prisma.event.findUnique({ where: { id: event.id } })).not.toBeNull();
+    await expect(prisma.user.findUnique({ where: { id: customer.id } })).resolves.toMatchObject({
+      disabled: false,
+      accessStatus: "ACTIVE",
+    });
+  });
+
+  it("purges a disabled event after customer access expires", async () => {
     const customer = await signUpCustomer("Disabled retention");
     const storage = new MemoryStorage();
     const event = await createCustomerEvent(customer, form("Disabled wedding"));
@@ -236,14 +303,18 @@ describe("retention purge", () => {
 
     await prisma.event.update({
       where: { id: event.id },
-      data: { expiresAt: new Date("2020-06-01T00:00:00.000Z"), status: "DISABLED" },
+      data: { status: "DISABLED" },
     });
+    await lapseAccess(customer.id);
     await runStorageCleanup(storage, new Date());
 
     expect(storage.objects.has(photoKey)).toBe(false);
     expect(await prisma.event.findUnique({ where: { id: event.id } })).toBeNull();
     expect(await prisma.media.count({ where: { eventId: event.id } })).toBe(0);
-    await expect(prisma.user.findUnique({ where: { id: customer.id } })).resolves.not.toBeNull();
+    await expect(prisma.user.findUnique({ where: { id: customer.id } })).resolves.toMatchObject({
+      disabled: true,
+      accessStatus: "EXPIRED",
+    });
   });
 
   it("does nothing when the cron secret is missing or wrong", async () => {
@@ -252,10 +323,7 @@ describe("retention purge", () => {
     const event = await createCustomerEvent(customer, form("Secret wedding"));
     const photoKey = await storePhoto(storage, event.uniqueCode, "secret");
 
-    await prisma.event.update({
-      where: { id: event.id },
-      data: { expiresAt: new Date("2020-03-01T00:00:00.000Z") },
-    });
+    await lapseAccess(customer.id);
 
     const previous = process.env.CRON_SECRET;
 
@@ -273,9 +341,10 @@ describe("retention purge", () => {
       expect(wrong.status).toBe(401);
       expect(storage.objects.has(photoKey)).toBe(true);
       expect(await prisma.media.count({ where: { eventId: event.id } })).toBe(1);
-      expect(
-        (await prisma.event.findUniqueOrThrow({ where: { id: event.id } })).storagePurgedAt,
-      ).toBeNull();
+      expect(await prisma.event.findUnique({ where: { id: event.id } })).not.toBeNull();
+      await expect(prisma.user.findUnique({ where: { id: customer.id } })).resolves.toMatchObject({
+        disabled: false,
+      });
     } finally {
       if (previous === undefined) {
         delete process.env.CRON_SECRET;
@@ -472,20 +541,22 @@ describe("retention purge", () => {
     const event = await createCustomerEvent(customer, form("Storage retry wedding"));
     const photoKey = await storePhoto(storage, event.uniqueCode, "retry");
 
-    await prisma.event.update({
-      where: { id: event.id },
-      data: { expiresAt: new Date("2020-04-01T00:00:00.000Z") },
-    });
+    await lapseAccess(customer.id);
     storage.failDeletePrefix = true;
 
     await expect(runStorageCleanup(storage, new Date())).rejects.toThrow("event_cleanup_incomplete");
     expect(storage.objects.has(photoKey)).toBe(true);
     await expect(prisma.event.findUnique({ where: { id: event.id } })).resolves.not.toBeNull();
     await expect(prisma.media.count({ where: { eventId: event.id } })).resolves.toBe(1);
+    await expect(prisma.user.findUnique({ where: { id: customer.id } })).resolves.toMatchObject({
+      disabled: true,
+      accessStatus: "EXPIRED",
+    });
     const failure = await prisma.applicationLog.findFirst({
       where: { eventType: "app.error", targetId: event.id, result: "failure" },
     });
     expect(failure).not.toBeNull();
+    expect(JSON.stringify(failure?.metadata ?? {})).not.toContain(photoKey);
 
     storage.failDeletePrefix = false;
     const retry = await runStorageCleanup(storage, new Date());
@@ -493,7 +564,45 @@ describe("retention purge", () => {
     expect(retry.purgedEvents).toBeGreaterThanOrEqual(1);
     expect(storage.objects.has(photoKey)).toBe(false);
     await expect(prisma.event.findUnique({ where: { id: event.id } })).resolves.toBeNull();
-    await expect(prisma.user.findUnique({ where: { id: customer.id } })).resolves.not.toBeNull();
+    await expect(prisma.user.findUnique({ where: { id: customer.id } })).resolves.toMatchObject({
+      disabled: true,
+      accessStatus: "EXPIRED",
+    });
+  });
+
+  it("keeps the failed event when only part of the storage deletion fails", async () => {
+    const customer = await signUpCustomer("Partial storage");
+    const other = await signUpCustomer("Partial neighbour");
+    const storage = new MemoryStorage();
+    const failed = await createCustomerEvent(customer, form("Partial failed"));
+    const removed = await createCustomerEvent(customer, form("Partial removed"));
+    const kept = await createCustomerEvent(other, form("Partial kept"));
+    const failedKey = await storePhoto(storage, failed.uniqueCode, "partial-failed");
+    const removedKey = await storePhoto(storage, removed.uniqueCode, "partial-removed");
+    const keptKey = await storePhoto(storage, kept.uniqueCode, "partial-kept");
+
+    await lapseAccess(customer.id);
+    storage.failPrefixes.add(`events/${failed.id}/`);
+
+    await expect(runStorageCleanup(storage, new Date())).rejects.toThrow("event_cleanup_incomplete");
+    expect(storage.objects.has(failedKey)).toBe(true);
+    expect(storage.objects.has(removedKey)).toBe(false);
+    expect(storage.objects.has(keptKey)).toBe(true);
+    await expect(prisma.event.findUnique({ where: { id: failed.id } })).resolves.not.toBeNull();
+    await expect(prisma.event.findUnique({ where: { id: removed.id } })).resolves.toBeNull();
+    await expect(prisma.event.findUnique({ where: { id: kept.id } })).resolves.not.toBeNull();
+    await expect(prisma.user.findUnique({ where: { id: customer.id } })).resolves.toMatchObject({
+      disabled: true,
+      accessStatus: "EXPIRED",
+    });
+
+    storage.failPrefixes.clear();
+    const retry = await runStorageCleanup(storage, new Date());
+
+    expect(retry.purgedEvents).toBeGreaterThanOrEqual(1);
+    expect(storage.objects.has(failedKey)).toBe(false);
+    await expect(prisma.event.findUnique({ where: { id: failed.id } })).resolves.toBeNull();
+    await expect(prisma.event.findUnique({ where: { id: kept.id } })).resolves.not.toBeNull();
   });
 
   it("retries database deletion after storage was already removed", async () => {
@@ -502,10 +611,7 @@ describe("retention purge", () => {
     const event = await createCustomerEvent(customer, form("Database retry wedding"));
     const photoKey = await storePhoto(storage, event.uniqueCode, "database");
 
-    await prisma.event.update({
-      where: { id: event.id },
-      data: { expiresAt: new Date("2020-05-01T00:00:00.000Z") },
-    });
+    await lapseAccess(customer.id);
     const spy = vi.spyOn(prisma.event, "delete").mockRejectedValueOnce(new Error("database failed"));
 
     try {
@@ -523,7 +629,10 @@ describe("retention purge", () => {
     expect(retry.purgedEvents).toBeGreaterThanOrEqual(1);
     await expect(prisma.event.findUnique({ where: { id: event.id } })).resolves.toBeNull();
     await expect(prisma.media.count({ where: { eventId: event.id } })).resolves.toBe(0);
-    await expect(prisma.user.findUnique({ where: { id: customer.id } })).resolves.not.toBeNull();
+    await expect(prisma.user.findUnique({ where: { id: customer.id } })).resolves.toMatchObject({
+      disabled: true,
+      accessStatus: "EXPIRED",
+    });
   });
 
   it("reports a failure when expired-session cleanup fails", async () => {

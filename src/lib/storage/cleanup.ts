@@ -94,40 +94,76 @@ async function purgeOneEvent(
 }
 
 /**
- * Deletes stored media first. The event row and its related records are
- * removed only after that storage deletion returns. A failure leaves the
- * event due, so the next run retries it. Customer accounts and application
- * logs are not part of this deletion.
+ * Customer access expiry is the only automatic event deletion. Storage is
+ * removed before the event row. A failure leaves that event for the next
+ * run and does not re-enable the customer.
  */
-async function purgeExpiredEvents(storage: IStorageService, now: Date) {
+async function purgeExpiredCustomers(storage: IStorageService, now: Date) {
   let purgedEvents = 0;
+  const due = await prisma.user.findMany({
+    where: {
+      role: "CUSTOMER",
+      accessExpiresAt: { lte: now },
+    },
+    select: { id: true },
+    orderBy: { accessExpiresAt: "asc" },
+    take: PURGE_BATCH,
+  });
+  let incomplete = false;
 
-  for (;;) {
-    const due = await prisma.event.findMany({
-      where: { expiresAt: { lte: now } },
-      select: { id: true, uniqueCode: true },
-      orderBy: { expiresAt: "asc" },
-      take: PURGE_BATCH,
+  for (const candidate of due) {
+    const current = await prisma.user.findUnique({
+      where: { id: candidate.id },
+      select: { id: true, role: true, accessExpiresAt: true },
     });
 
-    if (due.length === 0) {
-      return { purgedEvents, incomplete: false };
+    if (
+      !current ||
+      current.role !== "CUSTOMER" ||
+      !current.accessExpiresAt ||
+      current.accessExpiresAt.getTime() > now.getTime()
+    ) {
+      continue;
     }
 
-    let incomplete = false;
+    await prisma.user.updateMany({
+      where: {
+        id: current.id,
+        role: "CUSTOMER",
+        accessExpiresAt: { lte: now },
+      },
+      data: { disabled: true, accessStatus: "EXPIRED" },
+    });
+    await prisma.session.deleteMany({ where: { userId: current.id } });
 
-    for (const event of due) {
+    const stillExpired = await prisma.user.findUnique({
+      where: { id: current.id },
+      select: { accessExpiresAt: true, disabled: true },
+    });
+
+    if (
+      !stillExpired?.accessExpiresAt ||
+      stillExpired.accessExpiresAt.getTime() > now.getTime() ||
+      !stillExpired.disabled
+    ) {
+      continue;
+    }
+
+    const events = await prisma.event.findMany({
+      where: { customerId: current.id },
+      select: { id: true, uniqueCode: true },
+    });
+
+    for (const event of events) {
       if (await purgeOneEvent(storage, event)) {
         purgedEvents += 1;
       } else {
         incomplete = true;
       }
     }
-
-    if (incomplete) {
-      return { purgedEvents, incomplete: true };
-    }
   }
+
+  return { purgedEvents, incomplete };
 }
 
 export async function runStorageCleanup(
@@ -135,7 +171,7 @@ export async function runStorageCleanup(
   now = new Date(),
 ) {
   const abandonedIntents = await cleanupAbandonedUploads(storage, now);
-  const purge = await purgeExpiredEvents(storage, now);
+  const purge = await purgeExpiredCustomers(storage, now);
   let expiredLogs = { operational: 0, security: 0, authFailure: 0 };
 
   try {

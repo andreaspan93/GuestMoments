@@ -11,10 +11,10 @@ import {
 import { athensEndOfDay } from "@/lib/events/expiry";
 import { EventError, type EventFormValues } from "@/lib/events/schema";
 import { createCustomerEvent, loadGuestEvent } from "@/lib/events/service";
-import { grantCustomerService } from "@/lib/access";
+import { accessExpiryFromDays, grantCustomerService } from "@/lib/access";
 import { activateCustomerAccess, setCustomerDisabled } from "@/lib/owner/service";
 import { prisma } from "@/lib/prisma";
-import { getActiveSession } from "@/lib/session";
+import { createBrandingIntent } from "@/lib/uploads/service";
 
 const createdEmails: string[] = [];
 
@@ -57,15 +57,8 @@ function form(name = "Access wedding"): EventFormValues {
     logoCorner: "square",
     privacyMode: "FULL_GALLERY",
     guestDownloadsEnabled: true,
-    retentionDays: 90,
     status: "ACTIVE",
   };
-}
-
-function cookieHeaderFrom(response: Response) {
-  return new Headers({
-    cookie: response.headers.getSetCookie().map((item) => item.split(";")[0]).join("; "),
-  });
 }
 
 describe("customer service access", () => {
@@ -74,7 +67,6 @@ describe("customer service access", () => {
       where: { id: PLATFORM_SETTINGS_ID },
       create: {
         id: PLATFORM_SETTINGS_ID,
-        defaultRetentionDays: 90,
         maxPhotoBytes: DEFAULT_MAX_PHOTO_BYTES,
         maxVideoBytes: DEFAULT_MAX_VIDEO_BYTES,
         defaultMaxStorageBytes: DEFAULT_MAX_STORAGE_BYTES,
@@ -142,34 +134,80 @@ describe("customer service access", () => {
     );
     expect(custom.accessExpiresAt.toISOString()).toBe(athensEndOfDay("2027-01-15").toISOString());
     expect((await prisma.user.findUnique({ where: { id: customer.id } }))?.role).toBe("CUSTOMER");
+
+    for (const days of [60, 90, 180, 365] as const) {
+      await prisma.user.update({
+        where: { id: customer.id },
+        data: {
+          disabled: true,
+          accessStatus: "EXPIRED",
+          accessExpiresAt: new Date("2020-01-01T00:00:00.000Z"),
+        },
+      });
+      const renewed = await activateCustomerAccess(
+        { id: owner.id, role: "OWNER" },
+        customer.id,
+        { duration: String(days) as "60" | "90" | "180" | "365", expiresOn: "" },
+        now,
+      );
+
+      expect(renewed.accessExpiresAt.toISOString()).toBe(
+        accessExpiryFromDays(days, now).toISOString(),
+      );
+    }
   });
 
-  it("lets an expired customer log in but not create an event, and keeps the account", async () => {
+  it("refuses an expired customer sign-in, event creation, and upload, and keeps the account", async () => {
     const customer = await signUpCustomer("Expired Couple");
-    const expiry = new Date("2026-10-01T00:00:00.000Z");
+    await grantCustomerService(customer.id, new Date("2099-01-01T00:00:00.000Z"));
+    const event = await createCustomerEvent(customer, form("Before expiry"));
     await prisma.user.update({
       where: { id: customer.id },
       data: {
         emailVerified: true,
         accessStatus: "ACTIVE",
-        accessExpiresAt: expiry,
+        accessExpiresAt: new Date("2026-10-01T00:00:00.000Z"),
         disabled: false,
       },
     });
-    const signedIn = await auth.api.signInEmail({
-      body: { email: customer.email, password: "Password123!" },
-      asResponse: true,
-    });
-    expect(signedIn.status).toBe(200);
-    const session = await getActiveSession(cookieHeaderFrom(signedIn));
-    expect(session?.user.id).toBe(customer.id);
 
+    await expect(
+      auth.api.signInEmail({
+        body: { email: customer.email, password: "Password123!" },
+      }),
+    ).rejects.toThrow();
     await expect(
       createCustomerEvent(customer, form(), new Date("2026-10-03T12:00:00.000Z")),
     ).rejects.toMatchObject({ code: "inactive" });
+    await expect(
+      createBrandingIntent({
+        actor: customer,
+        eventId: event.id,
+        slot: "cover",
+        fileName: "cover.jpg",
+        contentType: "image/jpeg",
+        contentLength: BigInt(128),
+        storage: {
+          async presignPut() {
+            return { url: "memory://put", headers: { "Content-Type": "image/jpeg" } };
+          },
+          async presignGet() {
+            return "memory://get";
+          },
+          async headObject() {
+            return null;
+          },
+          async deleteObject() {},
+          async deletePrefix() {},
+        },
+      }),
+    ).rejects.toMatchObject({ code: "inactive" });
+
     const stored = await prisma.user.findUnique({ where: { id: customer.id } });
+    expect(stored?.disabled).toBe(true);
     expect(stored?.accessStatus).toBe("EXPIRED");
-    expect(stored).not.toBeNull();
+    expect(stored?.email).toBe(customer.email);
+    expect(await prisma.event.findUnique({ where: { id: event.id } })).not.toBeNull();
   });
 
   it("lets the owner renew expired access and blocks a disabled customer with a future date", async () => {
@@ -209,16 +247,17 @@ describe("customer service access", () => {
     expect(restored.customerId).toBe(customer.id);
   });
 
-  it("does not close an existing guest page when customer access expires", async () => {
-    const customer = await signUpCustomer("Guest Still Open");
+  it("closes the guest page when customer access expires, before cleanup runs", async () => {
+    const customer = await signUpCustomer("Guest Closed");
     await grantCustomerService(customer.id);
-    const event = await createCustomerEvent(customer, form("Open guest"));
+    const event = await createCustomerEvent(customer, form("Closed guest"));
     await prisma.user.update({
       where: { id: customer.id },
       data: {
-        accessStatus: "EXPIRED",
+        accessStatus: "ACTIVE",
+        disabled: false,
         accessExpiresAt: new Date("2020-01-01T00:00:00.000Z"),
-        emailVerified: false,
+        emailVerified: true,
       },
     });
     const loaded = await loadGuestEvent(event.uniqueCode);
@@ -227,12 +266,13 @@ describe("customer service access", () => {
       decideGuestAccess(
         loaded && {
           status: loaded.event.status,
-          expiresAt: loaded.event.expiresAt,
           customerDisabled: loaded.customerDisabled,
+          customerAccessExpiresAt: loaded.customerAccessExpiresAt,
         },
         new Date(),
       ).state,
-    ).toBe("ok");
+    ).toBe("unavailable");
+    expect(await prisma.event.findUnique({ where: { id: event.id } })).not.toBeNull();
   });
 
   it("lets an owner create an event after their own access date has passed", async () => {

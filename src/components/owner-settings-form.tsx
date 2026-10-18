@@ -2,7 +2,6 @@
 
 import { useActionState } from "react";
 import { useTranslations } from "next-intl";
-import { retentionChoice, retentionDayChoices, type RetentionDays } from "@/lib/events/retention";
 import { Button } from "@/components/ui/button";
 import {
   updateOwnerSettingsAction,
@@ -35,48 +34,21 @@ function FormMessage({ state }: { state: OwnerFormState }) {
 }
 
 export function OwnerSettingsForm({
-  defaultRetentionDays,
   defaultQuotaMib,
   maxPhotoMib,
   maxVideoMib,
   maxEventsPerCustomer,
 }: {
-  defaultRetentionDays: number;
   defaultQuotaMib: number;
   maxPhotoMib: number;
   maxVideoMib: number;
   maxEventsPerCustomer: number;
 }) {
   const t = useTranslations("owner");
-  const events = useTranslations("events");
   const [state, formAction, pending] = useActionState(updateOwnerSettingsAction, null);
-  const selected = retentionChoice(defaultRetentionDays);
-  const dayLabel: Record<RetentionDays, string> = {
-    30: events("days30"),
-    60: events("days60"),
-    90: events("days90"),
-  };
 
   return (
     <form action={formAction} className="grid gap-4">
-      <label className="grid gap-2 text-sm font-medium">
-        {t("defaultRetention")}
-        <select
-          className={fieldClassName}
-          name="defaultRetentionDays"
-          required
-          defaultValue={selected}
-        >
-          {retentionDayChoices.map((days) => (
-            <option key={days} value={days}>
-              {dayLabel[days]}
-            </option>
-          ))}
-        </select>
-        {defaultRetentionDays !== selected ? (
-          <span className="text-sm font-normal leading-6 text-primary">{events("retentionLegacy")}</span>
-        ) : null}
-      </label>
       <label className="grid gap-2 text-sm font-medium">
         {t("defaultQuota")}
         <input

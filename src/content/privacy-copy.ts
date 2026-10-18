@@ -133,7 +133,7 @@ const en = {
         {
           heading: "Events and guest media",
           paragraphs: [
-            "An event stores its name, date, welcome and instruction text, colours, fonts, privacy setting, download setting, retention period, and storage quota. The couple may upload a cover image, a logo, and a background image.",
+            "An event stores its name, date, welcome and instruction text, colours, fonts, privacy setting, download setting, and storage quota. The couple may upload a cover image, a logo, and a background image. The couple does not choose a separate retention period for an event.",
             "A guest upload stores the file, its type, size, and original file name, an optional guest name, an optional message, and the random browser token. The application does not ask guests to create an account and does not ask for their age.",
             "Hidden items are not shown to guests. With “full gallery”, anyone with the event link can see the items that are not hidden. With “only my uploads”, a browser sees the items uploaded with its own token. Downloads are available to guests only when the couple leaves downloads on. Preview links expire after 15 minutes. Download links expire after 60 seconds. Upload links expire after 15 minutes.",
           ],
@@ -142,7 +142,7 @@ const en = {
           heading: "Why the information is used",
           paragraphs: [
             "The application uses account data to create the account, sign the person in, send verification and password-reset email when email delivery is configured, and let an administrator activate or disable access.",
-            "It uses event and media data to show the guest page, store uploads, let the couple manage the gallery, and remove files when an event expires or someone deletes them.",
+            "It uses event and media data to show the guest page, store uploads, let the couple manage the gallery, and remove files when the customer's access ends or someone deletes them.",
             "It uses rate-limit records, which can contain an IP address and an event code, to slow abusive uploads. Those database rows are deleted about 24 hours after the window starts. If Upstash Redis is configured, the same limit is counted there and those keys expire after about 20 minutes.",
             "Security and operational logs store event types, internal ids, and fixed reason codes. They do not store passwords, message text, file names, or email addresses. The current log periods are 30, 90, and 180 days depending on the event type. Those periods are engineering defaults and still need confirmation.",
           ],
@@ -156,7 +156,7 @@ const en = {
         {
           heading: "How long information is kept",
           paragraphs: [
-            "Each event stores 30, 60, or 90 days of retention. A new event starts from the platform default, which is one of those three, and the couple or an administrator can choose another before saving. The period runs from the event date to the end of that later day in Athens. Guests cannot open the gallery after that moment. The daily cleanup then permanently deletes the stored photos and videos, and deletes the event, its albums, and its related records. It does not delete the customer account. Security and operation logs keep their own retention. This application has no archive for restoring an expired event.",
+            "An administrator sets how long a customer can use the service: 30, 60, 90, 180, or 365 days, or a custom end date. The couple does not choose a retention period for each event. After that access end date, guests cannot open the customer's events, even if the cleanup has not run yet. If the administrator does not extend access before then, the daily cleanup permanently deletes that customer's events, albums, media records, and the photos and videos stored for those events. The customer account remains and stays disabled. Operational, security, and authentication logs keep their own periods, which are separate from this deletion. This application has no archive for restoring a deleted event.",
             "Deleting an event removes that event, its media records, its albums, and its stored files. Deleting one photo or video removes that item. A couple can delete their own account from the account page. An administrator can delete a customer account. Either deletion removes the account, the events, and the stored files from the application database and from object storage.",
             "This deletion does not promise that a database backup, a hosting backup, or an object-storage backup is erased. Those backup periods are not recorded in this repository.",
           ],
@@ -218,7 +218,7 @@ const en = {
         {
           heading: "How long it stays",
           paragraphs: [
-            "The couple chooses 30, 60, or 90 days, starting from the platform default. After the event expires, guests cannot open it, and the daily cleanup deletes the files and the event from the application. The couple can also delete items or the whole event sooner. Deleting their account deletes their events and files from the application.",
+            "An administrator sets the couple's access duration. The couple does not choose how long each event is kept. After that access ends, guests cannot open the events, and the daily cleanup deletes the files and the events from the application. The couple's account stays disabled rather than being deleted. The couple can also delete items or a whole event sooner. Deleting their account deletes their events and files from the application.",
             "A backup held by the database, hosting, or storage provider may keep a copy. The length of that backup is not set in this application, so this notice cannot say that every copy is already gone.",
           ],
         },
@@ -244,7 +244,7 @@ const en = {
         {
           heading: "Accounts",
           paragraphs: [
-            "The account is for the couple. You provide a name, surname, email, and password. An administrator activates service access and can set an end date or disable the account. A disabled account cannot sign in.",
+            "The account is for the couple. You provide a name, surname, email, and password. An administrator activates service access and can set an end date or disable the account. A disabled account cannot sign in. If access is not extended before that end date, the application's cleanup deletes the account's events and stored media. The account itself remains and stays disabled.",
             "You are responsible for the activity on your account and for keeping the password private. Password reset and email verification are sent only when email delivery is configured.",
           ],
         },
@@ -370,7 +370,7 @@ const en = {
           paragraphs: [
             "The operator will need a process to help with requests from people in photographs and from couples. That contact email is not published yet, and this draft sets no response time.",
             "This draft does not promise to notify the couple within a stated number of hours after an incident. The notification duty, and who notifies a supervisory authority, must be added by a lawyer.",
-            "Deletion of an event or account removes the related rows and object-storage files as described in the privacy policy. Backups are outside that deletion. On termination, the same deletion path is what the application can do today. Return of a full export is not implemented.",
+            "Deletion of an event or account removes the related rows and object-storage files as described in the privacy policy. If an administrator does not extend a customer's access before it ends, the same cleanup deletes that customer's events and stored media and leaves the account disabled. Backups held by infrastructure or providers are outside that deletion, so the application cannot guarantee that every copy is erased at once. On termination, the same deletion path is what the application can do today. Return of a full export is not implemented.",
           ],
         },
         {
@@ -471,7 +471,7 @@ const el: PrivacyCopy = {
         {
           heading: "Εκδηλώσεις και αρχεία καλεσμένων",
           paragraphs: [
-            "Η εκδήλωση αποθηκεύει όνομα, ημερομηνία, κείμενα, χρώματα, γραμματοσειρές, ρύθμιση απορρήτου, ρύθμιση λήψης, διάρκεια διατήρησης και όριο χώρου. Το ζευγάρι μπορεί να ανεβάσει εξώφυλλο, λογότυπο και φόντο.",
+            "Η εκδήλωση αποθηκεύει όνομα, ημερομηνία, κείμενα, χρώματα, γραμματοσειρές, ρύθμιση απορρήτου, ρύθμιση λήψης και όριο χώρου. Το ζευγάρι μπορεί να ανεβάσει εξώφυλλο, λογότυπο και φόντο. Το ζευγάρι δεν επιλέγει ξεχωριστή διάρκεια φύλαξης για μια εκδήλωση.",
             "Το ανέβασμα καλεσμένου αποθηκεύει το αρχείο, τον τύπο, το μέγεθος και το αρχικό όνομα αρχείου, προαιρετικό όνομα, προαιρετικό μήνυμα και το τυχαίο αναγνωριστικό του browser. Η εφαρμογή δεν ζητά λογαριασμό ούτε ηλικία.",
             "Τα κρυμμένα στοιχεία δεν εμφανίζονται στους καλεσμένους. Με «πλήρη συλλογή», όποιος έχει τον σύνδεσμο βλέπει όσα δεν είναι κρυμμένα. Με «μόνο τα δικά μου», ένας browser βλέπει τα αρχεία του δικού του αναγνωριστικού. Η λήψη προσφέρεται μόνο αν το ζευγάρι την αφήσει ανοιχτή. Οι σύνδεσμοι προεπισκόπησης λήγουν σε 15 λεπτά. Οι σύνδεσμοι λήψης λήγουν σε 60 δευτερόλεπτα. Οι σύνδεσμοι ανεβάσματος λήγουν σε 15 λεπτά.",
           ],
@@ -480,7 +480,7 @@ const el: PrivacyCopy = {
           heading: "Γιατί χρησιμοποιούνται",
           paragraphs: [
             "Τα στοιχεία λογαριασμού χρησιμοποιούνται για τη δημιουργία λογαριασμού, τη σύνδεση, την αποστολή email επιβεβαίωσης και επαναφοράς κωδικού όταν η αποστολή είναι ρυθμισμένη, και για να ενεργοποιεί ή να απενεργοποιεί την πρόσβαση ο διαχειριστής.",
-            "Τα στοιχεία εκδήλωσης και τα αρχεία χρησιμοποιούνται για τη σελίδα καλεσμένων, την αποθήκευση, τη διαχείριση της συλλογής και τη διαγραφή όταν λήγει η εκδήλωση ή όταν κάποιος τα διαγράφει.",
+            "Τα στοιχεία εκδήλωσης και τα αρχεία χρησιμοποιούνται για τη σελίδα καλεσμένων, την αποθήκευση, τη διαχείριση της συλλογής και τη διαγραφή όταν λήγει η πρόσβαση του πελάτη ή όταν κάποιος τα διαγράφει.",
             "Οι εγγραφές ορίου ρυθμού, που μπορεί να περιέχουν διεύθυνση IP και κωδικό εκδήλωσης, επιβραδύνουν καταχρηστικά ανεβάσματα. Οι γραμμές αυτές σβήνουν περίπου 24 ώρες μετά την έναρξη του παραθύρου. Αν έχει ρυθμιστεί Upstash Redis, το ίδιο όριο μετράται εκεί και τα κλειδιά λήγουν σε περίπου 20 λεπτά.",
             "Τα αρχεία καταγραφής ασφαλείας και λειτουργίας κρατούν τύπους συμβάντων, εσωτερικά αναγνωριστικά και σταθερούς κωδικούς αιτίας. Δεν κρατούν κωδικούς πρόσβασης, κείμενο μηνύματος, ονόματα αρχείων ή email. Οι τρέχουσες περίοδοι είναι 30, 90 και 180 ημέρες ανάλογα με τον τύπο. Είναι τεχνικές προεπιλογές και χρειάζονται επιβεβαίωση.",
           ],
@@ -494,7 +494,7 @@ const el: PrivacyCopy = {
         {
           heading: "Διάρκεια",
           paragraphs: [
-            "Κάθε εκδήλωση αποθηκεύει φύλαξη 30, 60 ή 90 ημερών. Μια νέα εκδήλωση ξεκινά από την προεπιλογή της πλατφόρμας, που είναι μία από αυτές τις τρεις, και το ζευγάρι ή ο διαχειριστής μπορεί να επιλέξει άλλη πριν την αποθήκευση. Η περίοδος μετρά από την ημερομηνία της εκδήλωσης έως το τέλος της αντίστοιχης ημέρας στην Αθήνα. Μετά από εκείνη τη στιγμή οι καλεσμένοι δεν ανοίγουν τη συλλογή. Ο ημερήσιος καθαρισμός διαγράφει οριστικά τις φωτογραφίες και τα βίντεο και διαγράφει την εκδήλωση, τα άλμπουμ και τις σχετικές εγγραφές. Δεν διαγράφει τον λογαριασμό του πελάτη. Τα αρχεία ασφαλείας και λειτουργίας έχουν τη δική τους διάρκεια. Η εφαρμογή δεν έχει αρχείο για επαναφορά μιας ληγμένης εκδήλωσης.",
+            "Ο διαχειριστής ορίζει πόσο μπορεί να χρησιμοποιεί την υπηρεσία ένας πελάτης: 30, 60, 90, 180 ή 365 ημέρες, ή μια προσαρμοσμένη ημερομηνία λήξης. Το ζευγάρι δεν επιλέγει διάρκεια φύλαξης για κάθε εκδήλωση. Μετά από εκείνη την ημερομηνία οι καλεσμένοι δεν ανοίγουν τις εκδηλώσεις του πελάτη, ακόμη και αν ο καθαρισμός δεν έχει τρέξει. Αν ο διαχειριστής δεν παρατείνει την πρόσβαση πριν από τότε, ο ημερήσιος καθαρισμός διαγράφει οριστικά τις εκδηλώσεις του πελάτη, τα άλμπουμ, τις εγγραφές μέσων και τις φωτογραφίες και τα βίντεο αυτών των εκδηλώσεων. Ο λογαριασμός του πελάτη παραμένει και μένει απενεργοποιημένος. Τα αρχεία λειτουργίας, ασφάλειας και ταυτοποίησης έχουν δικές τους περιόδους, χωριστά από αυτή τη διαγραφή. Η εφαρμογή δεν έχει αρχείο για επαναφορά μιας διαγραμμένης εκδήλωσης.",
             "Η διαγραφή εκδήλωσης αφαιρεί την εκδήλωση, τα μέσα, τα άλμπουμ και τα αρχεία. Η διαγραφή μιας φωτογραφίας ή ενός βίντεο αφαιρεί αυτό το στοιχείο. Το ζευγάρι μπορεί να διαγράψει τον λογαριασμό του από τη σελίδα λογαριασμού. Ο διαχειριστής μπορεί να διαγράψει λογαριασμό πελάτη. Και οι δύο διαγραφές αφαιρούν τον λογαριασμό, τις εκδηλώσεις και τα αρχεία από τη βάση και από τον αποθηκευτικό χώρο αντικειμένων.",
             "Η διαγραφή αυτή δεν υπόσχεται ότι σβήνεται και ένα αντίγραφο ασφαλείας της βάσης, της φιλοξενίας ή του αποθηκευτικού χώρου. Οι διάρκειες αυτών των αντιγράφων δεν είναι γραμμένες στο αποθετήριο.",
           ],
@@ -556,7 +556,7 @@ const el: PrivacyCopy = {
         {
           heading: "Πόσο μένουν",
           paragraphs: [
-            "Το ζευγάρι επιλέγει 30, 60 ή 90 ημέρες, ξεκινώντας από την προεπιλογή της πλατφόρμας. Μετά τη λήξη οι καλεσμένοι δεν ανοίγουν την εκδήλωση, και ο ημερήσιος καθαρισμός διαγράφει τα αρχεία και την εκδήλωση από την εφαρμογή. Το ζευγάρι μπορεί επίσης να διαγράψει στοιχεία ή ολόκληρη την εκδήλωση νωρίτερα. Η διαγραφή του λογαριασμού του διαγράφει τις εκδηλώσεις και τα αρχεία από την εφαρμογή.",
+            "Ο διαχειριστής ορίζει τη διάρκεια πρόσβασης του ζευγαριού. Το ζευγάρι δεν επιλέγει πόσο κρατιέται κάθε εκδήλωση. Μετά τη λήξη της πρόσβασης οι καλεσμένοι δεν ανοίγουν τις εκδηλώσεις, και ο ημερήσιος καθαρισμός διαγράφει τα αρχεία και τις εκδηλώσεις από την εφαρμογή. Ο λογαριασμός του ζευγαριού μένει απενεργοποιημένος και δεν διαγράφεται. Το ζευγάρι μπορεί επίσης να διαγράψει στοιχεία ή ολόκληρη την εκδήλωση νωρίτερα. Η διαγραφή του λογαριασμού του διαγράφει τις εκδηλώσεις και τα αρχεία από την εφαρμογή.",
             "Ένα αντίγραφο ασφαλείας της βάσης, της φιλοξενίας ή του αποθηκευτικού χώρου μπορεί να κρατά αντίγραφο. Η διάρκεια αυτού του αντιγράφου δεν ορίζεται στην εφαρμογή, άρα αυτή η ενημέρωση δεν μπορεί να πει ότι κάθε αντίγραφο έχει ήδη σβηστεί.",
           ],
         },
@@ -582,7 +582,7 @@ const el: PrivacyCopy = {
         {
           heading: "Λογαριασμοί",
           paragraphs: [
-            "Ο λογαριασμός είναι για το ζευγάρι. Δίνετε όνομα, επώνυμο, email και κωδικό. Ο διαχειριστής ενεργοποιεί την πρόσβαση και μπορεί να ορίσει ημερομηνία λήξης ή να απενεργοποιήσει τον λογαριασμό. Ο απενεργοποιημένος λογαριασμός δεν συνδέεται.",
+            "Ο λογαριασμός είναι για το ζευγάρι. Δίνετε όνομα, επώνυμο, email και κωδικό. Ο διαχειριστής ενεργοποιεί την πρόσβαση και μπορεί να ορίσει ημερομηνία λήξης ή να απενεργοποιήσει τον λογαριασμό. Ο απενεργοποιημένος λογαριασμός δεν συνδέεται. Αν η πρόσβαση δεν παραταθεί πριν από εκείνη την ημερομηνία, ο καθαρισμός της εφαρμογής διαγράφει τις εκδηλώσεις και τα αποθηκευμένα αρχεία του λογαριασμού. Ο ίδιος ο λογαριασμός παραμένει και μένει απενεργοποιημένος.",
             "Είστε υπεύθυνοι για τη δραστηριότητα του λογαριασμού και για να μείνει ο κωδικός ιδιωτικός. Η επαναφορά κωδικού και η επιβεβαίωση email στέλνονται μόνο όταν η αποστολή email είναι ρυθμισμένη.",
           ],
         },
@@ -708,7 +708,7 @@ const el: PrivacyCopy = {
           paragraphs: [
             "Ο υπεύθυνος λειτουργίας θα χρειαστεί διαδικασία για αιτήματα ανθρώπων που εμφανίζονται σε φωτογραφίες και για αιτήματα ζευγαριών. Το email επικοινωνίας δεν έχει δημοσιευτεί, και το προσχέδιο δεν ορίζει χρόνο απάντησης.",
             "Το προσχέδιο δεν υπόσχεται ειδοποίηση του ζευγαριού μέσα σε συγκεκριμένες ώρες μετά από περιστατικό. Το καθήκον ειδοποίησης, και ποιος ειδοποιεί εποπτική αρχή, πρέπει να το προσθέσει δικηγόρος.",
-            "Η διαγραφή εκδήλωσης ή λογαριασμού αφαιρεί τις σχετικές γραμμές και τα αρχεία αντικειμένων όπως περιγράφει η πολιτική απορρήτου. Τα αντίγραφα ασφαλείας είναι έξω από αυτή τη διαγραφή. Στη λήξη της σχέσης, η ίδια διαδρομή διαγραφής είναι ό,τι μπορεί να κάνει σήμερα η εφαρμογή. Δεν έχει υλοποιηθεί πλήρης εξαγωγή για επιστροφή.",
+            "Η διαγραφή εκδήλωσης ή λογαριασμού αφαιρεί τις σχετικές γραμμές και τα αρχεία αντικειμένων όπως περιγράφει η πολιτική απορρήτου. Αν ο διαχειριστής δεν παρατείνει την πρόσβαση ενός πελάτη πριν λήξει, ο ίδιος καθαρισμός διαγράφει τις εκδηλώσεις και τα αποθηκευμένα αρχεία του πελάτη και αφήνει τον λογαριασμό απενεργοποιημένο. Τα αντίγραφα ασφαλείας υποδομής ή παρόχων είναι έξω από αυτή τη διαγραφή, οπότε η εφαρμογή δεν μπορεί να εγγυηθεί ότι κάθε αντίγραφο σβήνεται αμέσως. Στη λήξη της σχέσης, η ίδια διαδρομή διαγραφής είναι ό,τι μπορεί να κάνει σήμερα η εφαρμογή. Δεν έχει υλοποιηθεί πλήρης εξαγωγή για επιστροφή.",
           ],
         },
         {

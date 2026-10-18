@@ -3,8 +3,8 @@ export type GuestAccessState = "ok" | "not_found" | "unavailable";
 export function decideGuestAccess(
   event: {
     status: string;
-    expiresAt: Date;
     customerDisabled: boolean;
+    customerAccessExpiresAt: Date | null;
   } | null,
   now: Date,
 ): { state: GuestAccessState } {
@@ -12,11 +12,12 @@ export function decideGuestAccess(
     return { state: "not_found" };
   }
 
-  if (
-    event.status !== "ACTIVE" ||
-    event.customerDisabled ||
-    event.expiresAt.getTime() <= now.getTime()
-  ) {
+  const accessLapsed = Boolean(
+    event.customerAccessExpiresAt &&
+      event.customerAccessExpiresAt.getTime() <= now.getTime(),
+  );
+
+  if (event.status !== "ACTIVE" || event.customerDisabled || accessLapsed) {
     return { state: "unavailable" };
   }
 

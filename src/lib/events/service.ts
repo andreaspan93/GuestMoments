@@ -3,13 +3,7 @@ import { customerHasServiceAccess } from "@/lib/access";
 import { eventScope } from "@/lib/events/access";
 import { createEventCode } from "@/lib/events/code";
 import { PLATFORM_SETTINGS_ID } from "@/lib/events/defaults";
-import {
-  calendarDateFromDb,
-  calendarDateToDb,
-  expiresAtFor,
-  isExpiryPast,
-} from "@/lib/events/expiry";
-import { retentionChoice } from "@/lib/events/retention";
+import { calendarDateFromDb, calendarDateToDb } from "@/lib/events/expiry";
 import { EventError, type EventFormValues } from "@/lib/events/schema";
 import { actorTypeForRole } from "@/lib/logging/catalog";
 import { recordCrossCustomerEventAccess } from "@/lib/logging/access";
@@ -40,12 +34,6 @@ async function platformSettings() {
   return settings;
 }
 
-export async function defaultRetentionChoice() {
-  const settings = await platformSettings();
-
-  return retentionChoice(settings.defaultRetentionDays);
-}
-
 async function insertEvent(data: {
   customerId: string;
   name: string;
@@ -63,9 +51,7 @@ async function insertEvent(data: {
   status: string;
   privacyMode: string;
   guestDownloadsEnabled: boolean;
-  retentionDays: number;
   maxStorageBytes: bigint;
-  expiresAt: Date;
 }) {
   for (let attempt = 0; attempt < 5; attempt += 1) {
     try {
@@ -140,11 +126,6 @@ export async function createCustomerEvent(
 ) {
   await ensureCustomerService(actor, now, options?.enforceServiceAccess !== false);
   const settings = await platformSettings();
-  const expiresAt = expiresAtFor(input.eventDate, input.retentionDays);
-
-  if (isExpiryPast(expiresAt, now)) {
-    throw new EventError("pastExpiry");
-  }
 
   if (options?.enforceEventLimit !== false && actor.role !== "OWNER") {
     const eventCount = await prisma.event.count({
@@ -173,9 +154,7 @@ export async function createCustomerEvent(
     status: input.status,
     privacyMode: input.privacyMode,
     guestDownloadsEnabled: input.guestDownloadsEnabled,
-    retentionDays: input.retentionDays,
     maxStorageBytes: settings.defaultMaxStorageBytes,
-    expiresAt,
   });
   const performedBy = options?.performedBy ?? actor;
 
@@ -214,12 +193,6 @@ export async function updateCustomerEvent(
     throw new EventError("notFound");
   }
 
-  const expiresAt = expiresAtFor(input.eventDate, input.retentionDays);
-
-  if (isExpiryPast(expiresAt, now)) {
-    throw new EventError("pastExpiry");
-  }
-
   const updated = await prisma.event.update({
     where: { id: existing.id },
     data: {
@@ -238,8 +211,6 @@ export async function updateCustomerEvent(
       status: input.status,
       privacyMode: input.privacyMode,
       guestDownloadsEnabled: input.guestDownloadsEnabled,
-      retentionDays: input.retentionDays,
-      expiresAt,
     },
   });
   const fields = [
@@ -247,7 +218,6 @@ export async function updateCustomerEvent(
     ...(existing.guestDownloadsEnabled !== input.guestDownloadsEnabled
       ? ["guestDownloadsEnabled" as const]
       : []),
-    ...(existing.retentionDays !== input.retentionDays ? ["retentionDays" as const] : []),
     ...(existing.status !== input.status ? ["status" as const] : []),
   ];
 
@@ -341,7 +311,7 @@ export async function loadGuestEvent(code: string) {
     where: { uniqueCode: code },
     include: {
       customer: {
-        select: { disabled: true },
+        select: { disabled: true, accessExpiresAt: true },
       },
     },
   });
@@ -353,6 +323,7 @@ export async function loadGuestEvent(code: string) {
   return {
     event,
     customerDisabled: event.customer.disabled,
+    customerAccessExpiresAt: event.customer.accessExpiresAt,
   };
 }
 

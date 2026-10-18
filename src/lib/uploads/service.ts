@@ -71,8 +71,8 @@ async function requireOpenEvent(code: string, now: Date) {
     loaded
       ? {
           status: loaded.event.status,
-          expiresAt: loaded.event.expiresAt,
           customerDisabled: loaded.customerDisabled,
+          customerAccessExpiresAt: loaded.customerAccessExpiresAt,
         }
       : null,
     now,

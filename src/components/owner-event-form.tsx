@@ -3,7 +3,6 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { EventAppearanceFields } from "@/components/event-appearance-fields";
-import { RetentionField } from "@/components/retention-field";
 import { Button } from "@/components/ui/button";
 import { type EventFontId, type LogoCorner, type LogoSize } from "@/lib/events/appearance";
 import {
@@ -34,7 +33,6 @@ export type OwnerEventDefaults = {
   logoCorner: LogoCorner;
   privacyMode: "OWN_UPLOADS" | "FULL_GALLERY";
   status: "ACTIVE" | "DISABLED";
-  retentionDays?: number;
   quotaMib?: number;
 };
 
@@ -161,7 +159,6 @@ export function OwnerEventForm({
           defaultValue={defaults.eventDate}
         />
       </label>
-      <RetentionField value={defaults.retentionDays} className={fieldClassName} />
       {eventId ? (
         <>
           <label className="grid gap-2 text-sm font-medium">

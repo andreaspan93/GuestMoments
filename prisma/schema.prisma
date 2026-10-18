@@ -80,7 +80,6 @@ model Verification {
 
 model PlatformSettings {
   id                     String   @id
-  defaultRetentionDays   Int
   maxPhotoBytes          BigInt
   maxVideoBytes          BigInt
   defaultMaxStorageBytes BigInt
@@ -113,10 +112,7 @@ model Event {
   status               String    @default("ACTIVE")
   privacyMode          String    @default("FULL_GALLERY")
   guestDownloadsEnabled Boolean  @default(true)
-  retentionDays        Int
   maxStorageBytes      BigInt
-  expiresAt            DateTime
-  storagePurgedAt      DateTime?
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
   uploadIntents        UploadIntent[]
@@ -125,7 +121,6 @@ model Event {
 
   @@unique([uniqueCode])
   @@index([customerId])
-  @@index([expiresAt])
   @@map("event")
 }
 

@@ -85,12 +85,6 @@
     "edit": "Edit",
     "name": "Name",
     "date": "Date",
-    "retention": "How long photos are kept",
-    "retentionHint": "Photos, videos, and this event's details are deleted 30, 60, or 90 days after the event date. There is no archive to restore them.",
-    "retentionLegacy": "The saved period is no longer offered. Choose 30, 60, or 90 days before saving.",
-    "days30": "30 days",
-    "days60": "60 days",
-    "days90": "90 days",
     "welcomeEl": "Welcome message (Greek)",
     "welcomeEn": "Welcome message (English)",
     "instructionsEl": "Upload instructions (Greek)",
@@ -197,7 +191,7 @@
     "brandingRemoveFailed": "The image was not removed.",
     "errors": {
       "invalid": "Check the details and try again.",
-      "pastExpiry": "That date is already past the end of the retention period. Choose a later date.",
+      "pastExpiry": "That date is already past. Choose a later date.",
       "inactive": "This account cannot use the service until access is active.",
       "eventLimit": "You have reached the maximum number of events. Contact the administrator if you need another one."
     }
@@ -263,13 +257,9 @@
     "deleteCustomerFinal": "Delete permanently",
     "deletedCustomer": "The customer and their events, photos, and videos were permanently deleted.",
     "customer": "Customer",
-    "retention": "Retention (days)",
-    "retentionValue": "{days} days",
     "quota": "Storage quota (MB)",
-    "retentionHint": "Choose 30, 60, or 90 days after the event date. This does not change the platform default.",
-    "settingsLead": "The default retention is the starting choice for a new event. Each event stores its own period of 30, 60, or 90 days. Existing events keep that period until they are edited.",
-    "createLead": "The event is assigned to an existing customer. Choose 30, 60, or 90 days of retention. The storage quota is copied from the platform default.",
-    "defaultRetention": "Default retention (days)",
+    "settingsLead": "These limits apply to new events. An existing event keeps its storage quota until an administrator changes that event.",
+    "createLead": "The event is assigned to an existing customer. The storage quota is copied from the platform default.",
     "defaultQuota": "Default storage quota (MB)",
     "maxPhoto": "Photo size limit (MB)",
     "maxVideo": "Video size limit (MB)",
@@ -289,7 +279,7 @@
     "forbidden": "You cannot open this page.",
     "errors": {
       "invalid": "Check the details and try again.",
-      "pastExpiry": "That date is already past the end of the retention period. Choose a later date.",
+      "pastExpiry": "That date is already past. Choose a later date.",
       "notFound": "That customer or event was not found.",
       "confirmEmail": "Type the customer's email address before deleting.",
       "storage": "Deletion did not complete because the stored files could not be removed. The customer is still in the system."

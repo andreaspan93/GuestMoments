@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { headers } from "next/headers";
+import { lockExpiredCustomer } from "@/lib/access";
 import { auth } from "@/lib/auth";
 import { preferredLocaleFromPage } from "@/lib/identity-schema";
 import { prisma } from "@/lib/prisma";
@@ -54,6 +55,10 @@ export async function getActiveSession(source: HeaderSource) {
       accessExpiresAt: true,
     },
   });
+
+  if (user?.role === "CUSTOMER" && (await lockExpiredCustomer(user.id))) {
+    return null;
+  }
 
   if (!user || user.disabled) {
     await prisma.session.deleteMany({

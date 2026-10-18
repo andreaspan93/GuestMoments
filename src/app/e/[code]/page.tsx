@@ -29,8 +29,8 @@ export default async function GuestEventRoute({
     loaded
       ? {
           status: loaded.event.status,
-          expiresAt: loaded.event.expiresAt,
           customerDisabled: loaded.customerDisabled,
+          customerAccessExpiresAt: loaded.customerAccessExpiresAt,
         }
       : null,
     new Date(),
@@ -55,6 +55,7 @@ export default async function GuestEventRoute({
     ? await guestGalleryItems({
         event,
         customerDisabled: loaded.customerDisabled,
+        customerAccessExpiresAt: loaded.customerAccessExpiresAt,
         cookieToken: await readGuestCookie(code),
       })
     : [];

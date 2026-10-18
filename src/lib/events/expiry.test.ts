@@ -25,7 +25,6 @@ const validForm = {
   logoCorner: "square",
   privacyMode: "FULL_GALLERY",
   guestDownloadsEnabled: true,
-  retentionDays: 90,
   status: "ACTIVE",
 };
 
@@ -91,19 +90,11 @@ describe("guest text", () => {
 });
 
 describe("event form", () => {
-  it("accepts only 30, 60, and 90 days of retention", () => {
-    for (const retentionDays of [30, 60, 90, "30", "60", "90"]) {
-      const parsed = eventFormSchema.safeParse({ ...validForm, retentionDays });
-
-      expect(parsed.success).toBe(true);
-      if (parsed.success) {
-        expect(parsed.data.retentionDays).toBe(Number(retentionDays));
-      }
-    }
-
-    expect(eventFormSchema.safeParse({ ...validForm, retentionDays: 10 }).success).toBe(false);
-    expect(eventFormSchema.safeParse({ ...validForm, retentionDays: 120 }).success).toBe(false);
-    expect(eventFormSchema.safeParse({ ...validForm, retentionDays: 0 }).success).toBe(false);
+  it("rejects a retention choice on the event form", () => {
+    expect(eventFormSchema.safeParse(validForm).success).toBe(true);
+    expect(eventFormSchema.safeParse({ ...validForm, retentionDays: 30 }).success).toBe(false);
+    expect(eventFormSchema.safeParse({ ...validForm, retentionDays: 60 }).success).toBe(false);
+    expect(eventFormSchema.safeParse({ ...validForm, retentionDays: 90 }).success).toBe(false);
   });
 
   it("rejects storage fields", () => {
@@ -139,41 +130,37 @@ describe("guest access decision", () => {
     expect(decideGuestAccess(null, now)).toEqual({ state: "not_found" });
   });
 
-  it("refuses guest access after each retention period has ended", () => {
-    for (const days of [30, 60, 90]) {
-      const expiresAt = expiresAtFor("2026-06-01", days);
+  it("refuses guest access when customer access has ended", () => {
+    const ended = new Date("2026-06-01T12:00:00.000Z");
 
-      expect(
-        decideGuestAccess(
-          { status: "ACTIVE", expiresAt, customerDisabled: false },
-          new Date(expiresAt.getTime() - 1),
-        ),
-      ).toEqual({ state: "ok" });
-      expect(
-        decideGuestAccess(
-          { status: "ACTIVE", expiresAt, customerDisabled: false },
-          expiresAt,
-        ),
-      ).toEqual({ state: "unavailable" });
-    }
-  });
-
-  it("refuses an expired event and a disabled customer", () => {
     expect(
       decideGuestAccess(
         {
           status: "ACTIVE",
-          expiresAt: now,
           customerDisabled: false,
+          customerAccessExpiresAt: new Date(ended.getTime() - 1),
         },
-        now,
+        new Date(ended.getTime() - 2),
+      ),
+    ).toEqual({ state: "ok" });
+    expect(
+      decideGuestAccess(
+        {
+          status: "ACTIVE",
+          customerDisabled: false,
+          customerAccessExpiresAt: ended,
+        },
+        ended,
       ),
     ).toEqual({ state: "unavailable" });
+  });
+
+  it("refuses a disabled event and a disabled customer", () => {
     expect(
       decideGuestAccess(
         {
           status: "ACTIVE",
-          expiresAt: future,
+          customerAccessExpiresAt: future,
           customerDisabled: true,
         },
         now,
@@ -183,7 +170,7 @@ describe("guest access decision", () => {
       decideGuestAccess(
         {
           status: "DISABLED",
-          expiresAt: future,
+          customerAccessExpiresAt: future,
           customerDisabled: false,
         },
         now,
@@ -191,12 +178,22 @@ describe("guest access decision", () => {
     ).toEqual({ state: "unavailable" });
   });
 
-  it("allows an active unexpired event", () => {
+  it("allows an active event while customer access is still open", () => {
     expect(
       decideGuestAccess(
         {
           status: "ACTIVE",
-          expiresAt: future,
+          customerAccessExpiresAt: future,
+          customerDisabled: false,
+        },
+        now,
+      ),
+    ).toEqual({ state: "ok" });
+    expect(
+      decideGuestAccess(
+        {
+          status: "ACTIVE",
+          customerAccessExpiresAt: null,
           customerDisabled: false,
         },
         now,

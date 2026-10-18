@@ -6,7 +6,7 @@ import { ServiceAccessNotice } from "@/components/service-access-notice";
 import { customerNotice } from "@/lib/access";
 import { redirect } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
-import { customerEventAllowance, defaultRetentionChoice } from "@/lib/events/service";
+import { customerEventAllowance } from "@/lib/events/service";
 import { getRequestSession } from "@/lib/session";
 
 export default async function NewEventPage({
@@ -49,7 +49,7 @@ export default async function NewEventPage({
                 {t("eventLimit")}
               </p>
             ) : null}
-            <EventForm defaults={{ retentionDays: await defaultRetentionChoice() }} />
+            <EventForm />
           </div>
         )}
       </section>

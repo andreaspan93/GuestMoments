@@ -1,12 +1,7 @@
 import type { Prisma } from "@/generated/prisma/client";
 import { accessExpiryFromDays, accessStatusOf } from "@/lib/access";
 import { PLATFORM_SETTINGS_ID } from "@/lib/events/defaults";
-import {
-  athensEndOfDay,
-  calendarDateToDb,
-  expiresAtFor,
-  isExpiryPast,
-} from "@/lib/events/expiry";
+import { athensEndOfDay, calendarDateToDb, isExpiryPast } from "@/lib/events/expiry";
 import { EventError } from "@/lib/events/schema";
 import {
   createCustomerEvent,
@@ -81,15 +76,31 @@ async function requireCustomer(customerId: string) {
 
 export async function listOwnerCustomers(actor: Actor | null, now = new Date()) {
   await requireOwner(actor);
-  await prisma.user.updateMany({
+  const lapsed = await prisma.user.findMany({
     where: {
       role: "CUSTOMER",
-      disabled: false,
-      accessStatus: "ACTIVE",
       accessExpiresAt: { lte: now },
     },
-    data: { accessStatus: "EXPIRED" },
+    select: { id: true },
   });
+
+  if (lapsed.length > 0) {
+    const ids = lapsed.map((customer) => customer.id);
+    await prisma.user.updateMany({
+      where: { id: { in: ids }, accessExpiresAt: { lte: now } },
+      data: { disabled: true, accessStatus: "EXPIRED" },
+    });
+    const stillLapsed = await prisma.user.findMany({
+      where: { id: { in: ids }, disabled: true, accessExpiresAt: { lte: now } },
+      select: { id: true },
+    });
+
+    if (stillLapsed.length > 0) {
+      await prisma.session.deleteMany({
+        where: { userId: { in: stillLapsed.map((customer) => customer.id) } },
+      });
+    }
+  }
 
   const customers = await prisma.user.findMany({
     where: { role: "CUSTOMER" },
@@ -377,7 +388,7 @@ export async function listOwnerEvents(actor: Actor | null) {
     orderBy: { createdAt: "desc" },
     include: {
       customer: {
-        select: { id: true, name: true, email: true, disabled: true },
+        select: { id: true, name: true, email: true, disabled: true, accessExpiresAt: true },
       },
     },
   });
@@ -390,7 +401,7 @@ export async function getOwnerEvent(actor: Actor | null, eventId: string) {
     where: { id: eventId },
     include: {
       customer: {
-        select: { id: true, name: true, email: true },
+        select: { id: true, name: true, email: true, accessExpiresAt: true },
       },
     },
   });
@@ -417,7 +428,6 @@ export async function createOwnerEvent(actor: Actor | null, input: OwnerCreateVa
       logoCorner: input.logoCorner,
       privacyMode: input.privacyMode,
       guestDownloadsEnabled: true,
-      retentionDays: input.retentionDays,
       status: input.status,
     },
     new Date(),
@@ -429,7 +439,6 @@ export async function updateOwnerEvent(
   actor: Actor | null,
   eventId: string,
   input: OwnerUpdateValues,
-  now = new Date(),
 ) {
   const owner = await requireOwner(actor);
   const existing = await prisma.event.findUnique({
@@ -439,7 +448,6 @@ export async function updateOwnerEvent(
       customerId: true,
       status: true,
       privacyMode: true,
-      retentionDays: true,
       maxStorageBytes: true,
     },
   });
@@ -449,11 +457,6 @@ export async function updateOwnerEvent(
   }
 
   await requireCustomer(input.customerId);
-  const expiresAt = expiresAtFor(input.eventDate, input.retentionDays);
-
-  if (isExpiryPast(expiresAt, now)) {
-    throw new OwnerError("pastExpiry");
-  }
 
   const updated = await prisma.event.update({
     where: { id: existing.id },
@@ -473,9 +476,7 @@ export async function updateOwnerEvent(
       logoCorner: input.logoCorner,
       status: input.status,
       privacyMode: input.privacyMode,
-      retentionDays: input.retentionDays,
       maxStorageBytes: mibToBytes(input.quotaMib),
-      expiresAt,
     },
   });
   const nextQuota = mibToBytes(input.quotaMib);
@@ -483,7 +484,6 @@ export async function updateOwnerEvent(
     ...(existing.customerId !== input.customerId ? ["customerId" as const] : []),
     ...(existing.status !== input.status ? ["status" as const] : []),
     ...(existing.privacyMode !== input.privacyMode ? ["privacyMode" as const] : []),
-    ...(existing.retentionDays !== input.retentionDays ? ["retentionDays" as const] : []),
     ...(existing.maxStorageBytes !== nextQuota ? ["maxStorageBytes" as const] : []),
   ];
 
@@ -499,7 +499,6 @@ export async function updateOwnerEvent(
         fields,
         ...(fields.includes("privacyMode") ? { privacyMode: input.privacyMode } : {}),
         ...(fields.includes("status") ? { eventStatus: input.status } : {}),
-        ...(fields.includes("retentionDays") ? { retentionDays: input.retentionDays } : {}),
         ...(fields.includes("maxStorageBytes") ? { quotaMib: input.quotaMib } : {}),
       },
     });
@@ -550,13 +549,11 @@ export async function updateOwnerSettings(actor: Actor | null, input: OwnerSetti
     result: "success",
     metadata: {
       fields: [
-        "defaultRetentionDays",
         "defaultMaxStorageBytes",
         "maxPhotoBytes",
         "maxVideoBytes",
         "maxEventsPerCustomer",
       ],
-      retentionDays: input.defaultRetentionDays,
       quotaMib: input.defaultQuotaMib,
       maxPhotoMib: input.maxPhotoMib,
       maxVideoMib: input.maxVideoMib,
@@ -568,7 +565,6 @@ export async function updateOwnerSettings(actor: Actor | null, input: OwnerSetti
     const updated = await tx.platformSettings.update({
       where: { id: PLATFORM_SETTINGS_ID },
       data: {
-        defaultRetentionDays: input.defaultRetentionDays,
         defaultMaxStorageBytes: mibToBytes(input.defaultQuotaMib),
         maxPhotoBytes: mibToBytes(input.maxPhotoMib),
         maxVideoBytes: mibToBytes(input.maxVideoMib),

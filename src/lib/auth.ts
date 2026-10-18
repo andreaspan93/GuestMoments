@@ -1,4 +1,5 @@
 import { APIError, betterAuth } from "better-auth";
+import { lockExpiredCustomer } from "@/lib/access";
 import { createAuthMiddleware } from "better-auth/api";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
@@ -129,8 +130,17 @@ export const auth = betterAuth({
         before: async (session) => {
           const user = await prisma.user.findUnique({
             where: { id: session.userId },
-            select: { disabled: true },
+            select: { disabled: true, role: true, accessExpiresAt: true },
           });
+
+          if (
+            user?.role === "CUSTOMER" &&
+            user.accessExpiresAt &&
+            user.accessExpiresAt.getTime() <= Date.now()
+          ) {
+            await lockExpiredCustomer(session.userId);
+            return false;
+          }
 
           if (!user || user.disabled) {
             return false;

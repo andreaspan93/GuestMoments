@@ -9,7 +9,6 @@ import {
   DEFAULT_MAX_VIDEO_BYTES,
   PLATFORM_SETTINGS_ID,
 } from "@/lib/events/defaults";
-import { expiresAtFor } from "@/lib/events/expiry";
 import { EventError, type EventFormValues } from "@/lib/events/schema";
 import {
   createCustomerEvent,
@@ -64,17 +63,9 @@ function form(overrides: Partial<EventFormValues> = {}): EventFormValues {
     logoCorner: "square",
     privacyMode: "FULL_GALLERY",
     guestDownloadsEnabled: true,
-    retentionDays: 90,
     status: "ACTIVE",
     ...overrides,
   };
-}
-
-async function setRetention(days: number) {
-  await prisma.platformSettings.update({
-    where: { id: PLATFORM_SETTINGS_ID },
-    data: { defaultRetentionDays: days },
-  });
 }
 
 describe("events", () => {
@@ -83,13 +74,11 @@ describe("events", () => {
       where: { id: PLATFORM_SETTINGS_ID },
       create: {
         id: PLATFORM_SETTINGS_ID,
-        defaultRetentionDays: 90,
         maxPhotoBytes: DEFAULT_MAX_PHOTO_BYTES,
         maxVideoBytes: DEFAULT_MAX_VIDEO_BYTES,
         defaultMaxStorageBytes: DEFAULT_MAX_STORAGE_BYTES,
       },
       update: {
-        defaultRetentionDays: 90,
         defaultMaxStorageBytes: DEFAULT_MAX_STORAGE_BYTES,
       },
     });
@@ -110,53 +99,30 @@ describe("events", () => {
     });
   });
 
-  it("stores the chosen retention and leaves it when the platform default changes", async () => {
+  it("stores a past wedding date while customer access is still active", async () => {
     const customer = await signUpCustomer("Copy Customer");
-    await setRetention(60);
     const created = await createCustomerEvent(
       customer,
-      form({ eventDate: "2027-08-01", retentionDays: 30 }),
+      form({ eventDate: "2027-08-01" }),
     );
-    const originalExpiry = created.expiresAt;
 
-    expect(created.retentionDays).toBe(30);
     expect(created.maxStorageBytes).toBe(DEFAULT_MAX_STORAGE_BYTES);
-    expect(created.expiresAt.toISOString()).toBe(
-      expiresAtFor("2027-08-01", 30).toISOString(),
-    );
     expect(created.uniqueCode.length).toBeGreaterThanOrEqual(21);
 
-    await setRetention(90);
-    const untouched = await prisma.event.findUniqueOrThrow({
-      where: { id: created.id },
-    });
+    const past = await createCustomerEvent(
+      customer,
+      form({ eventDate: "2020-01-01", name: "Earlier wedding" }),
+    );
 
-    expect(untouched.retentionDays).toBe(30);
-    expect(untouched.expiresAt.toISOString()).toBe(originalExpiry.toISOString());
+    expect(past.eventDate.toISOString().slice(0, 10)).toBe("2020-01-01");
 
     const updated = await updateCustomerEvent(
       customer,
       created.id,
-      form({ eventDate: "2027-09-01", name: "Updated wedding", retentionDays: 60 }),
+      form({ eventDate: "2027-09-01", name: "Updated wedding" }),
     );
 
-    expect(updated.retentionDays).toBe(60);
     expect(updated.name).toBe("Updated wedding");
-    expect(updated.expiresAt.toISOString()).toBe(
-      expiresAtFor("2027-09-01", 60).toISOString(),
-    );
-  });
-
-  it("rejects a date whose expiry is already past", async () => {
-    const customer = await signUpCustomer("Past Customer");
-
-    await expect(
-      createCustomerEvent(customer, form({ eventDate: "2020-01-01", retentionDays: 30 })),
-    ).rejects.toMatchObject({ code: "pastExpiry" });
-
-    await expect(
-      prisma.event.count({ where: { customerId: customer.id } }),
-    ).resolves.toBe(0);
   });
 
   it("stops a customer at the event limit without deleting events they already have", async () => {
@@ -195,7 +161,6 @@ describe("events", () => {
   it("hides one customer's event from another customer", async () => {
     const first = await signUpCustomer("Customer A");
     const second = await signUpCustomer("Customer B");
-    await setRetention(90);
     const event = await createCustomerEvent(first, form({ name: "Private event" }));
 
     expect(await getCustomerEvent(second, event.id)).toBeNull();
@@ -219,7 +184,6 @@ describe("events", () => {
       where: { id: owner.id },
       data: { role: "OWNER" },
     });
-    await setRetention(90);
     const event = await createCustomerEvent(customer, form());
     const found = await getCustomerEvent(
       { id: owner.id, role: "OWNER" },
@@ -234,7 +198,6 @@ describe("events", () => {
     expect(decideGuestAccess(null, new Date()).state).toBe("not_found");
 
     const customer = await signUpCustomer("Guest Gate");
-    await setRetention(90);
     const event = await createCustomerEvent(customer, form());
     const loaded = await loadGuestEvent(event.uniqueCode);
 
@@ -242,16 +205,16 @@ describe("events", () => {
       decideGuestAccess(
         loaded && {
           status: loaded.event.status,
-          expiresAt: loaded.event.expiresAt,
           customerDisabled: loaded.customerDisabled,
+          customerAccessExpiresAt: loaded.customerAccessExpiresAt,
         },
         new Date("2026-01-01T00:00:00.000Z"),
       ).state,
     ).toBe("ok");
 
-    await prisma.event.update({
-      where: { id: event.id },
-      data: { expiresAt: new Date("2020-01-01T00:00:00.000Z") },
+    await prisma.user.update({
+      where: { id: customer.id },
+      data: { accessExpiresAt: new Date("2020-01-01T00:00:00.000Z") },
     });
     const expired = await loadGuestEvent(event.uniqueCode);
 
@@ -259,20 +222,16 @@ describe("events", () => {
       decideGuestAccess(
         expired && {
           status: expired.event.status,
-          expiresAt: expired.event.expiresAt,
           customerDisabled: expired.customerDisabled,
+          customerAccessExpiresAt: expired.customerAccessExpiresAt,
         },
         new Date(),
       ).state,
     ).toBe("unavailable");
 
-    await prisma.event.update({
-      where: { id: event.id },
-      data: { expiresAt: event.expiresAt },
-    });
     await prisma.user.update({
       where: { id: customer.id },
-      data: { disabled: true },
+      data: { disabled: true, accessExpiresAt: new Date("2099-01-01T00:00:00.000Z") },
     });
     const disabled = await loadGuestEvent(event.uniqueCode);
 
@@ -280,8 +239,8 @@ describe("events", () => {
       decideGuestAccess(
         disabled && {
           status: disabled.event.status,
-          expiresAt: disabled.event.expiresAt,
           customerDisabled: disabled.customerDisabled,
+          customerAccessExpiresAt: disabled.customerAccessExpiresAt,
         },
         new Date(),
       ).state,
@@ -290,7 +249,6 @@ describe("events", () => {
 
   it("saves appearance choices and keeps them on a later edit", async () => {
     const customer = await signUpCustomer("Appearance Customer");
-    await setRetention(90);
     const created = await createCustomerEvent(
       customer,
       form({

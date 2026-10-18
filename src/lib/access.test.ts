@@ -67,7 +67,11 @@ describe("customer access", () => {
     expect(customerNotice(owner, now)).toBeNull();
   });
 
-  it("adds a whole number of days", () => {
+  it("adds each supported access duration", () => {
     expect(accessExpiryFromDays(30, now).toISOString()).toBe("2026-11-02T12:00:00.000Z");
+    expect(accessExpiryFromDays(60, now).toISOString()).toBe("2026-12-02T12:00:00.000Z");
+    expect(accessExpiryFromDays(90, now).toISOString()).toBe("2027-01-01T12:00:00.000Z");
+    expect(accessExpiryFromDays(180, now).toISOString()).toBe("2027-04-01T12:00:00.000Z");
+    expect(accessExpiryFromDays(365, now).toISOString()).toBe("2027-10-03T12:00:00.000Z");
   });
 });

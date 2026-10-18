@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { eventFontIds, logoCorners, logoSizes } from "./appearance";
 import { isCalendarDate } from "./expiry";
-import { retentionDaysSchema } from "./retention";
 
 const hexColor = z
   .string()
@@ -23,7 +22,6 @@ export const eventFormSchema = z.strictObject({
   logoCorner: z.enum(logoCorners),
   privacyMode: z.enum(["OWN_UPLOADS", "FULL_GALLERY"]),
   guestDownloadsEnabled: z.boolean().default(true),
-  retentionDays: retentionDaysSchema,
   status: z.enum(["ACTIVE", "DISABLED"]),
 });
 

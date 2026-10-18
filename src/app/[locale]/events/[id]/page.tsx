@@ -54,9 +54,11 @@ export default async function EditEventPage({
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="text-3xl font-semibold tracking-tight">{t("editTitle")}</h1>
-            <p className="mt-3 text-sm text-foreground/80">
-              {t("expires")} {formatAthensDateTime(event.expiresAt, locale)}
-            </p>
+            {session.user.accessExpiresAt ? (
+              <p className="mt-3 text-sm text-foreground/80">
+                {t("expires")} {formatAthensDateTime(session.user.accessExpiresAt, locale)}
+              </p>
+            ) : null}
           </div>
           <div className="flex gap-4">
             <Link href={`/events/${event.id}/gallery`} className="text-sm text-primary underline-offset-4 hover:underline">
@@ -92,7 +94,6 @@ export default async function EditEventPage({
               privacyMode:
                 event.privacyMode === "OWN_UPLOADS" ? "OWN_UPLOADS" : "FULL_GALLERY",
               guestDownloadsEnabled: event.guestDownloadsEnabled,
-              retentionDays: event.retentionDays,
               status: event.status === "DISABLED" ? "DISABLED" : "ACTIVE",
             }}
             brandingPreviews={{ cover, logo, background }}

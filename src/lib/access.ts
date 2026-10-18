@@ -82,6 +82,28 @@ export function accessExpiryFromDays(days: number, from: Date) {
   return new Date(from.getTime() + days * 24 * 60 * 60 * 1000);
 }
 
+export function customerAccessLapsed(accessExpiresAt: Date | null, now: Date) {
+  return Boolean(accessExpiresAt && accessExpiresAt.getTime() <= now.getTime());
+}
+
+export async function lockExpiredCustomer(userId: string, now = new Date()) {
+  const locked = await prisma.user.updateMany({
+    where: {
+      id: userId,
+      role: "CUSTOMER",
+      accessExpiresAt: { lte: now },
+    },
+    data: { disabled: true, accessStatus: "EXPIRED" },
+  });
+
+  if (locked.count === 0) {
+    return false;
+  }
+
+  await prisma.session.deleteMany({ where: { userId } });
+  return true;
+}
+
 export async function customerHasServiceAccess(
   actor: { id: string; role: string },
   now = new Date(),
@@ -109,16 +131,8 @@ export async function customerHasServiceAccess(
     return true;
   }
 
-  if (
-    !user.disabled &&
-    user.accessStatus === "ACTIVE" &&
-    user.accessExpiresAt &&
-    user.accessExpiresAt.getTime() <= now.getTime()
-  ) {
-    await prisma.user.update({
-      where: { id: actor.id },
-      data: { accessStatus: "EXPIRED" },
-    });
+  if (await lockExpiredCustomer(actor.id, now)) {
+    user.disabled = true;
     user.accessStatus = "EXPIRED";
   }
 
