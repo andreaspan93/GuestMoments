@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { ChevronLeft, ChevronRight, Download } from "lucide-react";
 import type { GalleryItem } from "@/lib/gallery/present";
 import { cn } from "@/lib/utils";
@@ -109,7 +110,8 @@ export function GalleryViewer({
     browserCanPlay(item.mimeType) &&
     Boolean(item.playbackUrl);
 
-  return (
+  // backdrop-filter on a frosted card would trap this fixed dialog inside the card.
+  return createPortal(
     <div
       ref={dialogRef}
       role="dialog"
@@ -194,7 +196,8 @@ export function GalleryViewer({
         ) : null}
         {actions}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
