@@ -2,12 +2,19 @@
 
 import { useEffect, useRef, useState } from "react";
 import { guestChrome, type GuestLocale } from "@/lib/events/text";
-import { createThumbnail, normalizeUploadFile } from "@/lib/uploads/browser-file";
+import { createThumbnail, prepareGuestUpload } from "@/lib/uploads/browser-file";
+import { isHeicFile, isVideoFile } from "@/lib/uploads/image-prepare";
 import {
+  claimFileStart,
   claimUploadStart,
+  filesStillPending,
+  GUEST_UPLOAD_CONCURRENCY,
   GUEST_UPLOAD_REDIRECT_MS,
   guestEventPath,
-  uploadAttemptResult,
+  mapWithConcurrency,
+  transferPercent,
+  uploadBatchSummary,
+  type UploadStatus,
 } from "@/lib/uploads/guest-upload-flow";
 import { putBytesWithRetry } from "@/lib/uploads/transfer";
 import { FilePicker } from "@/components/file-picker";
@@ -21,7 +28,8 @@ type UploadItem = {
   previewUrl: string | null;
   kind: "image" | "video" | "file";
   progress: number;
-  status: "ready" | "uploading" | "done" | "error";
+  progressKnown: boolean;
+  status: UploadStatus;
   message: string;
 };
 
@@ -101,51 +109,88 @@ export function GuestUploader({
   const [pickerKey, setPickerKey] = useState(0);
   const inProgress = useRef(false);
   const redirectTimer = useRef<number | null>(null);
+  const filesRef = useRef<Map<string, File>>(new Map());
+  const activeIds = useRef(new Set<string>());
+  const itemsRef = useRef(items);
 
   useEffect(() => {
     return () => {
       if (redirectTimer.current !== null) {
         window.clearTimeout(redirectTimer.current);
       }
+
+      for (const item of itemsRef.current) {
+        if (item.previewUrl) {
+          URL.revokeObjectURL(item.previewUrl);
+        }
+      }
     };
   }, []);
 
   function updateItem(id: string, patch: Partial<UploadItem>) {
-    setItems((current) =>
-      current.map((item) => (item.id === id ? { ...item, ...patch } : item)),
-    );
+    setItems((current) => {
+      const next = current.map((item) => (item.id === id ? { ...item, ...patch } : item));
+      itemsRef.current = next;
+
+      return next;
+    });
   }
 
-  async function onFiles(list: FileList | null) {
+  function onFiles(list: FileList | null) {
+    for (const item of itemsRef.current) {
+      if (item.previewUrl) {
+        URL.revokeObjectURL(item.previewUrl);
+      }
+    }
+
+    const files = new Map<string, File>();
     const next: UploadItem[] = [];
 
     for (const file of Array.from(list ?? [])) {
-      const kind = file.type.startsWith("video/")
-        ? "video"
-        : file.type.startsWith("image/") || /\.hei[cf]$/i.test(file.name)
-          ? "image"
-          : "file";
+      const id = crypto.randomUUID();
+      const kind = isVideoFile(file) ? "video" : isHeicFile(file) || file.type.startsWith("image/") ? "image" : "file";
+      files.set(id, file);
       next.push({
-        id: crypto.randomUUID(),
+        id,
         name: file.name,
         previewUrl: kind === "file" ? null : URL.createObjectURL(file),
         kind,
         progress: 0,
+        progressKnown: false,
         status: "ready",
         message: "",
       });
     }
 
+    filesRef.current = files;
+    itemsRef.current = next;
     setItems(next);
   }
 
   async function uploadOne(item: UploadItem, file: File) {
-    updateItem(item.id, { status: "uploading", progress: 0, message: copy.uploadPending });
-    const normalized = await normalizeUploadFile(file);
+    updateItem(item.id, {
+      status: "uploading",
+      progress: 0,
+      progressKnown: false,
+      message: copy.uploadPreparing,
+    });
+    const normalized = await prepareGuestUpload(file);
+    updateItem(item.id, { name: normalized.name, message: copy.uploadPending });
     const original = await requestIntent(code, normalized, "original");
     const attempts = normalized.type.startsWith("video/") ? 3 : 1;
+    let planned = normalized.size;
     await putBytesWithRetry(original.url, normalized, original.contentType, attempts, (ratio) => {
-      updateItem(item.id, { progress: Math.round(ratio * 90) });
+      const percent = transferPercent(ratio * normalized.size, planned);
+
+      if (percent === null) {
+        return;
+      }
+
+      updateItem(item.id, {
+        progress: percent,
+        progressKnown: true,
+        message: copy.uploadPending,
+      });
     });
 
     let thumbnailIntentId: string | undefined;
@@ -154,8 +199,21 @@ export function GuestUploader({
     if (thumbnail) {
       try {
         const thumbFile = new File([thumbnail], "thumbnail.jpg", { type: "image/jpeg" });
+        planned = normalized.size + thumbFile.size;
         const thumbIntent = await requestIntent(code, thumbFile, "thumbnail");
-        await putBytesWithRetry(thumbIntent.url, thumbnail, thumbIntent.contentType, 1, () => {});
+        await putBytesWithRetry(thumbIntent.url, thumbnail, thumbIntent.contentType, 1, (ratio) => {
+          const percent = transferPercent(normalized.size + ratio * thumbFile.size, planned);
+
+          if (percent === null) {
+            return;
+          }
+
+          updateItem(item.id, {
+            progress: percent,
+            progressKnown: true,
+            message: copy.uploadPending,
+          });
+        });
         thumbnailIntentId = thumbIntent.intentId;
       } catch {
         thumbnailIntentId = undefined;
@@ -178,7 +236,7 @@ export function GuestUploader({
       throw new Error(body.error ?? "intent");
     }
 
-    updateItem(item.id, { status: "done", progress: 100, message: copy.uploadDone });
+    updateItem(item.id, { status: "done", progress: 100, progressKnown: true, message: copy.uploadDone });
     window.dispatchEvent(new Event("guestmoments-gallery-refresh"));
   }
 
@@ -189,10 +247,88 @@ export function GuestUploader({
       }
     }
 
+    filesRef.current = new Map();
     setGuestName("");
     setGuestMessage("");
+    itemsRef.current = [];
     setItems([]);
     setPickerKey((key) => key + 1);
+  }
+
+  async function runBatch(ids: readonly string[]) {
+    const queue = itemsRef.current.filter((item) => ids.includes(item.id) && item.status !== "done");
+
+    if (queue.length === 0) {
+      return;
+    }
+
+    const queuedIds = new Set(queue.map((item) => item.id));
+    setItems((current) => {
+      const next = current.map((item) =>
+        queuedIds.has(item.id)
+          ? {
+              ...item,
+              status: "waiting" as const,
+              progress: 0,
+              progressKnown: false,
+              message: copy.uploadWaiting,
+            }
+          : item,
+      );
+      itemsRef.current = next;
+
+      return next;
+    });
+
+    await mapWithConcurrency(queue, GUEST_UPLOAD_CONCURRENCY, async (item) => {
+      const latest = itemsRef.current.find((entry) => entry.id === item.id);
+
+      if (!latest || !claimFileStart(activeIds.current, latest.id, latest.status)) {
+        return;
+      }
+
+      const file = filesRef.current.get(item.id);
+      activeIds.current.add(item.id);
+
+      try {
+        if (!file) {
+          throw new Error("intent");
+        }
+
+        await uploadOne(latest, file);
+      } catch (error) {
+        const codeName = error instanceof Error ? error.message : "";
+        updateItem(item.id, {
+          status: "error",
+          progressKnown: false,
+          message: errorMessage(codeName, copy),
+        });
+      } finally {
+        activeIds.current.delete(item.id);
+      }
+    });
+  }
+
+  function finishBatch() {
+    const summary = uploadBatchSummary(itemsRef.current);
+
+    if (summary.allSucceeded) {
+      resetSelection(itemsRef.current);
+      setUploaded(true);
+
+      if (redirectTimer.current !== null) {
+        window.clearTimeout(redirectTimer.current);
+      }
+
+      redirectTimer.current = window.setTimeout(() => {
+        window.location.assign(guestEventPath(code));
+      }, GUEST_UPLOAD_REDIRECT_MS);
+
+      return;
+    }
+
+    inProgress.current = false;
+    setPending(false);
   }
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -202,60 +338,41 @@ export function GuestUploader({
       return;
     }
 
-    const input = event.currentTarget.elements.namedItem("files");
+    const ids = filesStillPending(itemsRef.current.map((item) => item.status)).map(
+      (index) => itemsRef.current[index]?.id,
+    ).filter((id): id is string => Boolean(id));
 
-    if (!(input instanceof HTMLInputElement) || !input.files?.length) {
+    if (ids.length === 0) {
       return;
     }
 
     inProgress.current = true;
     setPending(true);
     setUploaded(false);
-    const files = Array.from(input.files);
-    const outcomes: Array<"done" | "error"> = [];
+    await runBatch(ids);
+    finishBatch();
+  }
 
-    for (let index = 0; index < items.length; index += 1) {
-      const item = items[index];
-      const file = files[index];
-
-      if (!item || !file || item.status === "done") {
-        continue;
-      }
-
-      try {
-        await uploadOne(item, file);
-        outcomes.push("done");
-      } catch (error) {
-        const codeName = error instanceof Error ? error.message : "";
-        outcomes.push("error");
-        updateItem(item.id, {
-          status: "error",
-          message: errorMessage(codeName, copy),
-        });
-      }
-    }
-
-    const result = uploadAttemptResult(outcomes);
-
-    if (result.succeeded) {
-      if (result.reset) {
-        resetSelection(items);
-      }
-
-      setUploaded(true);
-
-      if (result.redirect) {
-        redirectTimer.current = window.setTimeout(() => {
-          window.location.assign(guestEventPath(code));
-        }, GUEST_UPLOAD_REDIRECT_MS);
-      }
-
+  async function retryFile(id: string) {
+    if (!claimUploadStart(inProgress.current)) {
       return;
     }
 
-    inProgress.current = false;
-    setPending(false);
+    const item = itemsRef.current.find((entry) => entry.id === id);
+
+    if (!item || item.status !== "error") {
+      return;
+    }
+
+    inProgress.current = true;
+    setPending(true);
+    setUploaded(false);
+    await runBatch([id]);
+    finishBatch();
   }
+
+  const summary = uploadBatchSummary(items);
+  const showProgress = items.some((item) => item.status !== "ready");
 
   return (
     <form className="mt-8 grid gap-4" onSubmit={onSubmit}>
@@ -304,7 +421,32 @@ export function GuestUploader({
           onFiles={onFiles}
         />
       </div>
-      <ul className="grid gap-3">
+      {showProgress ? (
+        <div className="grid gap-2">
+          <p className="text-sm font-medium" role="status">
+            {summary.completed} {copy.uploadOf} {summary.total}
+          </p>
+          <div
+            className="h-1.5 overflow-hidden rounded-full bg-muted"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.round(summary.ratio * 100)}
+            aria-label={copy.uploadTitle}
+          >
+            <div
+              className="h-full"
+              style={{ width: `${Math.round(summary.ratio * 100)}%`, backgroundColor: accentColor }}
+            />
+          </div>
+          {summary.settled && summary.failed > 0 ? (
+            <p role="status" className="text-sm text-foreground/80">
+              {copy.uploadPartial}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+      <ul className="grid max-h-[28rem] gap-3 overflow-y-auto">
         {items.map((item) => (
           <li key={item.id} className="rounded-2xl border border-border bg-background p-3">
             {item.previewUrl && item.kind === "video" ? (
@@ -315,12 +457,48 @@ export function GuestUploader({
               // eslint-disable-next-line @next/next/no-img-element
               <img className="mb-2 max-h-40 rounded-xl object-cover" src={item.previewUrl} alt="" />
             ) : null}
-            <p className="text-sm font-medium">{item.name}</p>
-            {item.status === "uploading" || item.status === "done" || item.status === "error" ? (
-              <p className="mt-1 text-sm text-foreground/80" role="status">
-                {item.message}
-                {item.status === "uploading" ? ` ${item.progress}%` : ""}
+            <p className="text-sm font-medium break-words">{item.name}</p>
+            {item.status !== "ready" ? (
+              <p className="mt-1 text-sm text-foreground/80">
+                {item.status === "waiting" ? copy.uploadWaiting : null}
+                {item.status === "uploading"
+                  ? item.progressKnown
+                    ? `${copy.uploadPending} ${item.progress}%`
+                    : item.message
+                  : null}
+                {item.status === "done" ? copy.uploadDone : null}
+                {item.status === "error" ? item.message : null}
               </p>
+            ) : null}
+            {item.progressKnown && (item.status === "uploading" || item.status === "done") ? (
+              <div
+                className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted"
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={item.status === "done" ? 100 : item.progress}
+                aria-label={item.name}
+              >
+                <div
+                  className="h-full"
+                  style={{
+                    width: `${item.status === "done" ? 100 : item.progress}%`,
+                    backgroundColor: accentColor,
+                  }}
+                />
+              </div>
+            ) : null}
+            {item.status === "error" ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="mt-2"
+                disabled={pending}
+                onClick={() => void retryFile(item.id)}
+              >
+                {copy.uploadRetry}
+              </Button>
             ) : null}
           </li>
         ))}
