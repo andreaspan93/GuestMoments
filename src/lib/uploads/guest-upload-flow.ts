@@ -1,4 +1,4 @@
-export const GUEST_UPLOAD_REDIRECT_MS = 1600;
+export const GUEST_UPLOAD_CLOSE_MS = 2000;
 
 /** Three overlaps the transfers without decoding an unlimited set of photos on a phone. */
 export const GUEST_UPLOAD_CONCURRENCY = 3;
@@ -73,6 +73,21 @@ export function uploadBatchSummary(
     ratio: total === 0 ? 0 : ratio / total,
     allSucceeded: total > 0 && completed === total,
     settled: total > 0 && completed + failed === total,
+  };
+}
+
+export function uploadFinishPlan(statuses: readonly UploadStatus[]) {
+  const summary = uploadBatchSummary(
+    statuses.map((status) => ({
+      status,
+      progress: status === "done" ? 100 : 0,
+    })),
+  );
+  const showSuccess = summary.allSucceeded;
+
+  return {
+    showSuccess,
+    closeAfterMs: showSuccess ? GUEST_UPLOAD_CLOSE_MS : null,
   };
 }
 

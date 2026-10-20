@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  GUEST_UPLOAD_CLOSE_MS,
   GUEST_UPLOAD_CONCURRENCY,
   claimFileStart,
   claimUploadStart,
@@ -9,6 +10,7 @@ import {
   transferPercent,
   uploadAttemptResult,
   uploadBatchSummary,
+  uploadFinishPlan,
 } from "@/lib/uploads/guest-upload-flow";
 
 describe("guest upload finish", () => {
@@ -48,6 +50,46 @@ describe("guest upload finish", () => {
 
   it("returns the guest to the same event page", () => {
     expect(guestEventPath("abc_DEF-123")).toBe("/e/abc_DEF-123");
+  });
+
+  it("closes the upload panel two seconds after every file succeeds", () => {
+    expect(GUEST_UPLOAD_CLOSE_MS).toBe(2000);
+    expect(uploadFinishPlan(["done"])).toEqual({ showSuccess: true, closeAfterMs: 2000 });
+    expect(uploadFinishPlan(["done", "done", "done"])).toEqual({
+      showSuccess: true,
+      closeAfterMs: 2000,
+    });
+  });
+
+  it("waits for the last concurrent upload before starting the close timer", () => {
+    expect(uploadFinishPlan(["done", "uploading", "waiting"])).toEqual({
+      showSuccess: false,
+      closeAfterMs: null,
+    });
+    expect(uploadFinishPlan(["done", "done", "uploading"])).toEqual({
+      showSuccess: false,
+      closeAfterMs: null,
+    });
+    expect(uploadFinishPlan(["done", "done", "done"])).toEqual({
+      showSuccess: true,
+      closeAfterMs: 2000,
+    });
+  });
+
+  it("keeps the panel open after a partial failure and closes only when the retry succeeds", () => {
+    expect(uploadFinishPlan(["done", "error"])).toEqual({
+      showSuccess: false,
+      closeAfterMs: null,
+    });
+    expect(uploadFinishPlan(["error", "waiting"])).toEqual({
+      showSuccess: false,
+      closeAfterMs: null,
+    });
+    expect(uploadFinishPlan(["done", "done"])).toEqual({
+      showSuccess: true,
+      closeAfterMs: 2000,
+    });
+    expect(uploadFinishPlan([])).toEqual({ showSuccess: false, closeAfterMs: null });
   });
 
   it("uploads at most three files at once and keeps their results in order", async () => {

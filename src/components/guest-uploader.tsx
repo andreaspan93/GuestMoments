@@ -9,11 +9,10 @@ import {
   claimUploadStart,
   filesStillPending,
   GUEST_UPLOAD_CONCURRENCY,
-  GUEST_UPLOAD_REDIRECT_MS,
-  guestEventPath,
   mapWithConcurrency,
   transferPercent,
   uploadBatchSummary,
+  uploadFinishPlan,
   type UploadStatus,
 } from "@/lib/uploads/guest-upload-flow";
 import { putBytesWithRetry } from "@/lib/uploads/transfer";
@@ -108,15 +107,17 @@ export function GuestUploader({
   const [uploaded, setUploaded] = useState(false);
   const [pickerKey, setPickerKey] = useState(0);
   const inProgress = useRef(false);
-  const redirectTimer = useRef<number | null>(null);
+  const closeTimer = useRef<number | null>(null);
+  const closeGeneration = useRef(0);
   const filesRef = useRef<Map<string, File>>(new Map());
   const activeIds = useRef(new Set<string>());
   const itemsRef = useRef(items);
 
   useEffect(() => {
     return () => {
-      if (redirectTimer.current !== null) {
-        window.clearTimeout(redirectTimer.current);
+      closeGeneration.current += 1;
+      if (closeTimer.current !== null) {
+        window.clearTimeout(closeTimer.current);
       }
 
       for (const item of itemsRef.current) {
@@ -126,6 +127,15 @@ export function GuestUploader({
       }
     };
   }, []);
+
+  function cancelClose() {
+    closeGeneration.current += 1;
+
+    if (closeTimer.current !== null) {
+      window.clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+  }
 
   function updateItem(id: string, patch: Partial<UploadItem>) {
     setItems((current) => {
@@ -137,6 +147,9 @@ export function GuestUploader({
   }
 
   function onFiles(list: FileList | null) {
+    cancelClose();
+    setUploaded(false);
+
     for (const item of itemsRef.current) {
       if (item.previewUrl) {
         URL.revokeObjectURL(item.previewUrl);
@@ -310,25 +323,37 @@ export function GuestUploader({
   }
 
   function finishBatch() {
-    const summary = uploadBatchSummary(itemsRef.current);
+    const plan = uploadFinishPlan(itemsRef.current.map((item) => item.status));
+    cancelClose();
 
-    if (summary.allSucceeded) {
-      resetSelection(itemsRef.current);
-      setUploaded(true);
-
-      if (redirectTimer.current !== null) {
-        window.clearTimeout(redirectTimer.current);
-      }
-
-      redirectTimer.current = window.setTimeout(() => {
-        window.location.assign(guestEventPath(code));
-      }, GUEST_UPLOAD_REDIRECT_MS);
-
+    if (!plan.showSuccess || plan.closeAfterMs === null) {
+      setUploaded(false);
+      inProgress.current = false;
+      setPending(false);
       return;
     }
 
-    inProgress.current = false;
+    setUploaded(true);
     setPending(false);
+    const generation = closeGeneration.current;
+    closeTimer.current = window.setTimeout(() => {
+      closeTimer.current = null;
+
+      if (closeGeneration.current !== generation) {
+        return;
+      }
+
+      const stillComplete = uploadFinishPlan(itemsRef.current.map((item) => item.status));
+
+      if (!stillComplete.showSuccess) {
+        return;
+      }
+
+      resetSelection(itemsRef.current);
+      setUploaded(false);
+      inProgress.current = false;
+      setPending(false);
+    }, plan.closeAfterMs);
   }
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -346,6 +371,7 @@ export function GuestUploader({
       return;
     }
 
+    cancelClose();
     inProgress.current = true;
     setPending(true);
     setUploaded(false);
@@ -364,6 +390,7 @@ export function GuestUploader({
       return;
     }
 
+    cancelClose();
     inProgress.current = true;
     setPending(true);
     setUploaded(false);
@@ -390,7 +417,7 @@ export function GuestUploader({
           className="h-10 rounded-full border border-border bg-background px-4 text-base"
           name="guestName"
           maxLength={80}
-          disabled={pending}
+          disabled={pending || uploaded}
           value={guestName}
           onChange={(event) => setGuestName(event.target.value)}
         />
@@ -401,7 +428,7 @@ export function GuestUploader({
           className="min-h-20 rounded-2xl border border-border bg-background px-4 py-3 text-base"
           name="guestMessage"
           maxLength={500}
-          disabled={pending}
+          disabled={pending || uploaded}
           value={guestMessage}
           onChange={(event) => setGuestMessage(event.target.value)}
         />
@@ -412,7 +439,7 @@ export function GuestUploader({
           key={pickerKey}
           name="files"
           multiple
-          disabled={pending}
+          disabled={pending || uploaded}
           buttonLabel={copy.uploadChoose}
           accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif,video/mp4,video/quicktime,.mp4,.mov"
           formatSelection={(files) =>
@@ -494,7 +521,7 @@ export function GuestUploader({
                 variant="outline"
                 size="sm"
                 className="mt-2"
-                disabled={pending}
+                disabled={pending || uploaded}
                 onClick={() => void retryFile(item.id)}
               >
                 {copy.uploadRetry}
@@ -503,7 +530,7 @@ export function GuestUploader({
           </li>
         ))}
       </ul>
-      <Button type="submit" disabled={pending || items.length === 0} aria-busy={pending}>
+      <Button type="submit" disabled={pending || uploaded || items.length === 0} aria-busy={pending}>
         {pending ? copy.uploadPending : copy.uploadSubmit}
       </Button>
     </form>
