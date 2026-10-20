@@ -687,8 +687,8 @@ export async function removeBrandingImage(input: {
       input.slot === "cover"
         ? { coverKey: null }
         : input.slot === "logo"
-          ? { logoKey: null }
-          : { backgroundImageKey: null },
+        ? { logoKey: null, logoScale: null, logoOffsetX: null, logoOffsetY: null }
+        : { backgroundImageKey: null },
   });
 
   if (previous) {

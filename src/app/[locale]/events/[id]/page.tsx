@@ -12,6 +12,7 @@ import {
   formatAthensDateTime,
 } from "@/lib/events/expiry";
 import { isLogoCorner, isLogoSize, isPanelStyle, resolveEventFontId } from "@/lib/events/appearance";
+import { hasLogoPlacement } from "@/lib/events/logo-placement";
 import { getCustomerEvent } from "@/lib/events/service";
 import { signedObjectUrl } from "@/lib/storage/links";
 import { getRequestSession } from "@/lib/session";
@@ -102,6 +103,15 @@ export default async function EditEventPage({
               status: event.status === "DISABLED" ? "DISABLED" : "ACTIVE",
             }}
             brandingPreviews={{ cover, logo, background }}
+            logoPlacement={
+              hasLogoPlacement(event.logoScale)
+                ? {
+                    scale: event.logoScale ?? 1,
+                    x: event.logoOffsetX ?? 0,
+                    y: event.logoOffsetY ?? 0,
+                  }
+                : null
+            }
           />
         </div>
         <div className="mt-8">

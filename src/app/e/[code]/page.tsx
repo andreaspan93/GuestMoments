@@ -4,7 +4,9 @@ import { GuestGallery } from "@/components/guest-gallery";
 import { GuestLanguageSwitch } from "@/components/guest-language-switch";
 import { GuestTokenCleanup } from "@/components/guest-token-cleanup";
 import { GuestUploader } from "@/components/guest-uploader";
+import { LogoMark } from "@/components/logo-mark";
 import { eventFontFamily, eventTextWeight, guestPanelClass, logoImageClass } from "@/lib/events/appearance";
+import { hasLogoPlacement } from "@/lib/events/logo-placement";
 import { cn } from "@/lib/utils";
 import { decideGuestAccess } from "@/lib/events/access";
 import { formatCalendarDate, calendarDateFromDb } from "@/lib/events/expiry";
@@ -106,13 +108,27 @@ export default async function GuestEventRoute({
           )}
         >
           {logoUrl ? (
-            // Signed storage URL; the image optimizer is not used.
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              className={`mb-4 ${logoImageClass(event.logoSize, event.logoCorner, "screen")}`}
-              src={logoUrl}
-              alt=""
-            />
+            hasLogoPlacement(event.logoScale) ? (
+              <LogoMark
+                className="mb-4"
+                src={logoUrl}
+                size={event.logoSize}
+                corner={event.logoCorner}
+                placement={{
+                  scale: event.logoScale ?? 1,
+                  x: event.logoOffsetX ?? 0,
+                  y: event.logoOffsetY ?? 0,
+                }}
+              />
+            ) : (
+              // Signed storage URL; the image optimizer is not used.
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                className={`mb-4 ${logoImageClass(event.logoSize, event.logoCorner, "screen")}`}
+                src={logoUrl}
+                alt=""
+              />
+            )
           ) : null}
           {coverUrl ? (
             // eslint-disable-next-line @next/next/no-img-element

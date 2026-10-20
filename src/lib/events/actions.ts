@@ -2,10 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { getLocale } from "next-intl/server";
+import { type LogoPlacement } from "@/lib/events/logo-placement";
 import {
   createCustomerEvent,
   deleteCustomerEvent,
   updateCustomerEvent,
+  updateLogoPlacement,
 } from "@/lib/events/service";
 import { EventError, eventFormSchema } from "@/lib/events/schema";
 import { redirect } from "@/i18n/navigation";
@@ -136,6 +138,28 @@ export async function updateEventAction(
   revalidatePath("/[locale]/events/[id]", "page");
   revalidatePath("/[locale]/events", "page");
   return { savedId: eventId };
+}
+
+export async function updateLogoPlacementAction(
+  eventId: string,
+  placement: LogoPlacement | null,
+): Promise<{ ok: boolean }> {
+  const locale = await getLocale();
+  const actor = await actorOrRedirect(locale);
+
+  if (!actor) {
+    return { ok: false };
+  }
+
+  try {
+    await updateLogoPlacement(actor, eventId, placement);
+  } catch {
+    return { ok: false };
+  }
+
+  revalidatePath("/[locale]/events/[id]", "page");
+  revalidatePath("/e/[code]", "page");
+  return { ok: true };
 }
 
 export async function deleteEventAction(eventId: string) {

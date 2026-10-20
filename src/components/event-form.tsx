@@ -18,8 +18,13 @@ import {
 import {
   createEventAction,
   updateEventAction,
+  updateLogoPlacementAction,
   type EventFormState,
 } from "@/lib/events/actions";
+import {
+  defaultLogoPlacement,
+  type LogoPlacement,
+} from "@/lib/events/logo-placement";
 import {
   pathAfterEventCreated,
   pathAfterEventUpdated,
@@ -100,6 +105,7 @@ export function EventForm({
   eventId,
   defaults,
   brandingPreviews,
+  logoPlacement = null,
 }: {
   eventId?: string;
   defaults?: Partial<EventFormDefaults>;
@@ -108,6 +114,7 @@ export function EventForm({
     logo: string | null;
     background: string | null;
   };
+  logoPlacement?: LogoPlacement | null;
 }) {
   const t = useTranslations("events");
   const router = useRouter();
@@ -124,8 +131,12 @@ export function EventForm({
   const [savedDownloads, setSavedDownloads] = useState(values.guestDownloadsEnabled);
   const [finishing, setFinishing] = useState(false);
   const [brandingError, setBrandingError] = useState(false);
+  const [currentLogoPlacement, setCurrentLogoPlacement] = useState<LogoPlacement | null>(
+    logoPlacement,
+  );
   const formRef = useRef<HTMLFormElement>(null);
   const stagedFiles = useRef<Partial<Record<BrandingSlot, File>>>({});
+  const pendingPlacement = useRef<LogoPlacement | null>(null);
   const redirectStarted = useRef(false);
 
   if (
@@ -173,6 +184,16 @@ export function EventForm({
           if (editing) {
             break;
           }
+        }
+      }
+
+      const placement = pendingPlacement.current ?? (files.logo ? defaultLogoPlacement : null);
+
+      if (placement) {
+        const saved = await updateLogoPlacementAction(targetId, placement);
+
+        if (!saved.ok) {
+          uploadsSucceeded = false;
         }
       }
 
@@ -367,8 +388,23 @@ export function EventForm({
         disabled={pending || finishing}
         uploadOnSave={Boolean(eventId)}
         panelStyle={isPanelStyle(values.panelStyle) ? values.panelStyle : defaultPanelStyle}
+        logoPlacement={currentLogoPlacement}
         onStagedChange={(files) => {
           stagedFiles.current = files;
+        }}
+        onLogoDraft={(placement) => {
+          pendingPlacement.current = placement;
+        }}
+        onCommitLogoPlacement={async (placement) => {
+          pendingPlacement.current = placement;
+          setCurrentLogoPlacement(placement);
+
+          if (!eventId) {
+            return true;
+          }
+
+          const saved = await updateLogoPlacementAction(eventId, placement);
+          return saved.ok;
         }}
       />
       {brandingError ? (

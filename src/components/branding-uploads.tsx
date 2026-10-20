@@ -4,17 +4,37 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { FilePicker } from "@/components/file-picker";
+import { LogoEditor } from "@/components/logo-editor";
+import { LogoMark } from "@/components/logo-mark";
 import { buttonVariants } from "@/components/ui/button";
 import {
+  isLogoCorner,
+  isLogoSize,
+  logoImageClass,
   panelStyles,
+  type LogoCorner,
+  type LogoSize,
   type PanelStyle,
 } from "@/lib/events/appearance";
+import {
+  defaultLogoPlacement,
+  hasLogoPlacement,
+  type LogoPlacement,
+} from "@/lib/events/logo-placement";
 import {
   brandingSlots,
   removeBrandingFile,
   uploadBrandingFile,
   type BrandingSlot,
 } from "@/lib/uploads/branding-client";
+
+function placementIdentity(placement: LogoPlacement | null) {
+  if (!placement) {
+    return "legacy";
+  }
+
+  return `${placement.scale}:${placement.x}:${placement.y}`;
+}
 
 export function BrandingUploads({
   eventId,
@@ -23,6 +43,9 @@ export function BrandingUploads({
   uploadOnSave = false,
   onStagedChange,
   panelStyle = "solid",
+  logoPlacement = null,
+  onLogoDraft,
+  onCommitLogoPlacement,
 }: {
   eventId?: string;
   previews?: {
@@ -34,6 +57,9 @@ export function BrandingUploads({
   uploadOnSave?: boolean;
   onStagedChange?: (files: Partial<Record<BrandingSlot, File>>) => void;
   panelStyle?: PanelStyle;
+  logoPlacement?: LogoPlacement | null;
+  onLogoDraft?: (placement: LogoPlacement | null) => void;
+  onCommitLogoPlacement?: (placement: LogoPlacement | null) => Promise<boolean | void> | boolean | void;
 }) {
   const t = useTranslations("events");
   const router = useRouter();
@@ -45,8 +71,22 @@ export function BrandingUploads({
     {},
   );
   const [cardStyle, setCardStyle] = useState<PanelStyle>(panelStyle);
+  const [logoSize, setLogoSize] = useState<LogoSize>("medium");
+  const [logoCorner, setLogoCorner] = useState<LogoCorner>("square");
+  const [savedPlacement, setSavedPlacement] = useState<LogoPlacement | null>(logoPlacement);
+  const [placementKey, setPlacementKey] = useState(placementIdentity(logoPlacement));
+  const [editingLogo, setEditingLogo] = useState(false);
+  const [logoDraft, setLogoDraft] = useState<LogoPlacement>(logoPlacement ?? defaultLogoPlacement);
+  const sectionRef = useRef<HTMLElement>(null);
   const staged = useRef<Partial<Record<BrandingSlot, File>>>({});
   const previewUrls = useRef<string[]>([]);
+  const nextPlacementKey = placementIdentity(logoPlacement);
+
+  if (!editingLogo && placementKey !== nextPlacementKey) {
+    setPlacementKey(nextPlacementKey);
+    setSavedPlacement(logoPlacement);
+    setLogoDraft(logoPlacement ?? defaultLogoPlacement);
+  }
 
   useEffect(() => {
     const urls = previewUrls.current;
@@ -55,6 +95,36 @@ export function BrandingUploads({
       for (const url of urls) {
         URL.revokeObjectURL(url);
       }
+    };
+  }, []);
+
+  useEffect(() => {
+    const form = sectionRef.current?.closest("form");
+
+    if (!form) {
+      return;
+    }
+
+    const read = () => {
+      const data = new FormData(form);
+      const size = data.get("logoSize");
+      const corner = data.get("logoCorner");
+
+      if (typeof size === "string" && isLogoSize(size)) {
+        setLogoSize(size);
+      }
+
+      if (typeof corner === "string" && isLogoCorner(corner)) {
+        setLogoCorner(corner);
+      }
+    };
+
+    const frame = requestAnimationFrame(read);
+    form.addEventListener("change", read);
+
+    return () => {
+      cancelAnimationFrame(frame);
+      form.removeEventListener("change", read);
     };
   }, []);
 
@@ -76,6 +146,13 @@ export function BrandingUploads({
   }
 
   async function upload(slot: BrandingSlot, file: File) {
+    if (slot === "logo") {
+      setSavedPlacement(null);
+      setLogoDraft(defaultLogoPlacement);
+      setEditingLogo(true);
+      onLogoDraft?.(null);
+    }
+
     if (!eventId || uploadOnSave) {
       stage(slot, file);
       return;
@@ -122,6 +199,12 @@ export function BrandingUploads({
     const hasStored = Boolean(previews?.[slot]) && !cleared[slot];
     clearStaged(slot);
 
+    if (slot === "logo" && !hasStored) {
+      setEditingLogo(false);
+      setLogoDraft(savedPlacement ?? defaultLogoPlacement);
+      onLogoDraft?.(null);
+    }
+
     if (!eventId || !hasStored) {
       return;
     }
@@ -132,6 +215,15 @@ export function BrandingUploads({
 
     try {
       await removeBrandingFile(eventId, slot);
+
+      if (slot === "logo") {
+        setSavedPlacement(null);
+        setLogoDraft(defaultLogoPlacement);
+        setEditingLogo(false);
+        onLogoDraft?.(null);
+        await onCommitLogoPlacement?.(null);
+      }
+
       setMessage(t("brandingRemoved"));
       router.refresh();
     } catch {
@@ -150,8 +242,21 @@ export function BrandingUploads({
     frosted: "panelStyleFrostedHint",
   } as const;
 
+  async function saveLogoPlacement() {
+    const committed = await onCommitLogoPlacement?.(logoDraft);
+
+    if (committed === false) {
+      setMessage(t("logoPositionFailed"));
+      return;
+    }
+
+    setSavedPlacement(logoDraft);
+    setEditingLogo(false);
+    setMessage(eventId ? t("logoPositionSaved") : t("logoPositionReady"));
+  }
+
   return (
-    <section className="mt-2 grid gap-4 border-t border-border pt-8">
+    <section ref={sectionRef} className="mt-2 grid gap-4 border-t border-border pt-8">
       <div>
         <h2 className="text-lg font-semibold">{t("brandingTitle")}</h2>
         <p className="mt-2 text-sm leading-6 text-foreground/80">{t("brandingLead")}</p>
@@ -164,10 +269,66 @@ export function BrandingUploads({
         return (
           <div key={slot} className="grid gap-2 text-sm font-medium">
             <span>{label}</span>
-            {preview ? (
+            {slot === "logo" && preview && editingLogo ? (
+              <LogoEditor
+                src={preview}
+                size={logoSize}
+                corner={logoCorner}
+                placement={logoDraft}
+                disabled={disabled || pendingSlot !== null}
+                onChange={(next) => {
+                  setLogoDraft(next);
+                  onLogoDraft?.(next);
+                }}
+                onReset={() => {
+                  setLogoDraft(defaultLogoPlacement);
+                  onLogoDraft?.(defaultLogoPlacement);
+                }}
+                onSave={() => {
+                  void saveLogoPlacement();
+                }}
+                onCancel={() => {
+                  setLogoDraft(savedPlacement ?? defaultLogoPlacement);
+                  onLogoDraft?.(null);
+                  setEditingLogo(false);
+                }}
+              />
+            ) : null}
+            {slot === "logo" && preview && !editingLogo ? (
+              hasLogoPlacement(savedPlacement?.scale) && savedPlacement ? (
+                <LogoMark
+                  src={preview}
+                  size={logoSize}
+                  corner={logoCorner}
+                  placement={savedPlacement}
+                />
+              ) : (
+                // Signed storage URL or a local preview; the image optimizer is not used.
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  className={logoImageClass(logoSize, logoCorner, "screen")}
+                  src={preview}
+                  alt=""
+                />
+              )
+            ) : null}
+            {slot !== "logo" && preview ? (
               // Signed storage URL or a local preview; the image optimizer is not used.
               // eslint-disable-next-line @next/next/no-img-element
               <img className="max-h-40 w-full rounded-2xl object-cover" src={preview} alt="" />
+            ) : null}
+            {slot === "logo" && preview && !editingLogo ? (
+              <button
+                type="button"
+                className={buttonVariants({ variant: "outline", size: "sm" })}
+                disabled={disabled || pendingSlot !== null}
+                onClick={() => {
+                  setLogoDraft(savedPlacement ?? defaultLogoPlacement);
+                  setEditingLogo(true);
+                }}
+              >
+                {t("logoEdit")}
+              </button>
             ) : null}
             <FilePicker
               key={`${slot}-${pickerGeneration[slot] ?? 0}`}

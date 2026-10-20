@@ -16,6 +16,7 @@ import {
   listCustomerEvents,
   loadGuestEvent,
   updateCustomerEvent,
+  updateLogoPlacement,
 } from "@/lib/events/service";
 import { prisma } from "@/lib/prisma";
 
@@ -319,5 +320,46 @@ describe("events", () => {
     expect(updated.logoCorner).toBe("square");
     expect(updated.guestDownloadsEnabled).toBe(false);
     expect(updated.name).toBe("Alex and Niki");
+  });
+
+  it("stores logo placement separately from the original logo", async () => {
+    const customer = await signUpCustomer("Logo Placement");
+    const other = await signUpCustomer("Other Logo");
+    const created = await createCustomerEvent(customer, form());
+    const untouched = await createCustomerEvent(other, form({ name: "Untouched" }));
+    const logoKey = `events/${created.id}/branding/logo-${randomUUID()}`;
+
+    await prisma.event.update({
+      where: { id: created.id },
+      data: { logoKey },
+    });
+    await updateLogoPlacement(customer, created.id, { scale: 1.5, x: 0.2, y: -0.1 });
+
+    const reloaded = await getCustomerEvent(customer, created.id);
+    expect(reloaded?.logoKey).toBe(logoKey);
+    expect(reloaded?.logoScale).toBeCloseTo(1.5);
+    expect(reloaded?.logoOffsetX).toBeCloseTo(0.2);
+    expect(reloaded?.logoOffsetY).toBeCloseTo(-0.1);
+
+    const renamed = await updateCustomerEvent(customer, created.id, form({ name: "Renamed wedding" }));
+    expect(renamed.name).toBe("Renamed wedding");
+    expect(renamed.logoKey).toBe(logoKey);
+    expect(renamed.logoScale).toBeCloseTo(1.5);
+
+    const kept = await getCustomerEvent(other, untouched.id);
+    expect(kept?.logoScale).toBeNull();
+    expect(kept?.logoOffsetX).toBeNull();
+    expect(kept?.logoOffsetY).toBeNull();
+
+    await expect(
+      updateLogoPlacement(other, created.id, { scale: 2, x: 0, y: 0 }),
+    ).rejects.toMatchObject({ code: "notFound" });
+
+    await updateLogoPlacement(customer, created.id, null);
+    const cleared = await getCustomerEvent(customer, created.id);
+    expect(cleared?.logoScale).toBeNull();
+    expect(cleared?.logoOffsetX).toBeNull();
+    expect(cleared?.logoOffsetY).toBeNull();
+    expect(cleared?.logoKey).toBe(logoKey);
   });
 });

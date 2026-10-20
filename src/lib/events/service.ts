@@ -4,6 +4,7 @@ import { eventScope } from "@/lib/events/access";
 import { createEventCode } from "@/lib/events/code";
 import { PLATFORM_SETTINGS_ID } from "@/lib/events/defaults";
 import { calendarDateFromDb, calendarDateToDb } from "@/lib/events/expiry";
+import { logoPlacementSchema, type LogoPlacement } from "@/lib/events/logo-placement";
 import { EventError, type EventFormValues } from "@/lib/events/schema";
 import { actorTypeForRole } from "@/lib/logging/catalog";
 import { recordCrossCustomerEventAccess } from "@/lib/logging/access";
@@ -253,6 +254,53 @@ export async function updateCustomerEvent(
   }
 
   return updated;
+}
+
+export async function updateLogoPlacement(
+  actor: Actor,
+  eventId: string,
+  placement: LogoPlacement | null,
+) {
+  await ensureCustomerService(actor, new Date());
+  const existing = await prisma.event.findFirst({
+    where: {
+      id: eventId,
+      ...eventScope(actor),
+    },
+    select: { id: true },
+  });
+
+  if (!existing) {
+    await recordCrossCustomerEventAccess(actor, eventId);
+    throw new EventError("notFound");
+  }
+
+  if (placement === null) {
+    await prisma.event.update({
+      where: { id: existing.id },
+      data: {
+        logoScale: null,
+        logoOffsetX: null,
+        logoOffsetY: null,
+      },
+    });
+    return;
+  }
+
+  const parsed = logoPlacementSchema.safeParse(placement);
+
+  if (!parsed.success) {
+    throw new EventError("invalid");
+  }
+
+  await prisma.event.update({
+    where: { id: existing.id },
+    data: {
+      logoScale: parsed.data.scale,
+      logoOffsetX: parsed.data.x,
+      logoOffsetY: parsed.data.y,
+    },
+  });
 }
 
 export async function deleteCustomerEvent(

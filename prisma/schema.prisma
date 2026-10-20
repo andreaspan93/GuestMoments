@@ -114,6 +114,9 @@ model Event {
   welcomeBold          Boolean   @default(false)
   logoSize             String    @default("medium")
   logoCorner           String    @default("square")
+  logoScale            Float?
+  logoOffsetX          Float?
+  logoOffsetY          Float?
   status               String    @default("ACTIVE")
   privacyMode          String    @default("FULL_GALLERY")
   guestDownloadsEnabled Boolean  @default(true)
