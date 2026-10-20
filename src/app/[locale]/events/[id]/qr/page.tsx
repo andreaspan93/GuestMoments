@@ -116,7 +116,7 @@ export default async function EventQrPage({
       </div>
       <div className="mx-auto flex w-full max-w-3xl flex-col items-center gap-4 px-4 pb-16 text-center print:hidden sm:px-6">
         <p className="max-w-md break-all font-mono text-sm">{url}</p>
-        <div className="flex flex-wrap justify-center gap-2">
+        <div className="flex flex-wrap justify-center gap-1.5 sm:gap-2">
           <a
             href={`/api/events/${event.id}/qr?download=1`}
             className={buttonVariants({ variant: "outline" })}

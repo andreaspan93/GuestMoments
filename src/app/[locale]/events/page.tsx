@@ -73,7 +73,7 @@ export default async function EventsPage({
           {events.map((event) => (
             <li
               key={event.id}
-              className="relative rounded-3xl border border-border bg-card px-6 py-6 shadow-sm"
+              className="relative rounded-3xl border border-border bg-card px-4 py-6 shadow-sm sm:px-6"
             >
               <Link
                 href={`/events/${event.id}`}
@@ -103,22 +103,22 @@ export default async function EventsPage({
                   storage: totals.get(event.id)?.storageLabel ?? "0 MB",
                 })}
               </p>
-              <div className="mt-4 flex flex-wrap gap-2">
+              <div className="mt-4 flex flex-wrap gap-1.5 sm:gap-2">
                 <Link
                   href={`/events/${event.id}/gallery`}
-                  className={buttonVariants({ variant: "outline", size: "sm" })}
+                  className={buttonVariants({ variant: "outline", size: "sm", className: "px-2.5 sm:px-3" })}
                 >
                   {t("gallery")}
                 </Link>
                 <Link
                   href={`/events/${event.id}/qr`}
-                  className={buttonVariants({ variant: "outline", size: "sm" })}
+                  className={buttonVariants({ variant: "outline", size: "sm", className: "px-2.5 sm:px-3" })}
                 >
                   {t("qr")}
                 </Link>
                 <a
                   href={guestEventUrl(event.uniqueCode)}
-                  className={buttonVariants({ variant: "outline", size: "sm" })}
+                  className={buttonVariants({ variant: "outline", size: "sm", className: "px-2.5 sm:px-3" })}
                 >
                   {t("openGuest")}
                 </a>

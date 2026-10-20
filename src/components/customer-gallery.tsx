@@ -17,11 +17,11 @@ const controlClass =
   "h-10 min-w-0 rounded-full border border-border bg-background px-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60";
 
 const primaryClass =
-  "inline-flex h-10 shrink-0 items-center justify-center rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground disabled:cursor-not-allowed disabled:opacity-60";
+  "inline-flex h-10 shrink-0 items-center justify-center whitespace-nowrap rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground disabled:cursor-not-allowed disabled:opacity-60";
 
 function sortChip(selected: boolean) {
   return cn(
-    "inline-flex h-full min-w-0 items-center justify-center truncate rounded-full px-2 text-xs font-medium sm:px-3 sm:text-sm",
+    "inline-flex h-full min-w-0 items-center justify-center rounded-full px-2 text-xs font-medium whitespace-nowrap sm:px-3 sm:text-sm",
     selected ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-muted",
   );
 }
@@ -662,7 +662,7 @@ export function CustomerGallery({
               ) : (
                 <button
                   type="button"
-                  className="inline-flex h-10 min-w-0 items-center gap-2 rounded-full border border-border bg-background px-4 text-sm font-medium"
+                  className="inline-flex h-10 w-full items-center gap-2 rounded-full border border-border bg-background px-4 text-sm font-medium whitespace-nowrap"
                   onClick={() => {
                     setEditingId(activeAlbum.id);
                     setEditingName(activeAlbum.name);
@@ -674,7 +674,7 @@ export function CustomerGallery({
               )}
               <button
                 type="button"
-                className="inline-flex h-10 min-w-0 items-center gap-2 rounded-full px-4 text-sm font-medium text-primary hover:bg-muted"
+                className="inline-flex h-10 w-full items-center gap-2 rounded-full px-4 text-sm font-medium whitespace-nowrap text-primary hover:bg-muted"
                 onClick={() => {
                   void removeAlbum(activeAlbum.id);
                 }}
@@ -708,7 +708,7 @@ export function CustomerGallery({
         {selected.length > 0 ? (
           <button
             type="button"
-            className="h-10 min-w-0 truncate rounded-full bg-primary px-3 text-sm font-medium whitespace-nowrap text-primary-foreground disabled:cursor-not-allowed disabled:opacity-60"
+            className="h-10 w-full rounded-full bg-primary px-4 text-sm font-medium whitespace-nowrap text-primary-foreground disabled:cursor-not-allowed disabled:opacity-60"
             title={zipping ? t("bulkPending") : t("bulkDownload")}
             disabled={zipping}
             aria-busy={zipping}
@@ -722,7 +722,7 @@ export function CustomerGallery({
         <div className="grid gap-2">
           <button
             type="button"
-            className="inline-flex h-10 w-fit max-w-full items-center gap-2 rounded-full border border-border bg-card px-4 text-sm font-medium"
+            className="inline-flex h-10 w-full items-center gap-2 rounded-full border border-border bg-card px-4 text-sm font-medium whitespace-nowrap sm:w-fit"
             aria-expanded={albumMenu === "bulk"}
             onClick={() => setAlbumMenu((current) => (current === "bulk" ? null : "bulk"))}
           >
@@ -757,7 +757,7 @@ export function CustomerGallery({
                 </label>
                 <button
                   type="submit"
-                  className="h-10 shrink-0 rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground disabled:opacity-60"
+                  className="h-10 shrink-0 rounded-full bg-primary px-4 text-sm font-medium whitespace-nowrap text-primary-foreground disabled:opacity-60"
                   disabled={!bulkAlbumId}
                 >
                   {t("applyAlbum")}

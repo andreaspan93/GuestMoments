@@ -13,10 +13,11 @@ export function DeleteEventButton({
   confirm: string;
 }) {
   return (
-    <form action={deleteEventAction.bind(null, eventId)}>
+    <form className="w-full" action={deleteEventAction.bind(null, eventId)}>
       <Button
         type="submit"
         variant="outline"
+        className="w-full"
         onClick={(event) => {
           if (!window.confirm(confirm)) {
             event.preventDefault();

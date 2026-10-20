@@ -137,7 +137,7 @@ export function GalleryViewer({
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm">{item.originalFileName}</p>
-        <button type="button" className="rounded-full px-3 py-2 text-sm" onClick={onClose}>
+        <button type="button" className="shrink-0 rounded-full px-3 py-2 text-sm whitespace-nowrap" onClick={onClose}>
           {labels.close}
         </button>
       </div>

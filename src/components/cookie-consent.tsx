@@ -90,7 +90,7 @@ export function CookieConsent({
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
-            className="h-10 rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground disabled:opacity-50"
+            className="h-10 shrink-0 rounded-full bg-primary px-4 text-sm font-medium whitespace-nowrap text-primary-foreground disabled:opacity-50"
             disabled={pending}
             onClick={() => save()}
           >
@@ -98,7 +98,7 @@ export function CookieConsent({
           </button>
           <button
             type="button"
-            className="h-10 rounded-full border border-border bg-background px-4 text-sm font-medium disabled:opacity-50"
+            className="h-10 shrink-0 rounded-full border border-border bg-background px-4 text-sm font-medium whitespace-nowrap disabled:opacity-50"
             disabled={pending}
             onClick={() => save()}
           >
@@ -107,7 +107,7 @@ export function CookieConsent({
           {manage ? (
             <button
               type="button"
-              className="h-10 rounded-full border border-border bg-background px-4 text-sm font-medium disabled:opacity-50"
+              className="h-10 shrink-0 rounded-full border border-border bg-background px-4 text-sm font-medium whitespace-nowrap disabled:opacity-50"
               disabled={pending}
               onClick={() => save()}
             >
@@ -116,7 +116,7 @@ export function CookieConsent({
           ) : (
             <button
               type="button"
-              className="h-10 rounded-full border border-border bg-background px-4 text-sm font-medium"
+              className="h-10 shrink-0 rounded-full border border-border bg-background px-4 text-sm font-medium whitespace-nowrap"
               onClick={() => setManage(true)}
             >
               {copy.manage}

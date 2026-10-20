@@ -165,18 +165,18 @@ export function EventAppearanceFields({
         bold={titleBold}
       />
       <FontField
-        name="guestFont"
-        label={t("guestFont")}
-        value={guestFont}
-        boldName="guestBold"
-        bold={guestBold}
-      />
-      <FontField
         name="welcomeFont"
         label={t("welcomeFont")}
         value={welcomeFont}
         boldName="welcomeBold"
         bold={welcomeBold}
+      />
+      <FontField
+        name="guestFont"
+        label={t("guestFont")}
+        value={guestFont}
+        boldName="guestBold"
+        bold={guestBold}
       />
       <label className="grid gap-2 text-sm font-medium">
         {t("logoSize")}
