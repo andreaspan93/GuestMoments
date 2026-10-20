@@ -9,6 +9,7 @@ import {
   mapWithConcurrency,
   transferPercent,
   uploadAttemptResult,
+  replaceUploadItem,
   uploadBatchSummary,
   uploadFinishPlan,
 } from "@/lib/uploads/guest-upload-flow";
@@ -50,6 +51,20 @@ describe("guest upload finish", () => {
 
   it("returns the guest to the same event page", () => {
     expect(guestEventPath("abc_DEF-123")).toBe("/e/abc_DEF-123");
+  });
+
+  it("sees the last file as finished before the success timer starts", () => {
+    const items = [
+      { id: "a", status: "done" as const },
+      { id: "b", status: "uploading" as const },
+    ];
+    const finished = replaceUploadItem(items, "b", { status: "done" });
+
+    expect(uploadFinishPlan(items.map((item) => item.status)).showSuccess).toBe(false);
+    expect(uploadFinishPlan(finished.map((item) => item.status))).toEqual({
+      showSuccess: true,
+      closeAfterMs: 2000,
+    });
   });
 
   it("closes the upload panel two seconds after every file succeeds", () => {

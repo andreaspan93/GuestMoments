@@ -17,7 +17,7 @@ import {
   sanitizeFileName,
   thumbnailObjectKey,
 } from "@/lib/uploads/policy";
-import { consumeUploadRateLimit } from "@/lib/uploads/rate-limit";
+import { consumeUploadRateLimit, guestUploadRateBucket } from "@/lib/uploads/rate-limit";
 
 const INTENT_TTL_MS = 15 * 60 * 1000;
 const PRESIGN_SECONDS = 15 * 60;
@@ -199,7 +199,10 @@ export async function createGuestUploadIntent(input: {
   const now = input.now ?? new Date();
 
   try {
-    await consumeUploadRateLimit(`guest:${input.ip}:${input.code}`, now);
+    await consumeUploadRateLimit(
+      guestUploadRateBucket(input.ip, input.code, input.kind),
+      now,
+    );
   } catch (error) {
     if (error instanceof UploadError && error.code === "rate") {
       const event = await prisma.event.findUnique({

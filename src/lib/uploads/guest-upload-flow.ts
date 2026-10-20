@@ -76,6 +76,14 @@ export function uploadBatchSummary(
   };
 }
 
+export function replaceUploadItem<T extends { id: string }>(
+  items: readonly T[],
+  id: string,
+  patch: Partial<T>,
+) {
+  return items.map((item) => (item.id === id ? { ...item, ...patch } : item));
+}
+
 export function uploadFinishPlan(statuses: readonly UploadStatus[]) {
   const summary = uploadBatchSummary(
     statuses.map((status) => ({

@@ -10,6 +10,7 @@ import {
   filesStillPending,
   GUEST_UPLOAD_CONCURRENCY,
   mapWithConcurrency,
+  replaceUploadItem,
   transferPercent,
   uploadBatchSummary,
   uploadFinishPlan,
@@ -137,13 +138,13 @@ export function GuestUploader({
     }
   }
 
-  function updateItem(id: string, patch: Partial<UploadItem>) {
-    setItems((current) => {
-      const next = current.map((item) => (item.id === id ? { ...item, ...patch } : item));
-      itemsRef.current = next;
+  function commitItems(next: UploadItem[]) {
+    itemsRef.current = next;
+    setItems(next);
+  }
 
-      return next;
-    });
+  function updateItem(id: string, patch: Partial<UploadItem>) {
+    commitItems(replaceUploadItem(itemsRef.current, id, patch));
   }
 
   function onFiles(list: FileList | null) {
@@ -276,8 +277,8 @@ export function GuestUploader({
     }
 
     const queuedIds = new Set(queue.map((item) => item.id));
-    setItems((current) => {
-      const next = current.map((item) =>
+    commitItems(
+      itemsRef.current.map((item) =>
         queuedIds.has(item.id)
           ? {
               ...item,
@@ -287,11 +288,8 @@ export function GuestUploader({
               message: copy.uploadWaiting,
             }
           : item,
-      );
-      itemsRef.current = next;
-
-      return next;
-    });
+      ),
+    );
 
     await mapWithConcurrency(queue, GUEST_UPLOAD_CONCURRENCY, async (item) => {
       const latest = itemsRef.current.find((entry) => entry.id === item.id);

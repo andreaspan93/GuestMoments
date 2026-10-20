@@ -7,6 +7,22 @@ import { UploadError } from "@/lib/uploads/errors";
 const WINDOW_MS = 10 * 60 * 1000;
 const RATE_LIMIT_RETENTION_MS = 24 * 60 * 60 * 1000;
 const DEFAULT_LIMIT = 30;
+
+export const GUEST_UPLOAD_RATE_LIMIT = DEFAULT_LIMIT;
+
+/** Originals and thumbnails have separate windows so one photo does not consume two of the 30 guest uploads. */
+export function guestUploadRateBucket(
+  ip: string,
+  code: string,
+  kind: "original" | "thumbnail",
+) {
+  if (kind === "thumbnail") {
+    return `guest:thumb:${ip}:${code}`;
+  }
+
+  return `guest:${ip}:${code}`;
+}
+
 const EVENT_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const UPLOAD_RATE_LIMIT_PREFIX = "guestmoments";
 const MAX_GUEST_KEY_SCAN_PAGES = 1000;

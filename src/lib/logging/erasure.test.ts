@@ -3,6 +3,8 @@ import { redactDeletedCustomerLog } from "@/lib/logging/erasure";
 import {
   deleteGuestRateLimitKeys,
   isDeletedGuestRateLimitKey,
+  guestUploadRateBucket,
+  GUEST_UPLOAD_RATE_LIMIT,
   isGuestRateLimitBucket,
 } from "@/lib/uploads/rate-limit";
 
@@ -170,6 +172,33 @@ describe("guest rate-limit cleanup", () => {
       isDeletedGuestRateLimitKey(`guestmoments:guest:203.0.113.8:other-code-value:42`, eventCode),
     ).toBe(false);
     expect(isDeletedGuestRateLimitKey(`guestmoments:guest:*:${eventCode}:42`, "bad*code")).toBe(false);
+  });
+
+  it("keeps a 30-photo selection inside the guest limit by counting thumbnails separately", () => {
+    const ip = "203.0.113.8";
+    const photos = 30;
+    const originals = new Set(
+      Array.from({ length: photos }, () => guestUploadRateBucket(ip, eventCode, "original")),
+    );
+    const thumbnails = new Set(
+      Array.from({ length: photos }, () => guestUploadRateBucket(ip, eventCode, "thumbnail")),
+    );
+
+    expect(GUEST_UPLOAD_RATE_LIMIT).toBe(30);
+    expect(photos).toBeLessThanOrEqual(GUEST_UPLOAD_RATE_LIMIT);
+    expect(originals).not.toEqual(thumbnails);
+    expect(isGuestRateLimitBucket(guestUploadRateBucket(ip, eventCode, "original"), eventCode)).toBe(
+      true,
+    );
+    expect(isGuestRateLimitBucket(guestUploadRateBucket(ip, eventCode, "thumbnail"), eventCode)).toBe(
+      true,
+    );
+    expect(
+      isDeletedGuestRateLimitKey(
+        `guestmoments:${guestUploadRateBucket(ip, eventCode, "thumbnail")}:170000`,
+        eventCode,
+      ),
+    ).toBe(true);
   });
 
   it("deletes only matching Upstash keys and does not delete when the scan fails", async () => {
