@@ -67,14 +67,18 @@ body {
 }
 
 .qr-poster-stage {
-  display: flex;
-  justify-content: center;
+  display: grid;
+  justify-items: center;
+  width: 100%;
   padding: 0.75rem 1rem 0.35rem;
 }
 
 .qr-poster-scale {
   display: grid;
   width: min(100mm, 100%);
+  max-width: 100%;
+  margin-inline: auto;
+  justify-self: center;
   aspect-ratio: 148 / 210;
   container-type: size;
 }

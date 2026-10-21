@@ -53,7 +53,7 @@ export function QrDesignPanel({
 
   return (
     <>
-      <div className="mx-auto flex w-full max-w-3xl flex-col items-center gap-3 px-4 pt-2 text-center print:hidden sm:px-6">
+      <div className="mx-auto flex w-full max-w-3xl flex-col items-center self-center gap-3 px-4 pt-2 text-center print:hidden sm:px-6">
         <p className="max-w-xl text-sm leading-6 text-foreground/80">{t("qrLead")}</p>
         <div className="flex flex-col items-center gap-2">
           <p className="text-xs tracking-[0.16em] text-foreground/70 uppercase">{t("qrDesignLabel")}</p>
@@ -159,7 +159,7 @@ export function QrDesignPanel({
           )}
         </div>
       </div>
-      <div className="mx-auto flex w-full max-w-3xl flex-col items-center gap-3 px-4 pt-1 pb-8 text-center print:hidden sm:px-6">
+      <div className="mx-auto flex w-full max-w-3xl flex-col items-center self-center gap-3 px-4 pt-1 pb-8 text-center print:hidden sm:px-6">
         <div className="flex flex-wrap justify-center gap-1.5 sm:gap-2">
           <button
             type="button"

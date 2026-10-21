@@ -47,7 +47,7 @@ export default async function EventQrPage({
 
   return (
     <>
-      <div className="mx-auto flex w-full max-w-3xl flex-col items-center px-4 pt-2 print:hidden sm:px-6">
+      <div className="mx-auto flex w-full max-w-3xl flex-col items-center self-center px-4 pt-2 print:hidden sm:px-6">
         <ServiceAccessNotice user={session.user} />
       </div>
       <QrDesignPanel
