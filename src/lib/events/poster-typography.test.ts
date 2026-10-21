@@ -65,4 +65,23 @@ describe("poster typography", () => {
     expect(posterUpdate).not.toContain("guestFont:");
     expect(service).toContain("...eventScope(actor)");
   });
+
+  it("keeps the poster font menus closed until they are clicked", () => {
+    const dialog = readFileSync(new URL("../../components/poster-typography-dialog.tsx", import.meta.url), "utf8");
+
+    expect(dialog).toContain("useState<FontKey | null>(null)");
+    expect(dialog).toContain('aria-haspopup="listbox"');
+    expect(dialog).toContain("aria-expanded={open}");
+    expect(dialog).toContain('role="listbox"');
+    expect(dialog).toContain("fontFamily: font.family");
+    expect(dialog).toContain("fontWeight: font.weight");
+    expect(dialog).not.toContain("<select");
+    expect(dialog).toContain("qrTypographyDecrease");
+    expect(dialog).toContain("qrTypographyIncrease");
+    expect(dialog).toContain("changeSize(row.size, -0.1)");
+    expect(dialog).toContain("changeSize(row.size, 0.1)");
+    expect(dialog).toContain("posterSizeMinMm");
+    expect(dialog).toContain("posterSizeMaxMm");
+    expect(dialog).toContain("grid-cols-[minmax(0,1fr)_auto]");
+  });
 });

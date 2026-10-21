@@ -142,6 +142,8 @@
     "qrTypographyScript": "την αγάπη",
     "qrTypographyFont": "Γραμματοσειρά",
     "qrTypographySize": "Μέγεθος (mm)",
+    "qrTypographyDecrease": "Μείωση μεγέθους",
+    "qrTypographyIncrease": "Αύξηση μεγέθους",
     "qrTypographyCancel": "Ακύρωση",
     "qrTypographyError": "Οι επιλογές γραμματοσειράς δεν αποθηκεύτηκαν.",
     "qrShareKicker": "ΜΟΙΡΑΣΤΕΙΤΕ",

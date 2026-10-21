@@ -142,6 +142,8 @@
     "qrTypographyScript": "the love",
     "qrTypographyFont": "Font",
     "qrTypographySize": "Size (mm)",
+    "qrTypographyDecrease": "Decrease size",
+    "qrTypographyIncrease": "Increase size",
     "qrTypographyCancel": "Cancel",
     "qrTypographyError": "Those font choices could not be saved.",
     "qrShareKicker": "SHARE",
