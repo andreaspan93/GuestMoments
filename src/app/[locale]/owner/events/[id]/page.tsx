@@ -51,7 +51,7 @@ export default async function OwnerEditEventPage({
           </Link>
         </div>
       </div>
-      <div className="mt-8 max-w-xl">
+      <div className="mt-8 w-full max-w-xl md:max-w-none">
         <OwnerEventForm
           eventId={event.id}
           customers={customers.map((customer) => ({

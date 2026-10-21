@@ -12,11 +12,11 @@ export function AuthCard({
       <section className="rounded-3xl border border-border bg-card px-6 py-10 shadow-sm sm:px-12">
         <h1 className="text-3xl font-semibold tracking-tight">{title}</h1>
         {lead ? (
-          <p className="mt-3 max-w-xl text-sm leading-6 text-foreground/80">
+          <p className="mt-3 max-w-xl text-sm leading-6 text-foreground/80 md:max-w-none">
             {lead}
           </p>
         ) : null}
-        <div className="mt-8 max-w-md">{children}</div>
+        <div className="mt-8 w-full max-w-md md:max-w-none">{children}</div>
       </section>
     </main>
   );

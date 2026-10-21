@@ -35,7 +35,7 @@ export default async function NewEventPage({
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 pb-16">
       <section className="rounded-3xl border border-border bg-card px-6 py-10 shadow-sm sm:px-12">
         <h1 className="text-3xl font-semibold tracking-tight">{t("createTitle")}</h1>
-        <p className="mt-3 max-w-xl text-sm leading-6 text-foreground/80">
+        <p className="mt-3 max-w-xl text-sm leading-6 text-foreground/80 md:max-w-none">
           {t("createLead")}
         </p>
         {customerNotice(session.user, new Date()) ? (
@@ -43,7 +43,7 @@ export default async function NewEventPage({
             <ServiceAccessNotice user={session.user} />
           </div>
         ) : (
-          <div className="mt-8 max-w-xl">
+          <div className="mt-8 w-full max-w-xl md:max-w-none">
             {allowance.atLimit ? (
               <p role="status" className="mb-4 text-sm leading-6 text-foreground/80">
                 {t("eventLimit")}

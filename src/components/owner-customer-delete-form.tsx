@@ -48,7 +48,7 @@ export function OwnerCustomerDeleteForm({
         <li>{t("deleteCustomerUploads")}</li>
         <li>{t("deleteCustomerAuth")}</li>
       </ul>
-      <form action={action} className="mt-6 grid max-w-xl gap-4">
+      <form action={action} className="mt-6 grid w-full max-w-xl gap-4 md:max-w-none">
         <label className="grid gap-2 text-sm font-medium">
           {t("deleteCustomerConfirmLabel")}
           <input

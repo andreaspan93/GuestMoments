@@ -35,7 +35,7 @@ export function OwnerCustomerAccessForm({ userId }: { userId: string }) {
   const [state, action, pending] = useActionState(activateCustomerAction.bind(null, userId), null);
 
   return (
-    <form action={action} className="mt-6 grid max-w-xl gap-4">
+    <form action={action} className="mt-6 grid w-full max-w-xl gap-4 md:max-w-none">
       <p className="text-sm leading-6 text-foreground/80">{t("activateLead")}</p>
       <label className="grid gap-2 text-sm font-medium">
         {t("duration")}

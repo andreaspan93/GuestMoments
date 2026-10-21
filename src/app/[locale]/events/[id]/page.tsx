@@ -76,7 +76,7 @@ export default async function EditEventPage({
           </div>
         ) : (
         <>
-        <div className="mt-8 max-w-xl">
+        <div className="mt-8 w-full max-w-xl md:max-w-none">
           <EventForm
             eventId={event.id}
             defaults={{
