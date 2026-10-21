@@ -245,7 +245,7 @@ export function PosterTypographyDialog({
                           className="size-10 shrink-0 px-0 text-lg"
                           aria-label={t("qrTypographyDecrease")}
                           disabled={pending || size <= posterSizeMinMm}
-                          onClick={() => changeSize(row.size, -0.1)}
+                          onClick={() => changeSize(row.size, -1)}
                         >
                           −
                         </Button>
@@ -277,7 +277,7 @@ export function PosterTypographyDialog({
                           className="size-10 shrink-0 px-0 text-lg"
                           aria-label={t("qrTypographyIncrease")}
                           disabled={pending || size >= posterSizeMaxMm}
-                          onClick={() => changeSize(row.size, 0.1)}
+                          onClick={() => changeSize(row.size, 1)}
                         >
                           +
                         </Button>

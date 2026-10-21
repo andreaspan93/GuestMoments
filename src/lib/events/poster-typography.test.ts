@@ -78,8 +78,8 @@ describe("poster typography", () => {
     expect(dialog).not.toContain("<select");
     expect(dialog).toContain("qrTypographyDecrease");
     expect(dialog).toContain("qrTypographyIncrease");
-    expect(dialog).toContain("changeSize(row.size, -0.1)");
-    expect(dialog).toContain("changeSize(row.size, 0.1)");
+    expect(dialog).toContain("changeSize(row.size, -1)");
+    expect(dialog).toContain("changeSize(row.size, 1)");
     expect(dialog).toContain("posterSizeMinMm");
     expect(dialog).toContain("posterSizeMaxMm");
     expect(dialog).toContain("grid-cols-[minmax(0,1fr)_auto]");
