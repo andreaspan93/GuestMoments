@@ -217,10 +217,11 @@ describe("event appearance", () => {
       new URL("../../components/guest-gallery.tsx", import.meta.url),
       "utf8",
     );
-    const qr = readFileSync(
-      new URL("../../app/[locale]/events/[id]/qr/page.tsx", import.meta.url),
-      "utf8",
-    );
+    const qr = [
+      readFileSync(new URL("../../app/[locale]/events/[id]/qr/page.tsx", import.meta.url), "utf8"),
+      readFileSync(new URL("../../components/qr-design-panel.tsx", import.meta.url), "utf8"),
+      readFileSync(new URL("./qr-design.ts", import.meta.url), "utf8"),
+    ].join("\n");
     const css = readFileSync(new URL("../../app/globals.css", import.meta.url), "utf8");
     const screen = 'logoImageClass(event.logoSize, event.logoCorner, "screen")';
     const print = 'logoImageClass(event.logoSize, event.logoCorner, "print")';

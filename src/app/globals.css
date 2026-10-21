@@ -69,12 +69,12 @@ body {
 .qr-poster-stage {
   display: flex;
   justify-content: center;
-  padding: 1.5rem 1rem 0.75rem;
+  padding: 0.75rem 1rem 0.35rem;
 }
 
 .qr-poster-scale {
   display: grid;
-  width: min(148mm, 100%);
+  width: min(112mm, 100%);
   aspect-ratio: 148 / 210;
   container-type: size;
 }
@@ -263,6 +263,110 @@ body {
     page-break-inside: avoid;
     page-break-after: avoid;
   }
+}
+
+.qr-poster.qr-share {
+  justify-content: center;
+  background: #f4f4f4;
+  color: #1a1a1a;
+  padding: 8% 7.5% 7%;
+  font-family: var(--font-noto-sans), "Noto Sans", sans-serif;
+}
+
+.qr-share-sheet {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-evenly;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  text-align: center;
+}
+
+.qr-share-kicker,
+.qr-share-script,
+.qr-share-line,
+.qr-share-name,
+.qr-share-date {
+  margin: 0;
+  max-width: 100%;
+}
+
+.qr-share-kicker {
+  font-size: min(4.4cqh, 10mm);
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0.42em;
+  text-indent: 0.42em;
+  text-transform: uppercase;
+}
+
+.qr-share-script-row {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.7em;
+}
+
+.qr-share-rule {
+  flex: 1 1 auto;
+  min-width: 8%;
+  height: 1px;
+  background: #1a1a1a;
+}
+
+.qr-share-script,
+.qr-share-name {
+  font-family: var(--font-mynerve), Mynerve, cursive;
+  font-weight: 400;
+  line-height: 1.05;
+}
+
+.qr-share-script {
+  flex: 0 0 auto;
+  font-size: min(8.4cqh, 18mm);
+}
+
+.qr-share-lines {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45em;
+}
+
+.qr-share-line {
+  font-size: min(1.65cqh, 3.4mm);
+  font-weight: 400;
+  line-height: 1.45;
+  letter-spacing: 0.14em;
+  text-indent: 0.14em;
+  text-transform: uppercase;
+}
+
+.qr-share .qr-poster-qr {
+  margin-top: 0;
+  background: #fff;
+}
+
+.qr-share .qr-poster-qr img {
+  width: min(46mm, 26cqh);
+}
+
+.qr-share-name {
+  font-size: min(5.4cqh, 12mm);
+  line-height: 1.15;
+  text-wrap: balance;
+}
+
+.qr-share-date {
+  font-size: min(2cqh, 4.2mm);
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: 0.28em;
+  text-indent: 0.28em;
 }
 
 .color-well {
