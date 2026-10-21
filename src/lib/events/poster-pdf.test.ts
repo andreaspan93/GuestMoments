@@ -106,6 +106,29 @@ describe("A5 poster pdf", () => {
     expect(posterContentWidthPt).toBeGreaterThan(0);
   });
 
+  it("prints the saved poster name and date fonts at the saved sizes", async () => {
+    const bytes = await buildPosterPdf({
+      name: "Wedding",
+      titleFont: "literata",
+      nameSizeMm: 10,
+      dateFont: "mynerve",
+      dateSizeMm: 4,
+      dateLabel: "15 Oct 2026",
+      cta: posterCta("en"),
+      locale: "en",
+      logoSize: "medium",
+      logoCorner: "square",
+      qr: { bytes: png },
+    });
+    const pdf = await PDFDocument.load(bytes);
+    const sizes = textSizesMm(pdf);
+
+    expect(sizes[0]).toBeCloseTo(10, 1);
+    expect(sizes[1]).toBeCloseTo(4, 1);
+    expect(embeddedFontNames(pdf)).toContain("Literata-SemiBold");
+    expect(embeddedFontNames(pdf)).toContain("Mynerve-Regular");
+  });
+
   it("keeps the title high, moves the date down a little, and places the photo below the date", async () => {
     const bytes = await buildPosterPdf({
       name: "Wedding",

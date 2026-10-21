@@ -2,12 +2,21 @@
 
 import { revalidatePath } from "next/cache";
 import { getLocale } from "next-intl/server";
+import { calendarDateFromDb, formatCalendarDate } from "@/lib/events/expiry";
 import { type LogoPlacement } from "@/lib/events/logo-placement";
+import { posterTextSizes } from "@/lib/events/poster-title";
+import {
+  posterTypographySchema,
+  type PosterTextSizes,
+  type PosterTypography,
+} from "@/lib/events/poster-typography";
+import { sharePosterCopy } from "@/lib/events/qr-design";
 import {
   createCustomerEvent,
   deleteCustomerEvent,
   updateCustomerEvent,
   updateLogoPlacement,
+  updatePosterTypography,
 } from "@/lib/events/service";
 import { EventError, eventFormSchema } from "@/lib/events/schema";
 import { redirect } from "@/i18n/navigation";
@@ -138,6 +147,53 @@ export async function updateEventAction(
   revalidatePath("/[locale]/events/[id]", "page");
   revalidatePath("/[locale]/events", "page");
   return { savedId: eventId };
+}
+
+export type PosterTypographyResult =
+  | { ok: true; typography: PosterTypography; sizes: PosterTextSizes }
+  | { ok: false; error: "invalid" | "inactive" };
+
+export async function updatePosterTypographyAction(
+  eventId: string,
+  input: PosterTypography,
+): Promise<PosterTypographyResult> {
+  const locale = await getLocale();
+  const actor = await actorOrRedirect(locale);
+
+  if (!actor || typeof eventId !== "string" || eventId.length === 0) {
+    return { ok: false, error: "invalid" };
+  }
+
+  const parsed = posterTypographySchema.safeParse(input);
+
+  if (!parsed.success) {
+    return { ok: false, error: "invalid" };
+  }
+
+  try {
+    const posterLocale = locale === "en" ? "en" : "el";
+    const updated = await updatePosterTypography(actor, eventId, parsed.data);
+    const copy = sharePosterCopy(posterLocale);
+
+    revalidatePath("/[locale]/events/[id]/qr", "page");
+
+    return {
+      ok: true,
+      typography: parsed.data,
+      sizes: posterTextSizes(parsed.data, {
+        name: updated.name,
+        date: formatCalendarDate(calendarDateFromDb(updated.eventDate), posterLocale),
+        kicker: copy.kicker,
+        script: copy.script,
+      }),
+    };
+  } catch (error) {
+    if (error instanceof EventError && error.code === "inactive") {
+      return { ok: false, error: "inactive" };
+    }
+
+    return { ok: false, error: "invalid" };
+  }
 }
 
 export async function updateLogoPlacementAction(

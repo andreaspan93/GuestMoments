@@ -75,6 +75,9 @@ type PosterImage = {
 export type PosterPdfInput = {
   name: string;
   titleFont?: string;
+  nameSizeMm?: number;
+  dateFont?: string;
+  dateSizeMm?: number;
   dateLabel: string;
   cta: string;
   locale: "en" | "el";
@@ -127,8 +130,9 @@ export function posterTitleSizePt(
   name: string,
   titleFont?: string,
   scale = 1,
+  maxMm = PDF_TITLE_MAX_MM,
 ) {
-  const fittedTitle = mm(fittedTitleSizeMm(name, titleFont, PDF_TITLE_MAX_MM)) * scale;
+  const fittedTitle = mm(fittedTitleSizeMm(name, titleFont, maxMm)) * scale;
   const width = widthAtSize(fittedTitle);
 
   if (!posterTitleText(name) || !Number.isFinite(width) || width <= 0 || width <= contentWidth) {
@@ -339,6 +343,11 @@ export async function buildPosterPdf(input: PosterPdfInput) {
   const pdf = await PDFDocument.create();
   pdf.registerFontkit(fontkit);
   const regular = await pdf.embedFont(fontBytes("NotoSans-Regular.ttf"), { subset: true });
+  const dateFace = input.dateFont
+    ? await embedTitleFont(pdf, input.dateFont, input.dateLabel)
+    : regular;
+  const titleMaxMm = input.nameSizeMm ?? PDF_TITLE_MAX_MM;
+  const dateMaxMm = input.dateSizeMm ?? PDF_DATE_SIZE_MM;
   const titleRuns = posterTitleRuns(input.name, input.titleFont);
   const titleFaces = new Map<string, PDFFont>();
 
@@ -365,9 +374,9 @@ export async function buildPosterPdf(input: PosterPdfInput) {
 
   const measure = (scale: number) => {
     const blocks: Block[] = [];
-    const titleSize = posterTitleSizePt(titleWidth, input.name, input.titleFont, scale);
+    const titleSize = posterTitleSizePt(titleWidth, input.name, input.titleFont, scale, titleMaxMm);
     const titleHeight = titleSize * 1.12;
-    const dateSize = singleLineSize(regular, input.dateLabel, mm(PDF_DATE_SIZE_MM) * scale, contentWidth);
+    const dateSize = singleLineSize(dateFace, input.dateLabel, mm(dateMaxMm) * scale, contentWidth);
     const dateHeight = dateSize * 1.2;
     const ctaSize = mm(posterFullPageMm(POSTER_CTA_MM, POSTER_CTA_CAP_CQH)) * scale;
     const tracking = ctaSize * 0.2;
@@ -413,13 +422,13 @@ export async function buildPosterPdf(input: PosterPdfInput) {
       height: dateHeight,
       gapBefore: mm(POSTER_DATE_GAP_MM) * scale,
       draw: (page, top) => {
-        const width = regular.widthOfTextAtSize(input.dateLabel, dateSize);
+        const width = dateFace.widthOfTextAtSize(input.dateLabel, dateSize);
 
         page.drawText(input.dateLabel, {
           x: (A5_WIDTH_PT - width) / 2,
           y: top - dateSize,
           size: dateSize,
-          font: regular,
+          font: dateFace,
           color: ink,
         });
       },

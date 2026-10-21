@@ -17,7 +17,9 @@ import {
   loadGuestEvent,
   updateCustomerEvent,
   updateLogoPlacement,
+  updatePosterTypography,
 } from "@/lib/events/service";
+import { resolvePosterTypography, type PosterTypography } from "@/lib/events/poster-typography";
 import { prisma } from "@/lib/prisma";
 
 const createdEmails: string[] = [];
@@ -320,6 +322,58 @@ describe("events", () => {
     expect(updated.logoCorner).toBe("square");
     expect(updated.guestDownloadsEnabled).toBe(false);
     expect(updated.name).toBe("Alex and Niki");
+    expect(resolvePosterTypography(updated.posterTypography).nameFont).toBe("literata");
+  });
+
+  it("stores poster typography separately and refuses another customer's update", async () => {
+    const customer = await signUpCustomer("Poster Typography");
+    const other = await signUpCustomer("Other Poster");
+    const created = await createCustomerEvent(
+      customer,
+      form({ titleFont: "literata", guestFont: "source-sans", welcomeFont: "alegreya" }),
+    );
+    const typography = {
+      nameFont: "mynerve" as const,
+      nameSizeMm: 14,
+      dateFont: "literata" as const,
+      dateSizeMm: 5.5,
+      kickerFont: "playpen-sans" as const,
+      kickerSizeMm: 8,
+      scriptFont: "mansalva" as const,
+      scriptSizeMm: 18,
+    };
+
+    expect(resolvePosterTypography(created.posterTypography).nameFont).toBe("literata");
+    const saved = await updatePosterTypography(customer, created.id, typography);
+    const reloaded = await getCustomerEvent(customer, created.id);
+
+    expect(resolvePosterTypography(saved.posterTypography)).toEqual(typography);
+    expect(resolvePosterTypography(reloaded?.posterTypography)).toEqual(typography);
+    expect(reloaded?.titleFont).toBe("literata");
+    expect(reloaded?.guestFont).toBe("source-sans");
+    expect(reloaded?.welcomeFont).toBe("alegreya");
+
+    const renamed = await updateCustomerEvent(
+      customer,
+      created.id,
+      form({ titleFont: "eb-garamond", guestFont: "noto-serif", welcomeFont: "gfs-didot" }),
+    );
+
+    expect(renamed.titleFont).toBe("eb-garamond");
+    expect(renamed.guestFont).toBe("noto-serif");
+    expect(resolvePosterTypography(renamed.posterTypography)).toEqual(typography);
+    await expect(updatePosterTypography(other, created.id, typography)).rejects.toMatchObject({
+      code: "notFound",
+    });
+    await expect(
+      updatePosterTypography(customer, created.id, {
+        ...typography,
+        nameFont: "comic-sans",
+      } as unknown as PosterTypography),
+    ).rejects.toMatchObject({ code: "invalid" });
+    expect(resolvePosterTypography((await getCustomerEvent(customer, created.id))?.posterTypography)).toEqual(
+      typography,
+    );
   });
 
   it("stores logo placement separately from the original logo", async () => {

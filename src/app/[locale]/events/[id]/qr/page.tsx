@@ -5,10 +5,10 @@ import { QrDesignPanel } from "@/components/qr-design-panel";
 import { ServiceAccessNotice } from "@/components/service-access-notice";
 import { redirect } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
-import { eventFontFamily, eventFontWeight } from "@/lib/events/appearance";
 import { calendarDateFromDb, formatCalendarDate } from "@/lib/events/expiry";
-import { posterTitleSize } from "@/lib/events/poster-title";
-import { sharePosterDate } from "@/lib/events/qr-design";
+import { posterTextSizes } from "@/lib/events/poster-title";
+import { resolvePosterTypography } from "@/lib/events/poster-typography";
+import { sharePosterCopy, sharePosterDate } from "@/lib/events/qr-design";
 import { getCustomerEvent } from "@/lib/events/service";
 import { getRequestSession } from "@/lib/session";
 import { signedObjectUrl } from "@/lib/storage/links";
@@ -39,6 +39,9 @@ export default async function EventQrPage({
   }
 
   const posterLocale = locale === "en" ? "en" : "el";
+  const typography = resolvePosterTypography(event.posterTypography);
+  const dateLabel = formatCalendarDate(calendarDateFromDb(event.eventDate), locale);
+  const copy = sharePosterCopy(posterLocale);
   const [coverUrl, logoUrl] = await Promise.all([
     signedObjectUrl(event.coverKey),
     signedObjectUrl(event.logoKey),
@@ -54,12 +57,16 @@ export default async function EventQrPage({
         event={{
           id: event.id,
           name: event.name,
-          titleFamily: eventFontFamily(event.titleFont),
-          titleSize: posterTitleSize(event.name, event.titleFont),
-          titleWeight: eventFontWeight(event.titleFont),
+          typography,
+          sizes: posterTextSizes(typography, {
+            name: event.name,
+            date: dateLabel,
+            kicker: copy.kicker,
+            script: copy.script,
+          }),
           logoSize: event.logoSize,
           logoCorner: event.logoCorner,
-          dateLabel: formatCalendarDate(calendarDateFromDb(event.eventDate), locale),
+          dateLabel,
           shareDate: sharePosterDate(calendarDateFromDb(event.eventDate), posterLocale),
         }}
         locale={posterLocale}

@@ -4,6 +4,7 @@ import { calendarDateFromDb, formatCalendarDate } from "@/lib/events/expiry";
 import { buildPosterPdf, posterCta } from "@/lib/events/poster-pdf";
 import { parseQrDesign, sharePosterCopy, sharePosterDate } from "@/lib/events/qr-design";
 import { renderEventQr } from "@/lib/events/qr";
+import { resolvePosterTypography } from "@/lib/events/poster-typography";
 import { buildSharePosterPdf } from "@/lib/events/share-poster-pdf";
 import { getRequestSession } from "@/lib/session";
 import { getStorage } from "@/lib/storage";
@@ -31,28 +32,31 @@ async function sharePoster(
   dateLabel: string,
   locale: "en" | "el",
   qrPromise: ReturnType<typeof renderEventQr>,
+  typography: ReturnType<typeof resolvePosterTypography>,
 ) {
   return buildSharePosterPdf({
     name,
     dateLabel,
     ...sharePosterCopy(locale),
     qr: { bytes: new Uint8Array(await qrPromise) },
+    typography,
   });
 }
 
 async function classicPoster(
   event: {
     name: string;
-    titleFont: string;
     eventDate: Date;
     logoSize: string;
     logoCorner: string;
     coverKey: string | null;
     logoKey: string | null;
+    posterTypography: unknown;
   },
   locale: "en" | "el",
   qrPromise: ReturnType<typeof renderEventQr>,
 ) {
+  const typography = resolvePosterTypography(event.posterTypography);
   const [cover, logo, qr] = await Promise.all([
     imageBytes(event.coverKey),
     imageBytes(event.logoKey),
@@ -61,7 +65,10 @@ async function classicPoster(
 
   return buildPosterPdf({
     name: event.name,
-    titleFont: event.titleFont,
+    titleFont: typography.nameFont,
+    nameSizeMm: typography.nameSizeMm,
+    dateFont: typography.dateFont,
+    dateSizeMm: typography.dateSizeMm,
     dateLabel: formatCalendarDate(calendarDateFromDb(event.eventDate), locale),
     cta: posterCta(locale),
     locale,
@@ -130,6 +137,7 @@ export async function GET(
 
   const locale = url.searchParams.get("locale") === "el" ? "el" : "en";
   const design = parseQrDesign(url.searchParams.get("design"));
+  const typography = resolvePosterTypography(event.posterTypography);
   const qrPromise = renderEventQr(guestEventUrl(event.uniqueCode));
   const pdf =
     design === "b"
@@ -138,6 +146,7 @@ export async function GET(
           sharePosterDate(calendarDateFromDb(event.eventDate), locale),
           locale,
           qrPromise,
+          typography,
         )
       : await classicPoster(event, locale, qrPromise);
   const filename = design === "b" ? "guestmoments-share-a5.pdf" : "guestmoments-a5.pdf";

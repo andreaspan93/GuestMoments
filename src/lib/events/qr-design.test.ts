@@ -14,6 +14,7 @@ describe("QR poster designs", () => {
     const panel = readFileSync(new URL("../../components/qr-design-panel.tsx", import.meta.url), "utf8");
     const page = readFileSync(new URL("../../app/[locale]/events/[id]/qr/page.tsx", import.meta.url), "utf8");
 
+    expect(panel).toContain("<PosterTypographyDialog");
     expect(panel).toContain('useState<QrDesign>("a")');
     expect(panel).toContain('setDesign("a")');
     expect(panel).toContain('setDesign("b")');
@@ -27,6 +28,10 @@ describe("QR poster designs", () => {
   it("renders Design B from the event name and date", () => {
     const panel = readFileSync(new URL("../../components/qr-design-panel.tsx", import.meta.url), "utf8");
 
+    expect(panel.match(/textStyle\(typography\.nameFont, sizes\.name\)/g)).toHaveLength(2);
+    expect(panel.match(/textStyle\(typography\.dateFont, sizes\.date\)/g)).toHaveLength(2);
+    expect(panel).toContain("textStyle(typography.kickerFont, sizes.kicker)");
+    expect(panel).toContain("textStyle(typography.scriptFont, sizes.script)");
     expect(panel).toContain('data-poster-text="name"');
     expect(panel).toContain("{event.name}");
     expect(panel).toContain('data-poster-text="share-date"');
@@ -59,6 +64,8 @@ describe("QR poster designs", () => {
     expect(posterPngFilename("a")).toBe("guestmoments-poster.png");
     expect(posterPngFilename("b")).toBe("guestmoments-share.png");
     expect(route).toContain("renderEventQr(guestEventUrl(event.uniqueCode))");
+    expect(route).toContain("resolvePosterTypography(event.posterTypography)");
+    expect(route).not.toContain("titleFont: event.titleFont");
     expect(route).toContain("buildPosterPdf");
     expect(route).toContain("buildSharePosterPdf");
     expect(route).toContain('design === "b"');

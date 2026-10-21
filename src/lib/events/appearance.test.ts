@@ -240,9 +240,14 @@ describe("event appearance", () => {
     expect(guestGallery).toContain("object-cover object-center");
     expect(guestGallery).not.toContain("columns-2");
     expect(qr).toContain(print);
-    expect(qr).toContain("eventFontFamily(event.titleFont)");
-    expect(qr).toContain("eventFontWeight(event.titleFont)");
-    expect(qr).toContain("posterTitleSize(event.name, event.titleFont)");
+    expect(qr).toContain("resolvePosterTypography(event.posterTypography)");
+    expect(qr).toContain("posterTextSizes(typography,");
+    expect(qr).toContain("textStyle(typography.nameFont, sizes.name)");
+    expect(qr).toContain("textStyle(typography.dateFont, sizes.date)");
+    expect(qr).toContain("eventFontFamily(font)");
+    expect(qr).toContain("eventFontWeight(font)");
+    expect(qr).not.toContain("event.titleFont");
+    expect(qr).not.toContain("eventFontFamily(event.titleFont)");
     expect(qr).toContain("posterFrameStyle()");
     expect(qr.indexOf("qr-poster-title")).toBeLessThan(qr.indexOf("qr-poster-date"));
     expect(qr.indexOf("qr-poster-date")).toBeLessThan(qr.indexOf("qr-poster-cover"));

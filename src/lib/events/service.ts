@@ -5,6 +5,11 @@ import { createEventCode } from "@/lib/events/code";
 import { PLATFORM_SETTINGS_ID } from "@/lib/events/defaults";
 import { calendarDateFromDb, calendarDateToDb } from "@/lib/events/expiry";
 import { logoPlacementSchema, type LogoPlacement } from "@/lib/events/logo-placement";
+import {
+  posterTypographyForTitle,
+  posterTypographySchema,
+  type PosterTypography,
+} from "@/lib/events/poster-typography";
 import { EventError, type EventFormValues } from "@/lib/events/schema";
 import { actorTypeForRole } from "@/lib/logging/catalog";
 import { recordCrossCustomerEventAccess } from "@/lib/logging/access";
@@ -52,6 +57,7 @@ async function insertEvent(data: {
   titleBold: boolean;
   guestBold: boolean;
   welcomeBold: boolean;
+  posterTypography: PosterTypography;
   logoSize: string;
   logoCorner: string;
   status: string;
@@ -160,6 +166,7 @@ export async function createCustomerEvent(
     titleBold: input.titleBold,
     guestBold: input.guestBold,
     welcomeBold: input.welcomeBold,
+    posterTypography: posterTypographyForTitle(input.titleFont),
     logoSize: input.logoSize,
     logoCorner: input.logoCorner,
     status: input.status,
@@ -254,6 +261,37 @@ export async function updateCustomerEvent(
   }
 
   return updated;
+}
+
+export async function updatePosterTypography(
+  actor: Actor,
+  eventId: string,
+  input: PosterTypography,
+) {
+  await ensureCustomerService(actor, new Date());
+  const existing = await prisma.event.findFirst({
+    where: {
+      id: eventId,
+      ...eventScope(actor),
+    },
+    select: { id: true },
+  });
+
+  if (!existing) {
+    await recordCrossCustomerEventAccess(actor, eventId);
+    throw new EventError("notFound");
+  }
+
+  const parsed = posterTypographySchema.safeParse(input);
+
+  if (!parsed.success) {
+    throw new EventError("invalid");
+  }
+
+  return prisma.event.update({
+    where: { id: existing.id },
+    data: { posterTypography: parsed.data },
+  });
 }
 
 export async function updateLogoPlacement(

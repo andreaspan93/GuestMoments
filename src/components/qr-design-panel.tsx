@@ -1,25 +1,35 @@
 "use client";
 
 import { useRef, useState, type CSSProperties } from "react";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { PosterTypographyDialog } from "@/components/poster-typography-dialog";
 import { PrintButton } from "@/components/print-button";
 import { buttonVariants } from "@/components/ui/button";
-import { logoImageClass } from "@/lib/events/appearance";
+import { eventFontFamily, eventFontWeight, logoImageClass } from "@/lib/events/appearance";
 import { POSTER_TOP_FREE_SHARE, posterFrameStyle } from "@/lib/events/poster-layout";
 import { downloadPosterPng } from "@/lib/events/poster-png";
+import { type PosterTextSizes, type PosterTypography } from "@/lib/events/poster-typography";
 import { posterPdfPath, type QrDesign } from "@/lib/events/qr-design";
 
 export type QrPosterEvent = {
   id: string;
   name: string;
-  titleFamily: string;
-  titleSize: string;
-  titleWeight: number;
+  typography: PosterTypography;
+  sizes: PosterTextSizes;
   logoSize: string;
   logoCorner: string;
   dateLabel: string;
   shareDate: string;
 };
+
+function textStyle(font: string, size: string): CSSProperties {
+  return {
+    fontFamily: eventFontFamily(font),
+    fontSize: size,
+    fontWeight: eventFontWeight(font),
+  };
+}
 
 function EventLogo({ src, className }: { src: string | null; className: string }) {
   if (!src) {
@@ -47,8 +57,19 @@ export function QrDesignPanel({
   qrSrc: string;
 }) {
   const t = useTranslations("events");
+  const router = useRouter();
   const [design, setDesign] = useState<QrDesign>("a");
+  const [typography, setTypography] = useState(event.typography);
+  const [sizes, setSizes] = useState(event.sizes);
   const posterRef = useRef<HTMLDivElement>(null);
+  const propsKey = JSON.stringify({ typography: event.typography, sizes: event.sizes });
+  const [seenProps, setSeenProps] = useState(propsKey);
+
+  if (propsKey !== seenProps) {
+    setSeenProps(propsKey);
+    setTypography(event.typography);
+    setSizes(event.sizes);
+  }
   const posterClass = logoUrl ? "qr-poster qr-poster-has-logo" : "qr-poster";
 
   return (
@@ -57,23 +78,34 @@ export function QrDesignPanel({
         <p className="max-w-xl text-sm leading-6 text-foreground/80">{t("qrLead")}</p>
         <div className="flex flex-col items-center gap-2">
           <p className="text-xs tracking-[0.16em] text-foreground/70 uppercase">{t("qrDesignLabel")}</p>
-          <div role="group" aria-label={t("qrDesignLabel")} className="flex flex-wrap justify-center gap-1.5">
-            <button
-              type="button"
-              aria-pressed={design === "a"}
-              className={buttonVariants({ variant: design === "a" ? "default" : "outline", size: "sm" })}
-              onClick={() => setDesign("a")}
-            >
-              {t("qrDesignA")}
-            </button>
-            <button
-              type="button"
-              aria-pressed={design === "b"}
-              className={buttonVariants({ variant: design === "b" ? "default" : "outline", size: "sm" })}
-              onClick={() => setDesign("b")}
-            >
-              {t("qrDesignB")}
-            </button>
+          <div className="flex flex-wrap items-center justify-center gap-1.5">
+            <div role="group" aria-label={t("qrDesignLabel")} className="flex flex-wrap justify-center gap-1.5">
+              <button
+                type="button"
+                aria-pressed={design === "a"}
+                className={buttonVariants({ variant: design === "a" ? "default" : "outline", size: "sm" })}
+                onClick={() => setDesign("a")}
+              >
+                {t("qrDesignA")}
+              </button>
+              <button
+                type="button"
+                aria-pressed={design === "b"}
+                className={buttonVariants({ variant: design === "b" ? "default" : "outline", size: "sm" })}
+                onClick={() => setDesign("b")}
+              >
+                {t("qrDesignB")}
+              </button>
+            </div>
+            <PosterTypographyDialog
+              eventId={event.id}
+              typography={typography}
+              onSaved={(saved) => {
+                setTypography(saved.typography);
+                setSizes(saved.sizes);
+                router.refresh();
+              }}
+            />
           </div>
         </div>
       </div>
@@ -91,15 +123,11 @@ export function QrDesignPanel({
                 <h1
                   className="qr-poster-title"
                   data-poster-text="title"
-                  style={{
-                    fontFamily: event.titleFamily,
-                    fontSize: event.titleSize,
-                    fontWeight: event.titleWeight,
-                  }}
+                  style={textStyle(typography.nameFont, sizes.name)}
                 >
                   {event.name}
                 </h1>
-                <p className="qr-poster-date" data-poster-text="date">
+                <p className="qr-poster-date" data-poster-text="date" style={textStyle(typography.dateFont, sizes.date)}>
                   {event.dateLabel}
                 </p>
                 {coverUrl ? (
@@ -129,12 +157,12 @@ export function QrDesignPanel({
           ) : (
             <article className="qr-poster qr-share">
               <div className="qr-share-sheet">
-                <p className="qr-share-kicker" data-poster-text="kicker">
+                <p className="qr-share-kicker" data-poster-text="kicker" style={textStyle(typography.kickerFont, sizes.kicker)}>
                   {t("qrShareKicker")}
                 </p>
                 <div className="qr-share-script-row">
                   <span className="qr-share-rule" />
-                  <p className="qr-share-script" data-poster-text="script">
+                  <p className="qr-share-script" data-poster-text="script" style={textStyle(typography.scriptFont, sizes.script)}>
                     {t("qrShareScript")}
                   </p>
                   <span className="qr-share-rule" />
@@ -148,10 +176,10 @@ export function QrDesignPanel({
                   </p>
                 </div>
                 <QrMark src={qrSrc} alt={t("qrAlt")} />
-                <p className="qr-share-name" data-poster-text="name">
+                <p className="qr-share-name" data-poster-text="name" style={textStyle(typography.nameFont, sizes.name)}>
                   {event.name}
                 </p>
-                <p className="qr-share-date" data-poster-text="share-date">
+                <p className="qr-share-date" data-poster-text="share-date" style={textStyle(typography.dateFont, sizes.date)}>
                   {event.shareDate}
                 </p>
               </div>

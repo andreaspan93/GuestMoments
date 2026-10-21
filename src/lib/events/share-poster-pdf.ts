@@ -4,6 +4,7 @@ import fontkit from "@pdf-lib/fontkit";
 import { PDFDocument, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import { A5_HEIGHT_PT, A5_WIDTH_PT } from "@/lib/events/poster-pdf";
 import { posterTitleRuns, titleFontFile, type PosterTitleRun } from "@/lib/events/poster-title";
+import { resolvePosterTypography, type PosterTypography } from "@/lib/events/poster-typography";
 
 const ink = rgb(0.102, 0.102, 0.102);
 const paper = rgb(1, 1, 1);
@@ -16,7 +17,12 @@ export type SharePosterPdfInput = {
   line1: string;
   line2: string;
   qr: { bytes: Uint8Array };
+  typography?: PosterTypography | null;
 };
+
+function pt(sizeMm: number) {
+  return (sizeMm * 72) / 25.4;
+}
 
 function fontBytes(fileName: string) {
   return readFileSync(path.join(process.cwd(), "src/lib/events/fonts", fileName));
@@ -124,22 +130,38 @@ async function embedRuns(pdf: PDFDocument, runs: PosterTitleRun[]) {
 }
 
 export async function buildSharePosterPdf(input: SharePosterPdfInput) {
+  const typography = resolvePosterTypography(input.typography);
   const pdf = await PDFDocument.create();
   pdf.registerFontkit(fontkit);
   const page = pdf.addPage([A5_WIDTH_PT, A5_HEIGHT_PT]);
   const sans = await pdf.embedFont(fontBytes("NotoSans-Regular.ttf"), { subset: true });
-  const scriptRuns = posterTitleRuns(input.script, "mynerve");
-  const nameRuns = posterTitleRuns(input.name, "mynerve");
-  const faces = await embedRuns(pdf, [...scriptRuns, ...nameRuns]);
+  const scriptRuns = posterTitleRuns(input.script, typography.scriptFont);
+  const nameRuns = posterTitleRuns(input.name, typography.nameFont);
+  const kickerRuns = posterTitleRuns(input.kicker, typography.kickerFont);
+  const dateRuns = posterTitleRuns(input.dateLabel, typography.dateFont);
+  const faces = await embedRuns(pdf, [...kickerRuns, ...scriptRuns, ...nameRuns, ...dateRuns]);
   const qr = await pdf.embedPng(input.qr.bytes);
   const contentWidth = A5_WIDTH_PT - 72;
-  const kicker = fitTracked(sans, input.kicker, 15, 6.2, contentWidth);
+  const faceFor = (runs: PosterTitleRun[]) => faces.get(titleFontFile(runs[0]?.fontId ?? "noto-sans")) ?? sans;
+  const kickerFont = faceFor(kickerRuns);
+  const kickerSize = pt(typography.kickerSizeMm);
+  const kicker =
+    kickerRuns.length > 1
+      ? { size: fitRuns(faces, kickerRuns, kickerSize, contentWidth), tracking: 0, mixed: true }
+      : { ...fitTracked(kickerFont, input.kicker, kickerSize, kickerSize * 0.42, contentWidth), mixed: false };
   const line1 = fitTracked(sans, input.line1, 8.4, 1.15, contentWidth);
   const line2 = fitTracked(sans, input.line2, 8.4, 1.15, contentWidth);
-  const scriptSize = fitRuns(faces, scriptRuns, 40, contentWidth * 0.62);
-  const nameSize = fitRuns(faces, nameRuns, 26, contentWidth * 0.92);
-  const date = fitTracked(sans, input.dateLabel, 11, 2.4, contentWidth);
+  const scriptSize = fitRuns(faces, scriptRuns, pt(typography.scriptSizeMm), contentWidth * 0.62);
+  const nameSize = fitRuns(faces, nameRuns, pt(typography.nameSizeMm), contentWidth * 0.92);
+  const dateFont = faceFor(dateRuns);
+  const dateSizePt = pt(typography.dateSizeMm);
+  const date =
+    dateRuns.length > 1
+      ? { size: fitRuns(faces, dateRuns, dateSizePt, contentWidth), tracking: 0, mixed: true }
+      : { ...fitTracked(dateFont, input.dateLabel, dateSizePt, dateSizePt * 0.28, contentWidth), mixed: false };
   const qrSize = 148;
+  const scriptFont = faceFor(scriptRuns);
+  const nameFont = faceFor(nameRuns);
 
   page.drawRectangle({
     x: 0,
@@ -150,13 +172,13 @@ export async function buildSharePosterPdf(input: SharePosterPdfInput) {
   });
 
   const pieces = [
-    sans.heightAtSize(kicker.size),
-    faces.values().next().value?.heightAtSize(scriptSize) ?? scriptSize,
+    kickerFont.heightAtSize(kicker.size),
+    scriptFont.heightAtSize(scriptSize),
     sans.heightAtSize(line1.size),
     sans.heightAtSize(line2.size),
     qrSize,
-    faces.values().next().value?.heightAtSize(nameSize) ?? nameSize,
-    sans.heightAtSize(date.size),
+    nameFont.heightAtSize(nameSize),
+    dateFont.heightAtSize(date.size),
   ];
   const gapWeights = [1.45, 0.28, 0.85, 0.22, 0.95, 0.72, 0.28, 1.2];
   const free = Math.max(48, A5_HEIGHT_PT - pieces.reduce((sum, height) => sum + height, 0));
@@ -165,10 +187,21 @@ export async function buildSharePosterPdf(input: SharePosterPdfInput) {
 
   const baseline = (font: PDFFont, size: number) => A5_HEIGHT_PT - top - font.heightAtSize(size) * 0.78;
 
-  drawTracked(page, input.kicker, A5_WIDTH_PT / 2, baseline(sans, kicker.size), sans, kicker.size, kicker.tracking);
+  if (kicker.mixed) {
+    drawRuns(page, faces, kickerRuns, kicker.size, baseline(kickerFont, kicker.size));
+  } else {
+    drawTracked(
+      page,
+      input.kicker,
+      A5_WIDTH_PT / 2,
+      baseline(kickerFont, kicker.size),
+      kickerFont,
+      kicker.size,
+      kicker.tracking,
+    );
+  }
   top += pieces[0] + gapWeights[1] * gapUnit;
 
-  const scriptFont = faces.get(titleFontFile(scriptRuns[0]?.fontId ?? "mynerve")) ?? sans;
   const scriptBaseline = baseline(scriptFont, scriptSize);
   const scriptWidth = drawRuns(page, faces, scriptRuns, scriptSize, scriptBaseline);
   const ruleY = scriptBaseline + scriptSize * 0.28;
@@ -204,10 +237,21 @@ export async function buildSharePosterPdf(input: SharePosterPdfInput) {
   });
   top += pieces[4] + gapWeights[5] * gapUnit;
 
-  const nameFont = faces.get(titleFontFile(nameRuns[0]?.fontId ?? "mynerve")) ?? sans;
   drawRuns(page, faces, nameRuns, nameSize, baseline(nameFont, nameSize));
   top += pieces[5] + gapWeights[6] * gapUnit;
-  drawTracked(page, input.dateLabel, A5_WIDTH_PT / 2, baseline(sans, date.size), sans, date.size, date.tracking);
+  if (date.mixed) {
+    drawRuns(page, faces, dateRuns, date.size, baseline(dateFont, date.size));
+  } else {
+    drawTracked(
+      page,
+      input.dateLabel,
+      A5_WIDTH_PT / 2,
+      baseline(dateFont, date.size),
+      dateFont,
+      date.size,
+      date.tracking,
+    );
+  }
 
   return pdf.save();
 }

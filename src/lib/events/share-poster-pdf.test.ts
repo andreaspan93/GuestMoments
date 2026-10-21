@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { PDFDocument } from "pdf-lib";
 import { A5_HEIGHT_PT, A5_WIDTH_PT, buildPosterPdf, posterCta } from "@/lib/events/poster-pdf";
+import { defaultPosterTypography } from "@/lib/events/poster-typography";
 import { sharePosterCopy } from "@/lib/events/qr-design";
 import { buildSharePosterPdf } from "@/lib/events/share-poster-pdf";
 
@@ -47,4 +48,66 @@ describe("Design B A5 poster", () => {
     expect(Buffer.from(designB).toString("latin1")).not.toContain("Chrissy");
     expect(Buffer.from(designB).toString("latin1")).not.toContain("Thomas");
   });
+
+  it("uses the saved poster fonts for the name, date, SHARE line, and script line", async () => {
+    const qr = { bytes: png };
+    const copy = sharePosterCopy("en");
+    const base = {
+      name: "Wedding day",
+      dateLabel: "06. 24. 2026",
+      ...copy,
+      qr,
+    };
+    const original = await buildSharePosterPdf({ ...base, name: "Wedding day", typography: defaultPosterTypography });
+    const custom = await buildSharePosterPdf({
+      ...base,
+      name: "Wedding day",
+      typography: {
+        nameFont: "playpen-sans",
+        nameSizeMm: 11,
+        dateFont: "eb-garamond",
+        dateSizeMm: 5,
+        kickerFont: "literata",
+        kickerSizeMm: 8,
+        scriptFont: "alegreya",
+        scriptSizeMm: 14,
+      },
+    });
+    const customPdf = await PDFDocument.load(custom);
+    const fonts = embeddedFontNames(customPdf);
+
+    expect(Buffer.from(custom).equals(Buffer.from(original))).toBe(false);
+    expect(fonts).toContain("PlaypenSans");
+    expect(fonts).toContain("EBGaramond");
+    expect(fonts).toContain("Literata");
+    expect(fonts).toContain("Alegreya");
+    expect((await pageSize(custom)).pages).toBe(1);
+  });
 });
+
+function embeddedFontNames(pdf: PDFDocument) {
+  const resources = pdf.getPage(0).node.normalizedEntries().Resources;
+  const fonts = resources.entries().find(([key]) => String(key) === "/Font")?.[1];
+  const dict = entryRecord(fonts) ?? entryRecord(pdf.context.lookup(fonts as never));
+  const names: string[] = [];
+
+  if (!dict) {
+    return "";
+  }
+
+  for (const [, value] of dict.entries()) {
+    const font = entryRecord(value) ?? entryRecord(pdf.context.lookup(value as never));
+    const base = font?.entries().find(([key]) => String(key) === "/BaseFont")?.[1];
+    names.push(String(base ?? ""));
+  }
+
+  return names.join(" ");
+}
+
+function entryRecord(value: unknown): { entries: () => Array<[unknown, unknown]> } | null {
+  if (value && typeof value === "object" && "entries" in value && typeof value.entries === "function") {
+    return value as { entries: () => Array<[unknown, unknown]> };
+  }
+
+  return null;
+}

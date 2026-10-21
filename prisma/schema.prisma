@@ -112,6 +112,7 @@ model Event {
   titleBold            Boolean   @default(true)
   guestBold            Boolean   @default(false)
   welcomeBold          Boolean   @default(false)
+  posterTypography     Json?
   logoSize             String    @default("medium")
   logoCorner           String    @default("square")
   logoScale            Float?

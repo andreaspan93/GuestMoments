@@ -3,6 +3,7 @@ import path from "node:path";
 import fontkit from "@pdf-lib/fontkit";
 import { resolveEventFontId, type EventFontId } from "@/lib/events/appearance";
 import { POSTER_PAGE_CQH_MM, POSTER_TITLE_MAX_MM } from "@/lib/events/poster-layout";
+import { posterFontSize, type PosterTextSizes, type PosterTypography } from "@/lib/events/poster-typography";
 
 export { POSTER_TITLE_MAX_MM };
 
@@ -153,4 +154,16 @@ export function posterTitleSize(name: string, titleFont = "noto-sans") {
   const sizeMm = fittedTitleSizeMm(name, titleFont);
   const cqh = Math.round((sizeMm / POSTER_PAGE_CQH_MM) * 1000) / 1000;
   return `${cqh}cqh`;
+}
+
+export function posterTextSizes(
+  typography: PosterTypography,
+  text: { name: string; date: string; kicker: string; script: string },
+): PosterTextSizes {
+  return {
+    name: posterFontSize(fittedTitleSizeMm(text.name, typography.nameFont, typography.nameSizeMm)),
+    date: posterFontSize(typography.dateSizeMm),
+    kicker: posterFontSize(typography.kickerSizeMm),
+    script: posterFontSize(typography.scriptSizeMm),
+  };
 }
