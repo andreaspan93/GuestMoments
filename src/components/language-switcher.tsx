@@ -1,8 +1,10 @@
 "use client";
 
+import { Suspense } from "react";
 import { useLocale, useTranslations } from "next-intl";
+import { useSearchParams } from "next/navigation";
 import { LocaleFlag } from "@/components/locale-flag";
-import { Link } from "@/i18n/navigation";
+import { Link, usePathname } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
 import { cn } from "@/lib/utils";
 
@@ -11,7 +13,7 @@ const labels = {
   en: "English",
 } as const;
 
-export function LanguageSwitcher() {
+function LanguageSwitcherLinks({ href }: { href: string }) {
   const locale = useLocale();
   const t = useTranslations("landing");
 
@@ -26,7 +28,7 @@ export function LanguageSwitcher() {
         return (
           <Link
             key={item}
-            href="/"
+            href={href}
             locale={item}
             hrefLang={item}
             aria-label={labels[item]}
@@ -43,5 +45,23 @@ export function LanguageSwitcher() {
         );
       })}
     </nav>
+  );
+}
+
+function LanguageSwitcherWithQuery() {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const query = searchParams.toString();
+
+  return <LanguageSwitcherLinks href={query ? `${pathname}?${query}` : pathname} />;
+}
+
+export function LanguageSwitcher() {
+  const pathname = usePathname();
+
+  return (
+    <Suspense fallback={<LanguageSwitcherLinks href={pathname} />}>
+      <LanguageSwitcherWithQuery />
+    </Suspense>
   );
 }
