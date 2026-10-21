@@ -168,8 +168,7 @@ async function renderPosterPng(node: HTMLElement) {
   }
 
   ctx.scale(scale, scale);
-  const article = node.querySelector(".qr-poster");
-  ctx.fillStyle = article ? getComputedStyle(article).backgroundColor : "#ffffff";
+  ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, origin.width, origin.height);
 
   for (const rule of node.querySelectorAll<HTMLElement>(".qr-share-rule")) {

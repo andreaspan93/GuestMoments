@@ -63,7 +63,11 @@ describe("QR poster designs", () => {
     expect(route).toContain("buildSharePosterPdf");
     expect(route).toContain('design === "b"');
     expect(route.match(/guestEventUrl\(event\.uniqueCode\)/g)).toHaveLength(1);
-    expect(css).toContain("width: min(112mm, 100%);");
+    expect(css).toContain("width: min(100mm, 100%);");
+    expect(css).toContain("background: #ffffff;");
+    expect(css).not.toContain("#f4f4f4");
+    expect(readFileSync(new URL("./share-poster-pdf.ts", import.meta.url), "utf8")).toContain("rgb(1, 1, 1)");
+    expect(readFileSync(new URL("./poster-png.ts", import.meta.url), "utf8")).toContain('ctx.fillStyle = "#ffffff"');
     expect(css).toContain("width: 148mm;");
     expect(css).toContain("height: 210mm;");
     expect(() => assertPosterDesign("b", "a")).toThrow(/selected design/);

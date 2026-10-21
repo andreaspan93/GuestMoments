@@ -6,7 +6,7 @@ import { A5_HEIGHT_PT, A5_WIDTH_PT } from "@/lib/events/poster-pdf";
 import { posterTitleRuns, titleFontFile, type PosterTitleRun } from "@/lib/events/poster-title";
 
 const ink = rgb(0.102, 0.102, 0.102);
-const paper = rgb(0.956, 0.956, 0.956);
+const paper = rgb(1, 1, 1);
 
 export type SharePosterPdfInput = {
   name: string;

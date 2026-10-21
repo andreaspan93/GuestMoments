@@ -74,7 +74,7 @@ body {
 
 .qr-poster-scale {
   display: grid;
-  width: min(112mm, 100%);
+  width: min(100mm, 100%);
   aspect-ratio: 148 / 210;
   container-type: size;
 }
@@ -89,7 +89,7 @@ body {
   height: 100%;
   align-items: stretch;
   justify-content: flex-start;
-  background: #fff;
+  background: #ffffff;
   color: #111;
   padding: var(--poster-pad-top, 11mm) var(--poster-pad-x, 11mm) var(--poster-pad-bottom, 12mm);
   print-color-adjust: exact;
@@ -237,7 +237,7 @@ body {
     min-height: 0 !important;
     max-height: 210mm !important;
     overflow: hidden !important;
-    background: #fff !important;
+    background: #ffffff !important;
     color: #241c18 !important;
   }
 
@@ -257,6 +257,7 @@ body {
     max-height: 210mm;
     aspect-ratio: auto;
     margin: 0;
+    background: #ffffff !important;
     box-shadow: none;
     break-inside: avoid;
     break-after: avoid;
@@ -267,7 +268,7 @@ body {
 
 .qr-poster.qr-share {
   justify-content: center;
-  background: #f4f4f4;
+  background: #ffffff;
   color: #1a1a1a;
   padding: 8% 7.5% 7%;
   font-family: var(--font-noto-sans), "Noto Sans", sans-serif;
