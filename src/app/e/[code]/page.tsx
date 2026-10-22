@@ -184,7 +184,7 @@ export default async function GuestEventRoute({
                   <p className="mt-3 leading-7 whitespace-pre-wrap">{instructions}</p>
                 </div>
               ) : null}
-              <p className="mt-8 text-sm leading-6 text-foreground/80">
+              <p className="mt-8 text-xs leading-5 text-foreground/80">
                 {copy.privacyLead}{" "}
                 <a
                   className="underline underline-offset-4"
