@@ -188,7 +188,7 @@ export function GuestGallery({
     <section className="mt-8">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-sm font-medium tracking-wide uppercase">{copy.galleryTitle}</h2>
-        {ownedIds.length > 0 ? (
+        {selected.length > 0 ? (
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
@@ -198,16 +198,22 @@ export function GuestGallery({
             >
               {copy.selectAll}
             </button>
-            {selected.length > 0 ? (
-              <button
-                type="button"
-                className="h-10 rounded-full border border-border bg-card px-4 text-sm font-medium whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-60"
-                disabled={pending}
-                onClick={() => void removeSelected()}
-              >
-                {copy.deleteSelected}
-              </button>
-            ) : null}
+            <button
+              type="button"
+              className="h-10 rounded-full border border-border bg-card px-4 text-sm font-medium whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={pending}
+              onClick={() => setSelected([])}
+            >
+              {copy.deselectAll}
+            </button>
+            <button
+              type="button"
+              className="h-10 rounded-full border border-border bg-card px-4 text-sm font-medium whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={pending}
+              onClick={() => void removeSelected()}
+            >
+              {copy.deleteSelected}
+            </button>
           </div>
         ) : null}
       </div>
