@@ -14,6 +14,7 @@ import {
   deleteCustomerMediaSelection,
   countGuestUploads,
   deleteGuestMedia,
+  deleteGuestMediaSelection,
   deleteGuestUploads,
   downloadCustomerMedia,
   downloadGuestMedia,
@@ -375,6 +376,13 @@ describe("galleries", () => {
     await expect(countGuestUploads(event.uniqueCode, tokenA)).resolves.toBe(2);
     await expect(countGuestUploads(event.uniqueCode, tokenB)).resolves.toBe(1);
     await expect(countGuestUploads(event.uniqueCode, undefined)).resolves.toBe(0);
+    await expect(
+      deleteGuestMediaSelection(event.uniqueCode, [own.id, other.id], tokenA, storage),
+    ).rejects.toMatchObject({ code: "notFound" });
+    expect(storage.objects.has(own.storageKey)).toBe(true);
+    await expect(
+      deleteGuestMediaSelection(event.uniqueCode, [own.id], undefined, storage),
+    ).rejects.toMatchObject({ code: "unauthorized" });
 
     await expect(
       deleteGuestMedia(event.uniqueCode, other.id, tokenA, storage),
@@ -387,6 +395,9 @@ describe("galleries", () => {
     expect(storage.objects.has(own.storageKey)).toBe(true);
 
     await deleteGuestMedia(event.uniqueCode, own.id, tokenA, storage);
+    await expect(
+      deleteGuestMediaSelection(event.uniqueCode, [hiddenOwn.id], tokenA, storage),
+    ).resolves.toEqual({ deleted: 1 });
 
     expect(storage.objects.has(own.storageKey)).toBe(false);
     expect(storage.objects.has(own.thumbnailKey ?? "")).toBe(false);
@@ -399,7 +410,7 @@ describe("galleries", () => {
     });
     const deleted = await deleteGuestUploads(event.uniqueCode, tokenA, storage);
 
-    expect(deleted.deleted).toBe(1);
+    expect(deleted.deleted).toBe(0);
     expect(storage.objects.has(hiddenOwn.storageKey)).toBe(false);
     await expect(prisma.media.findUnique({ where: { id: hiddenOwn.id } })).resolves.toBeNull();
     await expect(prisma.media.findUnique({ where: { id: other.id } })).resolves.not.toBeNull();

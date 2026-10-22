@@ -9,6 +9,7 @@ import {
   deleteCustomerAlbum,
   deleteCustomerMediaSelection,
   deleteGuestMedia,
+  deleteGuestMediaSelection,
   deleteGuestUploads,
   downloadCustomerMedia,
   downloadGuestMedia,
@@ -18,6 +19,7 @@ import {
   mutateCustomerMedia,
   prepareBulkDownload,
   readCustomerMediaFile,
+  readGuestMediaFile,
   renameCustomerAlbum,
 } from "@/lib/gallery/service";
 import { readGuestCookie } from "@/lib/uploads/http";
@@ -40,6 +42,8 @@ const bulkDownloadRequest = z.strictObject({
 });
 
 const bulkDeleteRequest = bulkDownloadRequest;
+
+const guestDeleteRequest = bulkDownloadRequest;
 
 const bulkAssignRequest = z.strictObject({
   mediaIds: z.array(z.string().uuid()).min(1).max(500),
@@ -82,6 +86,10 @@ export async function getGuestDownload(code: string, mediaId: string) {
   return downloadGuestMedia(code, mediaId, await readGuestCookie(code));
 }
 
+export async function getGuestMediaFile(code: string, mediaId: string) {
+  return readGuestMediaFile(code, mediaId, await readGuestCookie(code));
+}
+
 export async function getCustomerGallery(eventId: string, request: Request) {
   const session = await getRequestSession();
 
@@ -112,6 +120,12 @@ export async function removeGuestMedia(code: string, mediaId: string) {
 
 export async function removeGuestUploads(code: string) {
   return deleteGuestUploads(code, await readGuestCookie(code));
+}
+
+export async function removeGuestSelection(code: string, request: Request) {
+  const body = guestDeleteRequest.parse(await request.json().catch(() => null));
+
+  return deleteGuestMediaSelection(code, body.mediaIds, await readGuestCookie(code));
 }
 
 export async function postCustomerMediaAction(

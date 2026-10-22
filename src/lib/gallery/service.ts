@@ -473,6 +473,28 @@ export async function downloadGuestMedia(
   return downloadUrl(storeOf(storage), media);
 }
 
+export async function readGuestMediaFile(
+  code: string,
+  mediaId: string,
+  cookieToken: string | undefined,
+  storage?: IStorageService,
+  now = new Date(),
+) {
+  const media = await requireGuestMedia(code, mediaId, cookieToken, now, { download: true });
+  const files = storeOf(storage);
+  const bytes = files.getObject ? await files.getObject(media.storageKey) : null;
+
+  if (!bytes) {
+    throw new GalleryError("unavailable");
+  }
+
+  return {
+    bytes,
+    mimeType: media.mimeType,
+    fileName: media.originalFileName,
+  };
+}
+
 export async function downloadCustomerMedia(
   actor: Actor | null,
   eventId: string,
@@ -634,6 +656,46 @@ export async function deleteGuestMedia(
   await eraseGuestMedia(media, storeOf(storage));
 
   return { ok: true as const };
+}
+
+export async function deleteGuestMediaSelection(
+  code: string,
+  mediaIds: string[],
+  cookieToken: string | undefined,
+  storage?: IStorageService,
+  now = new Date(),
+) {
+  const token = requireGuestOwnerToken(cookieToken);
+
+  if (!token) {
+    await recordApplicationLog({
+      eventType: "access.denied",
+      actorType: "anonymous",
+      result: "denied",
+      metadata: { reason: "unauthenticated" },
+    });
+    throw new GalleryError("unauthorized");
+  }
+
+  const event = await openGuestEvent(code, now);
+  const ids = [...new Set(mediaIds)];
+  const rows = await prisma.media.findMany({
+    where: {
+      eventId: event.id,
+      guestToken: token,
+      id: { in: ids },
+    },
+  });
+
+  if (rows.length !== ids.length) {
+    throw new GalleryError("notFound");
+  }
+
+  for (const media of rows) {
+    await eraseGuestMedia(media, storeOf(storage));
+  }
+
+  return { deleted: rows.length };
 }
 
 export async function deleteGuestUploads(

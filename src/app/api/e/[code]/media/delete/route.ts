@@ -1,15 +1,15 @@
-import { galleryErrorResponse, galleryJson, removeGuestUploads } from "@/lib/gallery/http";
+import { galleryErrorResponse, galleryJson, removeGuestSelection } from "@/lib/gallery/http";
 
 export const runtime = "nodejs";
 
 export async function POST(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ code: string }> },
 ) {
   try {
     const { code } = await context.params;
 
-    return galleryJson(await removeGuestUploads(code));
+    return galleryJson(await removeGuestSelection(code, request));
   } catch (error) {
     return galleryErrorResponse(error);
   }
