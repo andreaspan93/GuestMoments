@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Trash2 } from "lucide-react";
+import { CheckCheck, SquareMinus, Trash2 } from "lucide-react";
 import { GalleryViewer, ViewerIconButton } from "@/components/gallery-viewer";
 import { guestChrome, type GuestLocale } from "@/lib/events/text";
 import { deliverMediaDownload, isPhoneDevice } from "@/lib/gallery/photo-library";
@@ -189,26 +189,30 @@ export function GuestGallery({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-sm font-medium tracking-wide uppercase">{copy.galleryTitle}</h2>
         {selected.length > 0 ? (
-          <div className="grid w-full grid-cols-3 gap-1.5 sm:w-auto">
+          <div className="flex w-full flex-nowrap items-center gap-1.5 sm:w-auto">
             <button
               type="button"
-              className="h-9 min-w-0 rounded-full border border-border bg-card px-2 text-xs font-medium whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex size-9 shrink-0 items-center justify-center rounded-full border border-border bg-card disabled:cursor-not-allowed disabled:opacity-60"
+              aria-label={copy.selectAll}
+              title={copy.selectAll}
               disabled={pending}
               onClick={() => setSelected(ownedIds)}
             >
-              {copy.selectAll}
+              <CheckCheck className="size-4" aria-hidden="true" />
             </button>
             <button
               type="button"
-              className="h-9 min-w-0 rounded-full border border-border bg-card px-2 text-xs font-medium whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex size-9 shrink-0 items-center justify-center rounded-full border border-border bg-card disabled:cursor-not-allowed disabled:opacity-60"
+              aria-label={copy.deselectAll}
+              title={copy.deselectAll}
               disabled={pending}
               onClick={() => setSelected([])}
             >
-              {copy.deselectAll}
+              <SquareMinus className="size-4" aria-hidden="true" />
             </button>
             <button
               type="button"
-              className="h-9 min-w-0 rounded-full border border-border bg-card px-2 text-xs font-medium whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-60"
+              className="h-9 min-w-0 flex-1 rounded-full border border-border bg-card px-2 text-xs font-medium whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-60 sm:flex-none"
               disabled={pending}
               onClick={() => void removeSelected()}
             >
