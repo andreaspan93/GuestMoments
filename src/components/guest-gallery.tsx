@@ -189,10 +189,10 @@ export function GuestGallery({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-sm font-medium tracking-wide uppercase">{copy.galleryTitle}</h2>
         {selected.length > 0 ? (
-          <div className="flex flex-wrap gap-2">
+          <div className="grid w-full grid-cols-3 gap-1.5 sm:w-auto">
             <button
               type="button"
-              className="h-10 rounded-full border border-border bg-card px-4 text-sm font-medium whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-60"
+              className="h-9 min-w-0 rounded-full border border-border bg-card px-2 text-xs font-medium whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-60"
               disabled={pending}
               onClick={() => setSelected(ownedIds)}
             >
@@ -200,7 +200,7 @@ export function GuestGallery({
             </button>
             <button
               type="button"
-              className="h-10 rounded-full border border-border bg-card px-4 text-sm font-medium whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-60"
+              className="h-9 min-w-0 rounded-full border border-border bg-card px-2 text-xs font-medium whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-60"
               disabled={pending}
               onClick={() => setSelected([])}
             >
@@ -208,7 +208,7 @@ export function GuestGallery({
             </button>
             <button
               type="button"
-              className="h-10 rounded-full border border-border bg-card px-4 text-sm font-medium whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-60"
+              className="h-9 min-w-0 rounded-full border border-border bg-card px-2 text-xs font-medium whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-60"
               disabled={pending}
               onClick={() => void removeSelected()}
             >
