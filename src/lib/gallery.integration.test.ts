@@ -12,6 +12,9 @@ import { createCustomerEvent } from "@/lib/events/service";
 import type { EventFormValues } from "@/lib/events/schema";
 import {
   deleteCustomerMediaSelection,
+  countGuestUploads,
+  deleteGuestMedia,
+  deleteGuestUploads,
   downloadCustomerMedia,
   downloadGuestMedia,
   listCustomerGallery,
@@ -205,6 +208,9 @@ describe("galleries", () => {
 
     expect(fullA.map((item) => item.id)).toEqual([photoA.id, photoB.id]);
     expect(fullB.map((item) => item.id)).toEqual([photoA.id, photoB.id]);
+    expect(fullA.find((item) => item.id === photoA.id)?.owned).toBe(true);
+    expect(fullA.find((item) => item.id === photoB.id)?.owned).toBe(false);
+    expect(fullB.find((item) => item.id === photoB.id)?.owned).toBe(true);
     expect(fullA.some((item) => item.id === hidden.id)).toBe(false);
     expect(JSON.stringify(fullA)).not.toContain("guestToken");
     expect(JSON.stringify(fullA)).not.toContain(tokenA);
@@ -216,6 +222,7 @@ describe("galleries", () => {
         "id",
         "mimeType",
         "originalFileName",
+        "owned",
         "playbackUrl",
         "previewUrl",
         "size",
@@ -347,5 +354,58 @@ describe("galleries", () => {
       deleteCustomerMediaSelection(null, eventA.id, [kept.id], storage),
     ).rejects.toMatchObject({ code: "unauthorized" });
     expect(storage.objects.has(kept.storageKey)).toBe(true);
+  });
+
+  it("lets a guest delete only the files uploaded from their browser", async () => {
+    const customer = await signUpCustomer("Guest delete owner");
+    const event = await createCustomerEvent(customer, form("Guest delete"));
+    const storage = new MemoryStorage();
+    const tokenA = createGuestToken();
+    const tokenB = createGuestToken();
+    const own = await addMedia(event.id, tokenA, { name: "mine.jpg", thumbnail: true });
+    const hiddenOwn = await addMedia(event.id, tokenA, { name: "mine-hidden.jpg", hidden: true });
+    const other = await addMedia(event.id, tokenB, { name: "theirs.jpg", thumbnail: true });
+
+    storage.objects.add(own.storageKey);
+    storage.objects.add(own.thumbnailKey ?? "");
+    storage.objects.add(hiddenOwn.storageKey);
+    storage.objects.add(other.storageKey);
+    storage.objects.add(other.thumbnailKey ?? "");
+
+    await expect(countGuestUploads(event.uniqueCode, tokenA)).resolves.toBe(2);
+    await expect(countGuestUploads(event.uniqueCode, tokenB)).resolves.toBe(1);
+    await expect(countGuestUploads(event.uniqueCode, undefined)).resolves.toBe(0);
+
+    await expect(
+      deleteGuestMedia(event.uniqueCode, other.id, tokenA, storage),
+    ).rejects.toMatchObject({ code: "notFound" });
+    expect(storage.objects.has(other.storageKey)).toBe(true);
+    await expect(prisma.media.findUnique({ where: { id: other.id } })).resolves.not.toBeNull();
+    await expect(deleteGuestMedia(event.uniqueCode, own.id, undefined, storage)).rejects.toMatchObject({
+      code: "unauthorized",
+    });
+    expect(storage.objects.has(own.storageKey)).toBe(true);
+
+    await deleteGuestMedia(event.uniqueCode, own.id, tokenA, storage);
+
+    expect(storage.objects.has(own.storageKey)).toBe(false);
+    expect(storage.objects.has(own.thumbnailKey ?? "")).toBe(false);
+    await expect(prisma.media.findUnique({ where: { id: own.id } })).resolves.toBeNull();
+    await expect(prisma.media.findUnique({ where: { id: other.id } })).resolves.not.toBeNull();
+
+    await prisma.event.update({
+      where: { id: event.id },
+      data: { privacyMode: "FULL_GALLERY" },
+    });
+    const deleted = await deleteGuestUploads(event.uniqueCode, tokenA, storage);
+
+    expect(deleted.deleted).toBe(1);
+    expect(storage.objects.has(hiddenOwn.storageKey)).toBe(false);
+    await expect(prisma.media.findUnique({ where: { id: hiddenOwn.id } })).resolves.toBeNull();
+    await expect(prisma.media.findUnique({ where: { id: other.id } })).resolves.not.toBeNull();
+    expect(storage.objects.has(other.storageKey)).toBe(true);
+    await expect(deleteGuestUploads(event.uniqueCode, tokenB, storage)).resolves.toEqual({ deleted: 1 });
+    expect(storage.objects.has(other.storageKey)).toBe(false);
+    expect(storage.objects.has(other.thumbnailKey ?? "")).toBe(false);
   });
 });

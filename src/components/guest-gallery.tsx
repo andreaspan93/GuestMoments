@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { GalleryViewer } from "@/components/gallery-viewer";
+import { Trash2 } from "lucide-react";
+import { GalleryViewer, ViewerIconButton } from "@/components/gallery-viewer";
 import { guestChrome, type GuestLocale } from "@/lib/events/text";
 import { GALLERY_REFRESH_MS, type GalleryItem } from "@/lib/gallery/present";
 
@@ -9,16 +10,23 @@ export function GuestGallery({
   code,
   locale,
   initialItems,
+  initialOwnUploadCount,
   downloadsEnabled,
 }: {
   code: string;
   locale: GuestLocale;
   initialItems: GalleryItem[];
+  initialOwnUploadCount: number;
   downloadsEnabled: boolean;
 }) {
   const copy = guestChrome[locale];
   const [items, setItems] = useState(initialItems);
+  const [ownUploadCount, setOwnUploadCount] = useState(initialOwnUploadCount);
   const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState("");
+  const hasOwnUploads = ownUploadCount > 0;
+  const current = openIndex !== null ? items[openIndex] : null;
 
   useEffect(() => {
     let active = true;
@@ -36,10 +44,14 @@ export function GuestGallery({
         return;
       }
 
-      const body = (await response.json()) as { items?: GalleryItem[] };
+      const body = (await response.json()) as { items?: GalleryItem[]; ownUploadCount?: number };
 
       if (body.items) {
         setItems(body.items);
+      }
+
+      if (typeof body.ownUploadCount === "number") {
+        setOwnUploadCount(body.ownUploadCount);
       }
     }
 
@@ -78,9 +90,80 @@ export function GuestGallery({
     }
   }
 
+  async function removeOwn(id: string) {
+    if (pending || !window.confirm(copy.deleteOwnConfirm)) {
+      return;
+    }
+
+    setPending(true);
+    setError("");
+
+    try {
+      const response = await fetch(`/api/e/${code}/media/${id}`, {
+        method: "DELETE",
+        credentials: "same-origin",
+      });
+
+      if (!response.ok) {
+        setError(copy.deleteFailed);
+        return;
+      }
+
+      setOpenIndex(null);
+      setOwnUploadCount((count) => Math.max(0, count - 1));
+      setItems((currentItems) => currentItems.filter((item) => item.id !== id));
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function removeAllOwn() {
+    if (pending || !hasOwnUploads || !window.confirm(copy.deleteAllOwnConfirm)) {
+      return;
+    }
+
+    setPending(true);
+    setError("");
+
+    try {
+      const response = await fetch(`/api/e/${code}/media/delete`, {
+        method: "POST",
+        credentials: "same-origin",
+      });
+
+      if (!response.ok) {
+        setError(copy.deleteFailed);
+        return;
+      }
+
+      setOpenIndex(null);
+      setOwnUploadCount(0);
+      setItems((currentItems) => currentItems.filter((item) => !item.owned));
+    } finally {
+      setPending(false);
+    }
+  }
+
   return (
     <section className="mt-8">
-      <h2 className="text-sm font-medium tracking-wide uppercase">{copy.galleryTitle}</h2>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h2 className="text-sm font-medium tracking-wide uppercase">{copy.galleryTitle}</h2>
+        {hasOwnUploads ? (
+          <button
+            type="button"
+            className="h-10 rounded-full border border-border bg-card px-4 text-sm font-medium whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={pending}
+            onClick={() => void removeAllOwn()}
+          >
+            {copy.deleteAllOwn}
+          </button>
+        ) : null}
+      </div>
+      {error ? (
+        <p role="alert" className="mt-3 text-sm">
+          {error}
+        </p>
+      ) : null}
       {items.length === 0 ? (
         <p className="mt-4 text-sm text-foreground/80">{copy.galleryEmpty}</p>
       ) : (
@@ -129,6 +212,17 @@ export function GuestGallery({
           onIndex={setOpenIndex}
           allowDownload={downloadsEnabled}
           onDownload={(id) => void download(id)}
+          actions={
+            current?.owned ? (
+              <ViewerIconButton
+                label={copy.deleteOwn}
+                destructive
+                onClick={() => void removeOwn(current.id)}
+              >
+                <Trash2 className="size-5" aria-hidden="true" />
+              </ViewerIconButton>
+            ) : null
+          }
         />
       ) : null}
     </section>

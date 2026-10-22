@@ -4,9 +4,12 @@ import { recordUnexpectedError } from "@/lib/logging/logger";
 import {
   assignCustomerMediaAlbum,
   assignCustomerMediaAlbums,
+  countGuestUploads,
   createCustomerAlbum,
   deleteCustomerAlbum,
   deleteCustomerMediaSelection,
+  deleteGuestMedia,
+  deleteGuestUploads,
   downloadCustomerMedia,
   downloadGuestMedia,
   listCustomerAlbums,
@@ -14,6 +17,7 @@ import {
   listGuestGallery,
   mutateCustomerMedia,
   prepareBulkDownload,
+  readCustomerMediaFile,
   renameCustomerAlbum,
 } from "@/lib/gallery/service";
 import { readGuestCookie } from "@/lib/uploads/http";
@@ -66,8 +70,11 @@ function gallerySort(request: Request) {
 }
 
 export async function getGuestGallery(code: string) {
+  const cookieToken = await readGuestCookie(code);
+
   return {
-    items: await listGuestGallery(code, await readGuestCookie(code)),
+    items: await listGuestGallery(code, cookieToken),
+    ownUploadCount: await countGuestUploads(code, cookieToken),
   };
 }
 
@@ -91,6 +98,20 @@ export async function getCustomerDownload(eventId: string, mediaId: string) {
   const session = await getRequestSession();
 
   return downloadCustomerMedia(session?.user ?? null, eventId, mediaId);
+}
+
+export async function getCustomerMediaFile(eventId: string, mediaId: string) {
+  const session = await getRequestSession();
+
+  return readCustomerMediaFile(session?.user ?? null, eventId, mediaId);
+}
+
+export async function removeGuestMedia(code: string, mediaId: string) {
+  return deleteGuestMedia(code, mediaId, await readGuestCookie(code));
+}
+
+export async function removeGuestUploads(code: string) {
+  return deleteGuestUploads(code, await readGuestCookie(code));
 }
 
 export async function postCustomerMediaAction(

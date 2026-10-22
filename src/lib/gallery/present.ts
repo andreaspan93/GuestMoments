@@ -15,6 +15,7 @@ export type GalleryItem = {
   createdAt: string;
   previewUrl: string | null;
   playbackUrl: string | null;
+  owned?: boolean;
 };
 
 export type CustomerGalleryItem = GalleryItem & {

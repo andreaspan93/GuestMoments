@@ -5,6 +5,7 @@ import { zip } from "fflate";
 import { Eye, EyeOff, FolderPlus, Heart, Pencil, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { GalleryViewer, ViewerIconButton } from "@/components/gallery-viewer";
+import { deliverMediaDownload, isPhoneDevice } from "@/lib/gallery/photo-library";
 import {
   FAVORITES_COLLECTION,
   matchesCollection,
@@ -210,10 +211,36 @@ export function CustomerGallery({
       return;
     }
 
-    const anchor = document.createElement("a");
-    anchor.href = body.url;
-    anchor.rel = "noopener";
-    anchor.click();
+    const item = items.find((entry) => entry.id === id);
+    const outcome = await deliverMediaDownload({
+      url: body.url,
+      fileName: item?.originalFileName || "photo.jpg",
+      mimeType: item?.mimeType || "image/jpeg",
+      isPhone: isPhoneDevice(),
+      fetchFile: async () => {
+        const fileResponse = await fetch(`/api/events/${eventId}/media/${id}/file`, {
+          credentials: "same-origin",
+        });
+
+        if (!fileResponse.ok) {
+          throw new Error("file");
+        }
+
+        return fileResponse.blob();
+      },
+      canShare: (file) => Boolean(navigator.canShare?.({ files: [file] })),
+      share: (file) => navigator.share({ files: [file] }),
+      saveDownload: (href) => {
+        const anchor = document.createElement("a");
+        anchor.href = href;
+        anchor.rel = "noopener";
+        anchor.click();
+      },
+    });
+
+    if (outcome === "cancelled") {
+      return;
+    }
   }
 
   function rememberAlbum(album: AlbumSummary) {

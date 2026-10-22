@@ -14,7 +14,7 @@ import { readGuestLocale } from "@/lib/events/guest-actions";
 import { guestLocaleFromQuery } from "@/lib/events/text";
 import { loadGuestEvent } from "@/lib/events/service";
 import { guestChrome, guestText } from "@/lib/events/text";
-import { guestGalleryItems } from "@/lib/gallery/service";
+import { countGuestUploads, guestGalleryItems } from "@/lib/gallery/service";
 import { signedObjectUrl } from "@/lib/storage/links";
 import { readGuestCookie } from "@/lib/uploads/http";
 
@@ -54,14 +54,16 @@ export default async function GuestEventRoute({
       ])
     : [null, null];
   const backgroundUrl = await signedObjectUrl(event.backgroundImageKey);
+  const guestCookie = open ? await readGuestCookie(code) : undefined;
   const galleryItems = open
     ? await guestGalleryItems({
         event,
         customerDisabled: loaded.customerDisabled,
         customerAccessExpiresAt: loaded.customerAccessExpiresAt,
-        cookieToken: await readGuestCookie(code),
+        cookieToken: guestCookie,
       })
     : [];
+  const ownUploadCount = open ? await countGuestUploads(code, guestCookie) : 0;
   const panelClass = guestPanelClass(event.panelStyle, Boolean(backgroundUrl));
   const welcome = guestText(locale, event.welcomeMessageEl, event.welcomeMessageEn);
   const instructions = guestText(
@@ -209,6 +211,7 @@ export default async function GuestEventRoute({
               code={event.uniqueCode}
               locale={locale}
               initialItems={galleryItems}
+              initialOwnUploadCount={ownUploadCount}
               downloadsEnabled={event.guestDownloadsEnabled}
             />
           </div>

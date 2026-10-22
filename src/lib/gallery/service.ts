@@ -150,14 +150,20 @@ export async function guestGalleryItems(
       isHidden: false,
       ...(input.event.privacyMode === "OWN_UPLOADS" && token ? { guestToken: token } : {}),
     },
-    select: mediaSelect,
+    select: {
+      ...mediaSelect,
+      guestToken: true,
+    },
     orderBy: { createdAt: "desc" },
   });
   const storage = storeOf(input.storage);
   const items: GalleryItem[] = [];
 
   for (const row of rows) {
-    items.push(toGalleryItem(row, await presentRow(storage, row)));
+    items.push({
+      ...toGalleryItem(row, await presentRow(storage, row)),
+      owned: Boolean(token) && row.guestToken === token,
+    });
   }
 
   return items;
@@ -490,6 +496,198 @@ export async function downloadCustomerMedia(
   const media = await requireCustomerMedia(actor, eventId, mediaId);
 
   return downloadUrl(storeOf(storage), media);
+}
+
+export async function readCustomerMediaFile(
+  actor: Actor | null,
+  eventId: string,
+  mediaId: string,
+  storage?: IStorageService,
+  now = new Date(),
+) {
+  if (!actor) {
+    await recordApplicationLog({
+      eventType: "access.denied",
+      actorType: "anonymous",
+      targetType: isInternalId(eventId) ? "event" : undefined,
+      targetId: isInternalId(eventId) ? eventId : undefined,
+      result: "denied",
+      metadata: { reason: "unauthenticated" },
+    });
+    throw new GalleryError("unauthorized");
+  }
+
+  await ensureCustomerService(actor, now);
+  const media = await requireCustomerMedia(actor, eventId, mediaId);
+  const files = storeOf(storage);
+  const bytes = files.getObject ? await files.getObject(media.storageKey) : null;
+
+  if (!bytes) {
+    throw new GalleryError("unavailable");
+  }
+
+  return {
+    bytes,
+    mimeType: media.mimeType,
+    fileName: media.originalFileName,
+  };
+}
+
+async function openGuestEvent(code: string, now: Date) {
+  const loaded = await prisma.event.findUnique({
+    where: { uniqueCode: code },
+    include: {
+      customer: {
+        select: { disabled: true, accessExpiresAt: true },
+      },
+    },
+  });
+
+  if (!loaded) {
+    throw new GalleryError("notFound");
+  }
+
+  const decision = decideGuestAccess(
+    {
+      status: loaded.status,
+      customerDisabled: loaded.customer.disabled,
+      customerAccessExpiresAt: loaded.customer.accessExpiresAt,
+    },
+    now,
+  );
+
+  if (decision.state !== "ok") {
+    throw new GalleryError(decision.state === "not_found" ? "notFound" : "unavailable");
+  }
+
+  return loaded;
+}
+
+function requireGuestOwnerToken(cookieToken: string | undefined) {
+  if (!cookieToken || !isGuestToken(cookieToken)) {
+    return null;
+  }
+
+  return cookieToken;
+}
+
+async function eraseGuestMedia(
+  media: {
+    id: string;
+    eventId: string;
+    storageKey: string;
+    thumbnailKey: string | null;
+  },
+  storage: IStorageService,
+) {
+  await storage.deleteObject(media.storageKey);
+
+  if (media.thumbnailKey) {
+    await storage.deleteObject(media.thumbnailKey);
+  }
+
+  await prisma.media.delete({
+    where: { id: media.id },
+  });
+  await recordApplicationLog({
+    eventType: "media.deleted",
+    actorType: "guest",
+    targetType: "media",
+    targetId: media.id,
+    result: "success",
+    metadata: { eventId: media.eventId },
+  });
+}
+
+export async function deleteGuestMedia(
+  code: string,
+  mediaId: string,
+  cookieToken: string | undefined,
+  storage?: IStorageService,
+  now = new Date(),
+) {
+  const token = requireGuestOwnerToken(cookieToken);
+
+  if (!token) {
+    await recordApplicationLog({
+      eventType: "access.denied",
+      actorType: "anonymous",
+      result: "denied",
+      metadata: { reason: "unauthenticated" },
+    });
+    throw new GalleryError("unauthorized");
+  }
+
+  const event = await openGuestEvent(code, now);
+  const media = await prisma.media.findFirst({
+    where: {
+      id: mediaId,
+      eventId: event.id,
+      guestToken: token,
+    },
+  });
+
+  if (!media) {
+    throw new GalleryError("notFound");
+  }
+
+  await eraseGuestMedia(media, storeOf(storage));
+
+  return { ok: true as const };
+}
+
+export async function deleteGuestUploads(
+  code: string,
+  cookieToken: string | undefined,
+  storage?: IStorageService,
+  now = new Date(),
+) {
+  const token = requireGuestOwnerToken(cookieToken);
+
+  if (!token) {
+    await recordApplicationLog({
+      eventType: "access.denied",
+      actorType: "anonymous",
+      result: "denied",
+      metadata: { reason: "unauthenticated" },
+    });
+    throw new GalleryError("unauthorized");
+  }
+
+  const event = await openGuestEvent(code, now);
+  const rows = await prisma.media.findMany({
+    where: {
+      eventId: event.id,
+      guestToken: token,
+    },
+  });
+
+  for (const media of rows) {
+    await eraseGuestMedia(media, storeOf(storage));
+  }
+
+  return { deleted: rows.length };
+}
+
+export async function countGuestUploads(
+  code: string,
+  cookieToken: string | undefined,
+  now = new Date(),
+) {
+  const token = requireGuestOwnerToken(cookieToken);
+
+  if (!token) {
+    return 0;
+  }
+
+  const event = await openGuestEvent(code, now);
+
+  return prisma.media.count({
+    where: {
+      eventId: event.id,
+      guestToken: token,
+    },
+  });
 }
 
 export async function mediaTotals(eventIds: string[]) {
