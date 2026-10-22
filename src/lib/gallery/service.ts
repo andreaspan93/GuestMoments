@@ -339,6 +339,46 @@ export async function mutateCustomerMedia(
   return { ok: true as const };
 }
 
+export async function deleteCustomerMediaSelection(
+  actor: Actor | null,
+  eventId: string,
+  mediaIds: string[],
+  storage?: IStorageService,
+  now = new Date(),
+) {
+  if (!actor) {
+    await recordApplicationLog({
+      eventType: "access.denied",
+      actorType: "anonymous",
+      targetType: isInternalId(eventId) ? "event" : undefined,
+      targetId: isInternalId(eventId) ? eventId : undefined,
+      result: "denied",
+      metadata: { reason: "unauthenticated" },
+    });
+    throw new GalleryError("unauthorized");
+  }
+
+  await ensureCustomerService(actor, now);
+  const event = await requireCustomerEvent(actor, eventId);
+  const ids = [...new Set(mediaIds)];
+  const rows = await prisma.media.findMany({
+    where: {
+      eventId: event.id,
+      id: { in: ids },
+    },
+  });
+
+  if (rows.length !== ids.length) {
+    throw new GalleryError("notFound");
+  }
+
+  for (const media of rows) {
+    await mutateCustomerMedia(actor, event.id, media.id, "delete", storage, now);
+  }
+
+  return { ok: true as const };
+}
+
 async function requireGuestMedia(
   code: string,
   mediaId: string,

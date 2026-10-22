@@ -11,6 +11,7 @@ import {
 import { createCustomerEvent } from "@/lib/events/service";
 import type { EventFormValues } from "@/lib/events/schema";
 import {
+  deleteCustomerMediaSelection,
   downloadCustomerMedia,
   downloadGuestMedia,
   listCustomerGallery,
@@ -304,5 +305,47 @@ describe("galleries", () => {
 
     expect(storage.objects.has(media.storageKey)).toBe(false);
     await expect(prisma.media.findUnique({ where: { id: media.id } })).resolves.toBeNull();
+  });
+
+  it("deletes only the selected files that belong to the event", async () => {
+    const customerA = await signUpCustomer("Bulk delete owner");
+    const customerB = await signUpCustomer("Bulk delete other");
+    const eventA = await createCustomerEvent(customerA, form("Bulk delete"));
+    const eventB = await createCustomerEvent(customerB, form("Bulk delete other"));
+    const storage = new MemoryStorage();
+    const token = createGuestToken();
+    const first = await addMedia(eventA.id, token, { name: "one.jpg", thumbnail: true });
+    const second = await addMedia(eventA.id, token, { name: "two.jpg" });
+    const kept = await addMedia(eventA.id, token, { name: "keep.jpg" });
+    const foreign = await addMedia(eventB.id, token, { name: "foreign.jpg" });
+
+    storage.objects.add(first.storageKey);
+    storage.objects.add(first.thumbnailKey ?? "");
+    storage.objects.add(second.storageKey);
+    storage.objects.add(kept.storageKey);
+    storage.objects.add(foreign.storageKey);
+
+    await expect(
+      deleteCustomerMediaSelection(customerA, eventA.id, [first.id, foreign.id], storage),
+    ).rejects.toMatchObject({ code: "notFound" });
+    expect(storage.objects.has(first.storageKey)).toBe(true);
+    await expect(prisma.media.findUnique({ where: { id: first.id } })).resolves.not.toBeNull();
+
+    await deleteCustomerMediaSelection(customerA, eventA.id, [first.id, second.id], storage);
+
+    expect(storage.objects.has(first.storageKey)).toBe(false);
+    expect(storage.objects.has(first.thumbnailKey ?? "")).toBe(false);
+    expect(storage.objects.has(second.storageKey)).toBe(false);
+    expect(storage.objects.has(kept.storageKey)).toBe(true);
+    await expect(prisma.media.findUnique({ where: { id: first.id } })).resolves.toBeNull();
+    await expect(prisma.media.findUnique({ where: { id: second.id } })).resolves.toBeNull();
+    await expect(prisma.media.findUnique({ where: { id: kept.id } })).resolves.not.toBeNull();
+    await expect(
+      deleteCustomerMediaSelection(customerB, eventA.id, [kept.id], storage),
+    ).rejects.toBeInstanceOf(GalleryError);
+    await expect(
+      deleteCustomerMediaSelection(null, eventA.id, [kept.id], storage),
+    ).rejects.toMatchObject({ code: "unauthorized" });
+    expect(storage.objects.has(kept.storageKey)).toBe(true);
   });
 });

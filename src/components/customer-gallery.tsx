@@ -58,6 +58,7 @@ export function CustomerGallery({
   const [renamePending, setRenamePending] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
   const [zipping, setZipping] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [albumMenu, setAlbumMenu] = useState<"bulk" | "viewer" | null>(null);
@@ -403,8 +404,40 @@ export function CustomerGallery({
     );
   }
 
+  async function deleteSelection() {
+    if (selected.length === 0 || deleting || zipping) {
+      return;
+    }
+
+    if (!window.confirm(t("bulkDeleteConfirm"))) {
+      return;
+    }
+
+    const mediaIds = selected;
+    setDeleting(true);
+    setError("");
+
+    const response = await fetch(`/api/events/${eventId}/media/delete`, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mediaIds }),
+    });
+
+    if (!response.ok) {
+      setDeleting(false);
+      reportError();
+      return;
+    }
+
+    setOpenId((currentId) => (currentId && mediaIds.includes(currentId) ? null : currentId));
+    setSelected([]);
+    setDeleting(false);
+    await load();
+  }
+
   async function downloadSelection() {
-    if (selected.length === 0 || zipping) {
+    if (selected.length === 0 || zipping || deleting) {
       return;
     }
 
@@ -706,16 +739,28 @@ export function CustomerGallery({
           </button>
         </div>
         {selected.length > 0 ? (
-          <button
-            type="button"
-            className="h-10 w-full rounded-full bg-primary px-4 text-sm font-medium whitespace-nowrap text-primary-foreground disabled:cursor-not-allowed disabled:opacity-60"
-            title={zipping ? t("bulkPending") : t("bulkDownload")}
-            disabled={zipping}
-            aria-busy={zipping}
-            onClick={() => void downloadSelection()}
-          >
-            {zipping ? t("bulkPending") : t("bulkDownload")}
-          </button>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              className="h-10 min-w-0 truncate rounded-full bg-primary px-3 text-sm font-medium whitespace-nowrap text-primary-foreground disabled:cursor-not-allowed disabled:opacity-60"
+              title={zipping ? t("bulkPending") : t("bulkDownload")}
+              disabled={zipping || deleting}
+              aria-busy={zipping}
+              onClick={() => void downloadSelection()}
+            >
+              {zipping ? t("bulkPending") : t("bulkDownload")}
+            </button>
+            <button
+              type="button"
+              className="h-10 min-w-0 truncate rounded-full border border-border bg-card px-3 text-sm font-medium whitespace-nowrap text-foreground disabled:cursor-not-allowed disabled:opacity-60"
+              title={deleting ? t("bulkDeletePending") : t("bulkDelete")}
+              disabled={deleting || zipping}
+              aria-busy={deleting}
+              onClick={() => void deleteSelection()}
+            >
+              {deleting ? t("bulkDeletePending") : t("bulkDelete")}
+            </button>
+          </div>
         ) : null}
       </div>
       {selected.length > 0 ? (

@@ -6,6 +6,7 @@ import {
   assignCustomerMediaAlbums,
   createCustomerAlbum,
   deleteCustomerAlbum,
+  deleteCustomerMediaSelection,
   downloadCustomerMedia,
   downloadGuestMedia,
   listCustomerAlbums,
@@ -33,6 +34,8 @@ const assignAlbumRequest = z.strictObject({
 const bulkDownloadRequest = z.strictObject({
   mediaIds: z.array(z.string().uuid()).min(1).max(500),
 });
+
+const bulkDeleteRequest = bulkDownloadRequest;
 
 const bulkAssignRequest = z.strictObject({
   mediaIds: z.array(z.string().uuid()).min(1).max(500),
@@ -160,4 +163,10 @@ export async function postBulkDownload(eventId: string, request: Request) {
   const body = bulkDownloadRequest.parse(await request.json().catch(() => null));
 
   return prepareBulkDownload(await customerActor(), eventId, body.mediaIds);
+}
+
+export async function postBulkDelete(eventId: string, request: Request) {
+  const body = bulkDeleteRequest.parse(await request.json().catch(() => null));
+
+  return deleteCustomerMediaSelection(await customerActor(), eventId, body.mediaIds);
 }
