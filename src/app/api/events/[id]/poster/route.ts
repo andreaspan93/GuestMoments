@@ -2,7 +2,8 @@ import { getCustomerEvent } from "@/lib/events/service";
 import { guestEventUrl } from "@/lib/events/code";
 import { calendarDateFromDb, formatCalendarDate } from "@/lib/events/expiry";
 import { buildPosterPdf, posterCta } from "@/lib/events/poster-pdf";
-import { parseQrDesign, sharePosterCopy, sharePosterDate } from "@/lib/events/qr-design";
+import { fitPosterPdfToA7 } from "@/lib/events/poster-paper";
+import { parsePosterPaper, parseQrDesign, sharePosterCopy, sharePosterDate } from "@/lib/events/qr-design";
 import { renderEventQr } from "@/lib/events/qr";
 import { resolvePosterTypography } from "@/lib/events/poster-typography";
 import { buildSharePosterPdf } from "@/lib/events/share-poster-pdf";
@@ -137,9 +138,10 @@ export async function GET(
 
   const locale = url.searchParams.get("locale") === "el" ? "el" : "en";
   const design = parseQrDesign(url.searchParams.get("design"));
+  const paper = parsePosterPaper(url.searchParams.get("paper"));
   const typography = resolvePosterTypography(event.posterTypography);
   const qrPromise = renderEventQr(guestEventUrl(event.uniqueCode));
-  const pdf =
+  const poster =
     design === "b"
       ? await sharePoster(
           event.name,
@@ -149,7 +151,15 @@ export async function GET(
           typography,
         )
       : await classicPoster(event, locale, qrPromise);
-  const filename = design === "b" ? "guestmoments-share-a5.pdf" : "guestmoments-a5.pdf";
+  const pdf = paper === "a7" ? await fitPosterPdfToA7(poster) : poster;
+  const filename =
+    design === "b"
+      ? paper === "a7"
+        ? "guestmoments-share-a7.pdf"
+        : "guestmoments-share-a5.pdf"
+      : paper === "a7"
+        ? "guestmoments-a7.pdf"
+        : "guestmoments-a5.pdf";
 
   return new Response(Buffer.from(pdf), {
     headers: {

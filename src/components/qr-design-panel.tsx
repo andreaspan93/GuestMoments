@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { PosterTypographyDialog } from "@/components/poster-typography-dialog";
@@ -10,7 +10,7 @@ import { eventFontFamily, eventFontWeight, logoImageClass } from "@/lib/events/a
 import { POSTER_TOP_FREE_SHARE, posterFrameStyle } from "@/lib/events/poster-layout";
 import { downloadPosterPng } from "@/lib/events/poster-png";
 import { type PosterTextSizes, type PosterTypography } from "@/lib/events/poster-typography";
-import { posterPdfPath, type QrDesign } from "@/lib/events/qr-design";
+import { posterPdfPath, type PosterPaper, type QrDesign } from "@/lib/events/qr-design";
 
 export type QrPosterEvent = {
   id: string;
@@ -188,7 +188,7 @@ export function QrDesignPanel({
         </div>
       </div>
       <div className="mx-auto flex w-full max-w-3xl flex-col items-center self-center gap-3 px-4 pt-1 pb-8 text-center print:hidden sm:px-6">
-        <div className="flex flex-wrap justify-center gap-1.5 sm:gap-2">
+        <div className="flex flex-nowrap items-center justify-center gap-1.5 sm:gap-2">
           <button
             type="button"
             data-poster-download={design}
@@ -203,13 +203,91 @@ export function QrDesignPanel({
           >
             {t("downloadQr")}
           </button>
-          <a href={posterPdfPath(event.id, locale, design)} className={buttonVariants({ variant: "outline" })}>
-            {t("downloadA5")}
-          </a>
+          <PosterPdfMenu eventId={event.id} locale={locale} design={design} />
           <PrintButton label={t("print")} />
         </div>
       </div>
     </>
+  );
+}
+
+const pdfOptions = [
+  { paper: "a5", label: "downloadA5", size: "148 × 210 mm" },
+  { paper: "a7", label: "downloadA7", size: "74 × 105 mm" },
+] as const satisfies ReadonlyArray<{ paper: PosterPaper; label: "downloadA5" | "downloadA7"; size: string }>;
+
+function PosterPdfMenu({
+  eventId,
+  locale,
+  design,
+}: {
+  eventId: string;
+  locale: string;
+  design: QrDesign;
+}) {
+  const t = useTranslations("events");
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    function onPointerDown(event: PointerEvent) {
+      if (!rootRef.current?.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    }
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    }
+
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
+
+  return (
+    <div ref={rootRef} className="relative">
+      <button
+        type="button"
+        className={buttonVariants({ variant: "outline" })}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((current) => !current)}
+      >
+        {t("downloadPdf")}
+        <span aria-hidden="true" className="text-xs">
+          ▾
+        </span>
+      </button>
+      {open ? (
+        <div
+          role="menu"
+          className="absolute top-full left-1/2 z-20 mt-2 w-48 -translate-x-1/2 rounded-3xl border border-border bg-card p-1 text-left shadow-lg"
+        >
+          {pdfOptions.map((option) => (
+            <a
+              key={option.paper}
+              role="menuitem"
+              href={posterPdfPath(eventId, locale, design, option.paper)}
+              className="block rounded-2xl px-4 py-2 hover:bg-muted"
+              onClick={() => setOpen(false)}
+            >
+              <span className="block text-sm font-medium">{t(option.label)}</span>
+              <span className="block text-xs text-foreground/70">{option.size}</span>
+            </a>
+          ))}
+        </div>
+      ) : null}
+    </div>
   );
 }
 

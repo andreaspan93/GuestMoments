@@ -260,7 +260,9 @@ describe("event appearance", () => {
     expect(qr).not.toContain("guestFont");
     expect(qr).toContain("`/api/events/${event.id}/qr`");
     expect(qr).toContain('t("qrPosterCta")');
-    expect(qr).toContain('t("downloadA5")');
+    expect(qr).toContain('t("downloadPdf")');
+    expect(qr).toContain('"downloadA5"');
+    expect(qr).toContain('"downloadA7"');
     expect(qr).toContain("/poster?locale=");
     expect(qr).toContain("<PrintButton");
     expect(qr).toContain("print:hidden");
