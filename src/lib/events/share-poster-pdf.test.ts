@@ -94,12 +94,12 @@ describe("Design B A5 poster", () => {
       typography: defaultPosterTypography,
     });
     const content = await contentStream(bytes);
-    const share = content.match(/\/NotoSans-SemiBold[\s\S]{0,160}?<([0-9A-F]+)> Tj/);
-    const glyphBytes = (share?.[1] ?? "").length / 4;
+    const share = content.match(/BT[\s\S]*?ET/);
+    const glyphs = share?.[0].match(/<[0-9A-F]{4}> Tj/g) ?? [];
 
-    expect(glyphBytes).toBe(5);
+    expect(glyphs).toHaveLength(5);
+    expect(share?.[0]).not.toMatch(/\bTc\b/);
     expect((content.match(/\/NotoSans-SemiBold/g) ?? []).length).toBeLessThan(5);
-    expect(content).toMatch(/[\d.]+ Tc/);
   });
 });
 

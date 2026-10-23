@@ -201,17 +201,14 @@ export function QrDesignPanel({
                 <p className="qr-card-kicker" data-poster-text="kicker" style={textStyle(typography.kickerFont, sizes.kicker)}>
                   {t("qrShareKicker")}
                 </p>
-                <p className="qr-card-line" data-poster-text="line">
-                  {t("qrShareLine1")}
-                </p>
-                <p className="qr-card-line" data-poster-text="line">
-                  {t("qrShareLine2")}
-                </p>
                 <p className="qr-card-name" data-poster-text="name" style={textStyle(typography.nameFont, sizes.name)}>
                   {event.name}
                 </p>
                 <p className="qr-card-date" data-poster-text="share-date" style={textStyle(typography.dateFont, sizes.date)}>
                   {event.shareDate}
+                </p>
+                <p className="qr-card-line" data-poster-text="line">
+                  {t("qrShareLine2")}
                 </p>
               </div>
               <div className="qr-card-mark">

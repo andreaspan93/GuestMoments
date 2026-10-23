@@ -306,12 +306,16 @@ body {
 }
 
 .qr-share-kicker {
+  width: max-content;
+  max-width: none;
+  overflow: visible;
   font-size: min(4.4cqh, 10mm);
   font-weight: 400;
   line-height: 1;
   letter-spacing: 0.42em;
   text-indent: 0.42em;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .qr-share-script-row {
@@ -433,6 +437,11 @@ body {
   font-weight: 500;
 }
 
+.qr-card-date + .qr-card-line {
+  font-size: min(3.6cqh, 2.6mm);
+  font-weight: 500;
+}
+
 .qr-card-name {
   overflow-wrap: anywhere;
 }
@@ -452,13 +461,14 @@ body {
 }
 
 .qr-card-camera {
-  width: min(9mm, 16cqh);
+  width: min(12mm, 22cqh);
   height: auto;
   color: #1a1a1a;
 }
 
 .qr-card .qr-poster-qr {
   margin-top: 0;
+  margin-bottom: 3.2mm;
 }
 
 .qr-card .qr-poster-qr img {

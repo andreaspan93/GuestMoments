@@ -159,7 +159,8 @@ export async function buildCardPosterPdf(input: SharePosterPdfInput) {
   const faceFor = (runs: PosterTitleRun[]) => faces.get(titleFontFile(runs[0]?.fontId ?? "noto-sans")) ?? sans;
   const pad = pt(3.6);
   const qrSize = pt(23);
-  const cameraSize = pt(8.4);
+  const cameraSize = pt(11);
+  const qrLift = pt(3.4);
   const qrX = A8_LANDSCAPE_WIDTH_PT - pad - qrSize;
   const textX = pad;
   const textWidth = qrX - pt(2.8) - textX;
@@ -223,8 +224,6 @@ export async function buildCardPosterPdf(input: SharePosterPdfInput) {
 
     addRuns(scriptRuns, pt(typography.scriptSizeMm) * CARD_SCALE * scale, 0);
     addRuns(kickerRuns, pt(typography.kickerSizeMm) * CARD_SCALE * scale, gap, pt(typography.kickerSizeMm) * CARD_SCALE * scale * 0.34);
-    addSans(input.line1, pt(4.2) * scale, pt(4.2) * scale * 0.04, gap);
-    addSans(input.line2, pt(3.1) * scale, pt(3.1) * scale * 0.04, gap * 0.35);
     const nameLines = wrapText(input.name, (value) => {
       const runs = posterTitleRuns(value, typography.nameFont);
       const size = pt(typography.nameSizeMm) * CARD_SCALE * scale;
@@ -244,6 +243,7 @@ export async function buildCardPosterPdf(input: SharePosterPdfInput) {
       gap * 0.7,
       pt(typography.dateSizeMm) * CARD_SCALE * scale * 0.16,
     );
+    addSans(input.line2, pt(3.2) * scale, pt(3.2) * scale * 0.04, gap * 0.85);
 
     return rows;
   };
@@ -273,7 +273,7 @@ export async function buildCardPosterPdf(input: SharePosterPdfInput) {
 
   page.drawImage(qr, {
     x: qrX,
-    y: pad,
+    y: pad + qrLift,
     width: qrSize,
     height: qrSize,
   });
