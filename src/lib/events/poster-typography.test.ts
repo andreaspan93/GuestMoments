@@ -18,6 +18,8 @@ describe("poster typography", () => {
     expect(defaultPosterTypography.kickerSizeMm).toBe(9.24);
     expect(defaultPosterTypography.scriptFont).toBe("mynerve");
     expect(defaultPosterTypography.scriptSizeMm).toBe(17.64);
+    expect(defaultPosterTypography.cameraSizeMm).toBe(16);
+    expect(resolvePosterTypography({ nameFont: "literata" }).cameraSizeMm).toBe(16);
     expect(posterTypographyForTitle("literata").nameFont).toBe("literata");
     expect(posterTypographyForTitle("great-vibes").nameFont).toBe("gfs-didot");
     expect(posterTypographyForTitle("literata").dateFont).toBe(defaultPosterTypography.dateFont);
@@ -33,6 +35,7 @@ describe("poster typography", () => {
       kickerSizeMm: 8,
       scriptFont: "mansalva",
       scriptSizeMm: 20,
+      cameraSizeMm: 12,
     };
 
     expect(posterTypographySchema.safeParse(saved).success).toBe(true);
@@ -40,6 +43,7 @@ describe("poster typography", () => {
     expect(posterTypographySchema.safeParse({ ...saved, nameFont: "comic-sans" }).success).toBe(false);
     expect(posterTypographySchema.safeParse({ ...saved, dateSizeMm: 2 }).success).toBe(false);
     expect(posterTypographySchema.safeParse({ ...saved, scriptSizeMm: 40 }).success).toBe(false);
+    expect(posterTypographySchema.safeParse({ ...saved, cameraSizeMm: 30 }).success).toBe(false);
     expect(posterTypographySchema.safeParse({ ...saved, guestFont: "noto-sans" }).success).toBe(false);
     expect(resolvePosterTypography({ ...saved, nameFont: "playfair-display" }).nameFont).toBe("alegreya");
   });

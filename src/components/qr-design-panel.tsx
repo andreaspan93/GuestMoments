@@ -8,7 +8,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { eventFontFamily, eventFontWeight, logoImageClass } from "@/lib/events/appearance";
 import { POSTER_TOP_FREE_SHARE, posterFrameStyle } from "@/lib/events/poster-layout";
 import { downloadPosterPng } from "@/lib/events/poster-png";
-import { type PosterTextSizes, type PosterTypography } from "@/lib/events/poster-typography";
+import { posterCardSize, type PosterTextSizes, type PosterTypography } from "@/lib/events/poster-typography";
 import { posterPdfPath, type PosterPaper, type QrDesign } from "@/lib/events/qr-design";
 import { cn } from "@/lib/utils";
 
@@ -212,7 +212,7 @@ export function QrDesignPanel({
                 </p>
               </div>
               <div className="qr-card-mark">
-                <CameraMark />
+                <CameraMark size={posterCardSize(typography.cameraSizeMm)} />
                 <QrMark src={qrSrc} alt={t("qrAlt")} />
               </div>
             </article>
@@ -333,11 +333,11 @@ function PosterPdfMenu({
   );
 }
 
-function CameraMark() {
+function CameraMark({ size }: { size: string }) {
   return (
     // The icon is a local file; the image optimizer is not used.
     // eslint-disable-next-line @next/next/no-img-element
-    <img className="qr-card-camera" src="/camera-icon.png" alt="" />
+    <img className="qr-card-camera" src="/camera-icon.png" alt="" style={{ width: size }} />
   );
 }
 

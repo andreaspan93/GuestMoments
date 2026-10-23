@@ -132,7 +132,7 @@ export async function buildCardPosterPdf(input: SharePosterPdfInput) {
   const faceFor = (runs: PosterTitleRun[]) => faces.get(titleFontFile(runs[0]?.fontId ?? "noto-sans")) ?? sans;
   const pad = pt(3.6);
   const qrSize = pt(22);
-  const cameraWidth = pt(16);
+  const cameraWidth = pt(typography.cameraSizeMm);
   const cameraHeight = cameraWidth * (camera.height / camera.width);
   const qrLift = pt(5.2);
   const qrX = A8_LANDSCAPE_WIDTH_PT - pad - qrSize;

@@ -341,6 +341,7 @@ describe("events", () => {
       kickerSizeMm: 8,
       scriptFont: "mansalva" as const,
       scriptSizeMm: 18,
+      cameraSizeMm: 16,
     };
 
     expect(resolvePosterTypography(created.posterTypography).nameFont).toBe("literata");

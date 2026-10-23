@@ -73,6 +73,7 @@ describe("Design B A5 poster", () => {
         kickerSizeMm: 8,
         scriptFont: "alegreya",
         scriptSizeMm: 14,
+        cameraSizeMm: 16,
       },
     });
     const customPdf = await PDFDocument.load(custom);

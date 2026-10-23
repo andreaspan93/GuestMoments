@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { eventFontGroups, eventFonts } from "@/lib/events/appearance";
 import { updatePosterTypographyAction, type PosterTypographyResult } from "@/lib/events/actions";
 import {
+  posterCameraMaxMm,
+  posterCameraMinMm,
   posterSizeMaxMm,
   posterSizeMinMm,
   posterTypographySchema,
@@ -24,15 +26,19 @@ const rows = [
 ] as const;
 
 type FontKey = (typeof rows)[number]["font"];
-type SizeKey = (typeof rows)[number]["size"];
+type SizeKey = (typeof rows)[number]["size"] | "cameraSizeMm";
 
-function clampSize(value: number) {
+function clampSize(value: number, min = posterSizeMinMm, max = posterSizeMaxMm) {
   if (!Number.isFinite(value)) {
-    return posterSizeMinMm;
+    return min;
   }
 
   const rounded = Math.round(value * 100) / 100;
-  return Math.min(posterSizeMaxMm, Math.max(posterSizeMinMm, rounded));
+  return Math.min(max, Math.max(min, rounded));
+}
+
+function clampCamera(value: number) {
+  return clampSize(value, posterCameraMinMm, posterCameraMaxMm);
 }
 
 export function PosterTypographyDialog({
@@ -134,7 +140,7 @@ export function PosterTypographyDialog({
   function changeSize(key: SizeKey, delta: number) {
     setDraft((current) => ({
       ...current,
-      [key]: clampSize(current[key] + delta),
+      [key]: key === "cameraSizeMm" ? clampCamera(current[key] + delta) : clampSize(current[key] + delta),
     }));
   }
 
@@ -146,6 +152,7 @@ export function PosterTypographyDialog({
       dateSizeMm: clampSize(draft.dateSizeMm),
       kickerSizeMm: clampSize(draft.kickerSizeMm),
       scriptSizeMm: clampSize(draft.scriptSizeMm),
+      cameraSizeMm: clampCamera(draft.cameraSizeMm),
     };
     const parsed = posterTypographySchema.safeParse(normalized);
 
@@ -287,6 +294,54 @@ export function PosterTypographyDialog({
                 </fieldset>
               );
             })}
+            <fieldset className="grid gap-2 border-0 p-0">
+              <legend className="text-sm font-medium">{t("qrTypographyCamera")}</legend>
+              <p className="text-xs text-foreground/70">{t("qrDesignC")}</p>
+              <div className="flex items-center gap-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="size-10 shrink-0 px-0 text-lg"
+                  aria-label={t("qrTypographyDecrease")}
+                  disabled={pending || draft.cameraSizeMm <= posterCameraMinMm}
+                  onClick={() => changeSize("cameraSizeMm", -1)}
+                >
+                  −
+                </Button>
+                <input
+                  className="h-10 w-20 rounded-full border border-border bg-background px-2 text-center text-base text-foreground outline-none [appearance:textfield] focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                  type="number"
+                  inputMode="decimal"
+                  min={posterCameraMinMm}
+                  max={posterCameraMaxMm}
+                  step={0.1}
+                  value={draft.cameraSizeMm}
+                  aria-label={`${t("qrTypographyCamera")} ${t("qrTypographySize")}`}
+                  disabled={pending}
+                  onChange={(change) => {
+                    const next = Number(change.target.value);
+
+                    if (Number.isFinite(next)) {
+                      setDraft((current) => ({ ...current, cameraSizeMm: next }));
+                    }
+                  }}
+                  onBlur={() => {
+                    setDraft((current) => ({ ...current, cameraSizeMm: clampCamera(current.cameraSizeMm) }));
+                  }}
+                  required
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="size-10 shrink-0 px-0 text-lg"
+                  aria-label={t("qrTypographyIncrease")}
+                  disabled={pending || draft.cameraSizeMm >= posterCameraMaxMm}
+                  onClick={() => changeSize("cameraSizeMm", 1)}
+                >
+                  +
+                </Button>
+              </div>
+            </fieldset>
             {error ? (
               <p role="alert" className="text-sm text-primary">
                 {t("qrTypographyError")}

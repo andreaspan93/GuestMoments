@@ -84,7 +84,7 @@ body {
 }
 
 .qr-poster-scale[data-qr-design="c"] {
-  width: min(148mm, 100%);
+  width: min(74mm, 100%);
   aspect-ratio: 74 / 52;
 }
 
@@ -464,7 +464,6 @@ body {
 }
 
 .qr-card-camera {
-  width: min(16mm, 30cqh);
   height: auto;
 }
 

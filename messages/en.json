@@ -141,6 +141,7 @@
     "qrTypographyDate": "Date",
     "qrTypographyKicker": "text: Share",
     "qrTypographyScript": "text: The love",
+    "qrTypographyCamera": "Camera",
     "qrTypographyFont": "Font",
     "qrTypographySize": "Size (mm)",
     "qrTypographyDecrease": "Decrease size",
