@@ -124,7 +124,7 @@ export function QrDesignPanel({
           data-qr-design={design}
           data-event-id={event.id}
         >
-          {design === "a" ? (
+          {design === "b" ? (
             <article className={posterClass} style={posterFrameStyle() as CSSProperties}>
               <div className="qr-poster-sheet">
                 <div className="qr-poster-balance" style={{ flexGrow: POSTER_TOP_FREE_SHARE }} aria-hidden="true" />
@@ -162,7 +162,7 @@ export function QrDesignPanel({
                 />
               </div>
             </article>
-          ) : design === "b" ? (
+          ) : design === "a" ? (
             <article className="qr-poster qr-share">
               <div className="qr-share-sheet">
                 <p className="qr-share-kicker" data-poster-text="kicker" style={textStyle(typography.kickerFont, sizes.kicker)}>

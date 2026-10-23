@@ -153,13 +153,13 @@ export async function GET(
           typography,
         })
       : design === "b"
-        ? await sharePoster(event.name, dated, locale, qrPromise, typography)
-        : await classicPoster(event, locale, qrPromise);
+        ? await classicPoster(event, locale, qrPromise)
+        : await sharePoster(event.name, dated, locale, qrPromise, typography);
   const pdf = paper === "a7" ? await fitPosterPdfToA7(poster) : poster;
   const filename =
     design === "c"
       ? "guestmoments-card-a8.pdf"
-      : design === "b"
+      : design === "a"
         ? paper === "a7"
           ? "guestmoments-share-a7.pdf"
           : "guestmoments-share-a5.pdf"

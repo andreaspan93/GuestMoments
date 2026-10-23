@@ -62,7 +62,7 @@ export function posterPdfPath(
 }
 
 export function posterPngFilename(design: QrDesign) {
-  if (design === "b") {
+  if (design === "a") {
     return "guestmoments-share.png";
   }
 

@@ -81,8 +81,8 @@ describe("QR poster designs", () => {
     expect(route).toContain("paperForDesign");
     expect(route).toContain("fitPosterPdfToA7");
     expect(route).toContain("buildCardPosterPdf");
-    expect(posterPngFilename("a")).toBe("guestmoments-poster.png");
-    expect(posterPngFilename("b")).toBe("guestmoments-share.png");
+    expect(posterPngFilename("a")).toBe("guestmoments-share.png");
+    expect(posterPngFilename("b")).toBe("guestmoments-poster.png");
     expect(posterPngFilename("c")).toBe("guestmoments-card.png");
     expect(route).toContain("renderEventQr(guestEventUrl(event.uniqueCode))");
     expect(route).toContain("resolvePosterTypography(event.posterTypography)");
