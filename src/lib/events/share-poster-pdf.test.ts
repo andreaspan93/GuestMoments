@@ -1,4 +1,5 @@
 import { inflateSync } from "node:zlib";
+import fontkit from "@pdf-lib/fontkit";
 import { describe, expect, it } from "vitest";
 import { PDFDocument } from "pdf-lib";
 import { A5_HEIGHT_PT, A5_WIDTH_PT, buildPosterPdf, posterCta } from "@/lib/events/poster-pdf";
@@ -95,11 +96,13 @@ describe("Design B A5 poster", () => {
     });
     const content = await contentStream(bytes);
     const share = content.match(/BT[\s\S]*?ET/);
-    const glyphs = share?.[0].match(/<[0-9A-F]{4}> Tj/g) ?? [];
+    const glyphs = share?.[0].match(/<[0-9A-F]{4}>/g) ?? [];
 
     expect(glyphs).toHaveLength(5);
+    expect(share?.[0]).toMatch(/\] TJ/);
     expect(share?.[0]).not.toMatch(/\bTc\b/);
-    expect((content.match(/\/NotoSans-SemiBold/g) ?? []).length).toBeLessThan(5);
+    expect(share?.[0]).toContain("<0003>");
+    expect(await shareGlyphHasInk(bytes)).toBe(true);
   });
 });
 
@@ -139,6 +142,49 @@ function embeddedFontNames(pdf: PDFDocument) {
   }
 
   return names.join(" ");
+}
+
+async function shareGlyphHasInk(bytes: Uint8Array) {
+  const pdf = await PDFDocument.load(bytes);
+  const resources = pdf.getPage(0).node.normalizedEntries().Resources;
+  const fonts = resources.entries().find(([key]) => String(key) === "/Font")?.[1];
+  const dict = entryRecord(fonts) ?? entryRecord(pdf.context.lookup(fonts as never));
+
+  if (!dict) {
+    return false;
+  }
+
+  for (const [, value] of dict.entries()) {
+    const font = entryRecord(value) ?? entryRecord(pdf.context.lookup(value as never));
+    const base = String(font?.entries().find(([key]) => String(key) === "/BaseFont")?.[1] ?? "");
+
+    if (!base.includes("NotoSans-SemiBold")) {
+      continue;
+    }
+
+    const cmapRef = font?.entries().find(([key]) => String(key) === "/ToUnicode")?.[1];
+    const cmapStream = pdf.context.lookup(cmapRef as never) as unknown as { getContents: () => Uint8Array };
+    const cmap = inflateSync(Buffer.from(cmapStream.getContents())).toString("latin1");
+
+    if (!cmap.includes("<0001> <0053>") || !cmap.includes("<0003> <0041>")) {
+      continue;
+    }
+
+    const descendants = font?.entries().find(([key]) => String(key) === "/DescendantFonts")?.[1];
+    const list = pdf.context.lookup(descendants as never) as unknown as { get: (index: number) => unknown };
+    const cid = entryRecord(pdf.context.lookup(list.get(0) as never));
+    const descriptorRef = cid?.entries().find(([key]) => String(key) === "/FontDescriptor")?.[1];
+    const descriptor = entryRecord(pdf.context.lookup(descriptorRef as never));
+    const fileRef = descriptor?.entries().find(([key]) => String(key) === "/FontFile2")?.[1];
+    const file = pdf.context.lookup(fileRef as never) as unknown as { getContents: () => Uint8Array };
+    const face = fontkit.create(inflateSync(Buffer.from(file.getContents()))) as unknown as {
+      getGlyph: (index: number) => { path: { commands: unknown[] } };
+    };
+
+    return face.getGlyph(3).path.commands.length > 0;
+  }
+
+  return false;
 }
 
 function entryRecord(value: unknown): { entries: () => Array<[unknown, unknown]> } | null {

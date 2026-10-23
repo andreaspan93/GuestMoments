@@ -420,8 +420,10 @@ body {
 .qr-card-kicker {
   font-weight: 500;
   line-height: 1;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.2em;
+  text-indent: 0.2em;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .qr-card-line {
@@ -438,8 +440,9 @@ body {
 }
 
 .qr-card-date + .qr-card-line {
-  font-size: min(3.6cqh, 2.6mm);
+  font-size: min(3cqh, 2.15mm);
   font-weight: 500;
+  letter-spacing: 0.03em;
 }
 
 .qr-card-name {
@@ -461,14 +464,14 @@ body {
 }
 
 .qr-card-camera {
-  width: min(12mm, 22cqh);
+  width: min(14mm, 26cqh);
   height: auto;
   color: #1a1a1a;
 }
 
 .qr-card .qr-poster-qr {
   margin-top: 0;
-  margin-bottom: 3.2mm;
+  margin-bottom: 5mm;
 }
 
 .qr-card .qr-poster-qr img {

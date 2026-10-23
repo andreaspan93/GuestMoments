@@ -335,16 +335,16 @@ function PosterPdfMenu({
 
 function CameraMark() {
   return (
-    <svg className="qr-card-camera" viewBox="0 0 64 48" aria-hidden="true">
+    <svg className="qr-card-camera" viewBox="0 0 24 24" aria-hidden="true">
       <path
-        d="M24 8h7l3 6h18a6 6 0 0 1 6 6v16a6 6 0 0 1-6 6H12a6 6 0 0 1-6-6V20a6 6 0 0 1 6-6h8l4-6z"
+        d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"
         fill="none"
         stroke="currentColor"
-        strokeWidth="2.4"
+        strokeWidth="1.6"
         strokeLinejoin="round"
+        strokeLinecap="round"
       />
-      <circle cx="33" cy="28" r="8" fill="none" stroke="currentColor" strokeWidth="2.4" />
-      <circle cx="33" cy="28" r="3" fill="none" stroke="currentColor" strokeWidth="2" />
+      <circle cx="12" cy="13" r="3" fill="none" stroke="currentColor" strokeWidth="1.6" />
     </svg>
   );
 }

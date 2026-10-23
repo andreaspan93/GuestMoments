@@ -1,6 +1,11 @@
 import {
   beginText,
   endText,
+  PDFArray,
+  PDFHexString,
+  PDFNumber,
+  PDFOperator,
+  PDFOperatorNames,
   popGraphicsState,
   pushGraphicsState,
   setFillingColor,
@@ -15,11 +20,10 @@ import {
 type PageWithFontKey = { fontKey?: Parameters<typeof setFontAndSize>[0] };
 
 /**
- * Draw one tracked line as separate, absolutely positioned glyphs.
- * pdf-lib subset fonts drop glyphs when each character is encoded through its
- * own drawText call. The Tc operator then shifts the remaining glyphs: some
- * viewers keep only the trailing letters, so SHARE renders as RE.
- * Each letter is placed from the measured advance instead.
+ * Draw one tracked line from a single subset encoding.
+ * Encoding each letter on its own leaves a hole in the subset font, so the A
+ * in SHARE keeps its advance and disappears. The Tc operator also walks the
+ * line off the page in some viewers. One TJ show places every glyph.
  */
 export function drawTrackedLine(
   page: PDFPage,
@@ -31,34 +35,43 @@ export function drawTrackedLine(
   tracking: number,
   color: Color,
 ) {
-  const characters = Array.from(text);
-
-  if (characters.length === 0 || size <= 0) {
+  if (!text || size <= 0) {
     return;
   }
 
   page.setFont(font);
   page.setFontColor(color);
-  font.encodeText(text);
+  const encoded = font.encodeText(text);
   const fontKey = (page as unknown as PageWithFontKey).fontKey;
 
   if (!fontKey) {
     throw new Error("Poster font is not selected.");
   }
 
-  const operators = [
+  page.pushOperators(
     pushGraphicsState(),
     beginText(),
     setFillingColor(color),
     setFontAndSize(fontKey, size),
-  ];
-  let cursor = x;
+    setTextMatrix(1, 0, 0, 1, x, y),
+    tracking === 0 ? showText(encoded) : showTrackedGlyphs(page, encoded, size, tracking),
+    endText(),
+    popGraphicsState(),
+  );
+}
 
-  for (const character of characters) {
-    operators.push(setTextMatrix(1, 0, 0, 1, cursor, y), showText(font.encodeText(character)));
-    cursor += font.widthOfTextAtSize(character, size) + tracking;
-  }
+function showTrackedGlyphs(page: PDFPage, encoded: ReturnType<PDFFont["encodeText"]>, size: number, tracking: number) {
+  const glyphs = String(encoded).replace(/[<>\s]/g, "").match(/.{4}/g) ?? [];
+  const positioned = PDFArray.withContext(page.doc.context);
+  const adjust = PDFNumber.of((-tracking / size) * 1000);
 
-  operators.push(endText(), popGraphicsState());
-  page.pushOperators(...operators);
+  glyphs.forEach((glyph, index) => {
+    positioned.push(PDFHexString.of(glyph));
+
+    if (index < glyphs.length - 1) {
+      positioned.push(adjust);
+    }
+  });
+
+  return PDFOperator.of(PDFOperatorNames.ShowTextAdjusted, [positioned]);
 }
