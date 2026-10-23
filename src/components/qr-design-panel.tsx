@@ -195,11 +195,11 @@ export function QrDesignPanel({
           ) : (
             <article className="qr-poster qr-card">
               <div className="qr-card-copy">
-                <p className="qr-card-script" data-poster-text="script" style={textStyle(typography.scriptFont, sizes.script)}>
-                  {t("qrShareScript")}
-                </p>
                 <p className="qr-card-kicker" data-poster-text="kicker" style={textStyle(typography.kickerFont, sizes.kicker)}>
                   {t("qrShareKicker")}
+                </p>
+                <p className="qr-card-script" data-poster-text="script" style={textStyle(typography.scriptFont, sizes.script)}>
+                  {t("qrShareScript")}
                 </p>
                 <p className="qr-card-name" data-poster-text="name" style={textStyle(typography.nameFont, sizes.name)}>
                   {event.name}

@@ -212,8 +212,8 @@ export async function buildCardPosterPdf(input: SharePosterPdfInput) {
       });
     };
 
-    addRuns(scriptRuns, pt(typography.scriptSizeMm) * CARD_SCALE * scale, 0);
-    addRuns(kickerRuns, pt(typography.kickerSizeMm) * CARD_SCALE * scale, gap, pt(typography.kickerSizeMm) * CARD_SCALE * scale * 0.2);
+    addRuns(kickerRuns, pt(typography.kickerSizeMm) * CARD_SCALE * scale, 0, pt(typography.kickerSizeMm) * CARD_SCALE * scale * 0.2);
+    addRuns(scriptRuns, pt(typography.scriptSizeMm) * CARD_SCALE * scale, gap);
     const nameLines = wrapText(input.name, (value) => {
       const runs = posterTitleRuns(value, typography.nameFont);
       const size = pt(typography.nameSizeMm) * CARD_SCALE * scale;
