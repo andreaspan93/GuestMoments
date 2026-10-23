@@ -464,9 +464,8 @@ body {
 }
 
 .qr-card-camera {
-  width: min(14mm, 26cqh);
+  width: min(16mm, 30cqh);
   height: auto;
-  color: #1a1a1a;
 }
 
 .qr-card .qr-poster-qr {

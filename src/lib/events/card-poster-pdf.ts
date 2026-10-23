@@ -110,24 +110,6 @@ function drawRuns(
   }
 }
 
-const cameraBody =
-  "M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z";
-
-function drawCamera(page: PDFPage, x: number, y: number, size: number) {
-  const scale = size / 24;
-  const stroke = 1.7 / scale;
-  const options = {
-    x,
-    y: y + size,
-    scale,
-    borderColor: ink,
-    borderWidth: stroke,
-  };
-
-  page.drawSvgPath(cameraBody, options);
-  page.drawSvgPath("M12 13 m-3 0 a3 3 0 1 0 6 0 a3 3 0 1 0 -6 0", options);
-}
-
 type Row = {
   height: number;
   gapBefore: number;
@@ -146,10 +128,12 @@ export async function buildCardPosterPdf(input: SharePosterPdfInput) {
   const dateRuns = posterTitleRuns(input.dateLabel, typography.dateFont);
   const faces = await embedRuns(pdf, [...scriptRuns, ...kickerRuns, ...nameRuns, ...dateRuns]);
   const qr = await pdf.embedPng(input.qr.bytes);
+  const camera = await pdf.embedPng(readFileSync(path.join(process.cwd(), "public", "camera-icon.png")));
   const faceFor = (runs: PosterTitleRun[]) => faces.get(titleFontFile(runs[0]?.fontId ?? "noto-sans")) ?? sans;
   const pad = pt(3.6);
   const qrSize = pt(22);
-  const cameraSize = pt(13);
+  const cameraWidth = pt(16);
+  const cameraHeight = cameraWidth * (camera.height / camera.width);
   const qrLift = pt(5.2);
   const qrX = A8_LANDSCAPE_WIDTH_PT - pad - qrSize;
   const textX = pad;
@@ -267,12 +251,12 @@ export async function buildCardPosterPdf(input: SharePosterPdfInput) {
     width: qrSize,
     height: qrSize,
   });
-  drawCamera(
-    page,
-    qrX + (qrSize - cameraSize) / 2,
-    A8_LANDSCAPE_HEIGHT_PT - pad - cameraSize * 0.82,
-    cameraSize,
-  );
+  page.drawImage(camera, {
+    x: qrX + (qrSize - cameraWidth) / 2,
+    y: A8_LANDSCAPE_HEIGHT_PT - pad - cameraHeight,
+    width: cameraWidth,
+    height: cameraHeight,
+  });
 
   return pdf.save();
 }
