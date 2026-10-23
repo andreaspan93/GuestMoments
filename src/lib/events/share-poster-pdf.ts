@@ -3,6 +3,7 @@ import path from "node:path";
 import fontkit from "@pdf-lib/fontkit";
 import { PDFDocument, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import { A5_HEIGHT_PT, A5_WIDTH_PT } from "@/lib/events/poster-pdf";
+import { drawTrackedLine } from "@/lib/events/poster-text";
 import { posterTitleRuns, titleFontFile, type PosterTitleRun } from "@/lib/events/poster-title";
 import { resolvePosterTypography, type PosterTypography } from "@/lib/events/poster-typography";
 
@@ -43,13 +44,8 @@ function drawTracked(
   size: number,
   tracking: number,
 ) {
-  const characters = Array.from(text);
-  let cursor = centerX - trackedWidth(font, text, size, tracking) / 2;
-
-  for (const character of characters) {
-    page.drawText(character, { x: cursor, y: baseline, size, font, color: ink });
-    cursor += font.widthOfTextAtSize(character, size) + tracking;
-  }
+  const left = centerX - trackedWidth(font, text, size, tracking) / 2;
+  drawTrackedLine(page, text, left, baseline, font, size, tracking, ink);
 }
 
 function fitTracked(font: PDFFont, text: string, size: number, tracking: number, maxWidth: number) {

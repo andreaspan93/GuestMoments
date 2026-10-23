@@ -18,6 +18,7 @@ describe("QR poster designs", () => {
     expect(panel).toContain('useState<QrDesign>("a")');
     expect(panel).toContain('setDesign("a")');
     expect(panel).toContain('setDesign("b")');
+    expect(panel).toContain('setDesign("c")');
     expect(panel).toContain('design === "a" ?');
     expect(page).not.toContain("font-mono");
     expect(page).not.toContain("guestEventUrl");
@@ -28,8 +29,8 @@ describe("QR poster designs", () => {
   it("renders Design B from the event name and date", () => {
     const panel = readFileSync(new URL("../../components/qr-design-panel.tsx", import.meta.url), "utf8");
 
-    expect(panel.match(/textStyle\(typography\.nameFont, sizes\.name\)/g)).toHaveLength(2);
-    expect(panel.match(/textStyle\(typography\.dateFont, sizes\.date\)/g)).toHaveLength(2);
+    expect(panel.match(/textStyle\(typography\.nameFont, sizes\.name\)/g)).toHaveLength(3);
+    expect(panel.match(/textStyle\(typography\.dateFont, sizes\.date\)/g)).toHaveLength(3);
     expect(panel).toContain("textStyle(typography.kickerFont, sizes.kicker)");
     expect(panel).toContain("textStyle(typography.scriptFont, sizes.script)");
     expect(panel).toContain('data-poster-text="name"');
@@ -50,7 +51,7 @@ describe("QR poster designs", () => {
     const route = readFileSync(new URL("../../app/api/events/[id]/poster/route.ts", import.meta.url), "utf8");
     const css = readFileSync(new URL("../../app/globals.css", import.meta.url), "utf8");
 
-    expect(panel.match(/<QrMark src=\{qrSrc\}/g)).toHaveLength(2);
+    expect(panel.match(/<QrMark src=\{qrSrc\}/g)).toHaveLength(3);
     expect(panel).toContain("downloadPosterPng(node, design)");
     expect(panel).toContain("data-qr-design={design}");
     expect(panel).toContain("data-poster-download={design}");
@@ -58,19 +59,31 @@ describe("QR poster designs", () => {
     expect(panel).toContain('t("downloadPdf")');
     expect(panel).toContain('aria-haspopup="menu"');
     expect(panel).toContain('paper: "a7"');
-    expect(panel.indexOf('design === "a" ?')).toBeLessThan(panel.indexOf("<PrintButton"));
+    expect(panel).toContain('paper: "a8"');
+    expect(panel).toContain("grid-cols-2");
+    expect(panel).not.toContain("<PrintButton");
+    expect(panel).toContain('design === "c" ? cardPdfOptions');
     expect(parseQrDesign(null)).toBe("a");
     expect(parseQrDesign("b")).toBe("b");
+    expect(parseQrDesign("c")).toBe("c");
     expect(parseQrDesign("other")).toBe("a");
     expect(posterPdfPath("event-1", "el", "a")).toBe("/api/events/event-1/poster?locale=el&design=a");
     expect(posterPdfPath("event-1", "en", "b")).toBe("/api/events/event-1/poster?locale=en&design=b");
     expect(posterPdfPath("event-1", "en", "b", "a7")).toBe(
       "/api/events/event-1/poster?locale=en&design=b&paper=a7",
     );
-    expect(route).toContain("parsePosterPaper");
+    expect(posterPdfPath("event-1", "en", "c")).toBe(
+      "/api/events/event-1/poster?locale=en&design=c&paper=a8",
+    );
+    expect(posterPdfPath("event-1", "en", "c", "a5")).toBe(
+      "/api/events/event-1/poster?locale=en&design=c&paper=a8",
+    );
+    expect(route).toContain("paperForDesign");
     expect(route).toContain("fitPosterPdfToA7");
+    expect(route).toContain("buildCardPosterPdf");
     expect(posterPngFilename("a")).toBe("guestmoments-poster.png");
     expect(posterPngFilename("b")).toBe("guestmoments-share.png");
+    expect(posterPngFilename("c")).toBe("guestmoments-card.png");
     expect(route).toContain("renderEventQr(guestEventUrl(event.uniqueCode))");
     expect(route).toContain("resolvePosterTypography(event.posterTypography)");
     expect(route).not.toContain("titleFont: event.titleFont");

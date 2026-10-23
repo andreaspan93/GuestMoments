@@ -15,6 +15,7 @@ import {
   type PDFImage,
   type PDFPage,
 } from "pdf-lib";
+import { drawTrackedLine } from "@/lib/events/poster-text";
 import el from "../../../messages/el.json";
 import en from "../../../messages/en.json";
 import { isLogoSize, type LogoSize } from "@/lib/events/appearance";
@@ -178,12 +179,7 @@ function drawTracked(
   tracking: number,
   color: ReturnType<typeof rgb>,
 ) {
-  let cursor = x;
-
-  for (const character of Array.from(text)) {
-    page.drawText(character, { x: cursor, y, size, font, color });
-    cursor += font.widthOfTextAtSize(character, size) + tracking;
-  }
+  drawTrackedLine(page, text, x, y, font, size, tracking, color);
 }
 
 function clipCircle(page: PDFPage, centerX: number, centerY: number, radius: number) {

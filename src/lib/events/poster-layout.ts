@@ -6,7 +6,7 @@ export const POSTER_PAD_TOP_MM = 11;
 export const POSTER_PAD_BOTTOM_MM = 12;
 
 /** Share of leftover vertical space kept above the poster stack. */
-export const POSTER_TOP_FREE_SHARE = 0.12;
+export const POSTER_TOP_FREE_SHARE = 0.3;
 
 /** Short event names use this size. It is 8cqh on a full A5 page. */
 export const POSTER_TITLE_MAX_MM = 16.8;

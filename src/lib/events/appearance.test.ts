@@ -264,7 +264,8 @@ describe("event appearance", () => {
     expect(qr).toContain('"downloadA5"');
     expect(qr).toContain('"downloadA7"');
     expect(qr).toContain("/poster?locale=");
-    expect(qr).toContain("<PrintButton");
+    expect(qr).not.toContain("<PrintButton");
+    expect(qr).toContain("grid-cols-2");
     expect(qr).toContain("print:hidden");
     expect(qr).toContain("qr-poster");
     expect(qr).not.toContain("100vh");

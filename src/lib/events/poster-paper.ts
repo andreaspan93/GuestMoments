@@ -8,6 +8,12 @@ export const A7_HEIGHT_MM = 105;
 export const A7_WIDTH_PT = A7_WIDTH_MM * MM;
 export const A7_HEIGHT_PT = A7_HEIGHT_MM * MM;
 
+/** ISO 216 A8, landscape. */
+export const A8_LANDSCAPE_WIDTH_MM = 74;
+export const A8_LANDSCAPE_HEIGHT_MM = 52;
+export const A8_LANDSCAPE_WIDTH_PT = A8_LANDSCAPE_WIDTH_MM * MM;
+export const A8_LANDSCAPE_HEIGHT_PT = A8_LANDSCAPE_HEIGHT_MM * MM;
+
 /** Place an A5 poster page onto A7 paper. The artwork is scaled to the page. */
 export async function fitPosterPdfToA7(bytes: Uint8Array) {
   const source = await PDFDocument.load(bytes);

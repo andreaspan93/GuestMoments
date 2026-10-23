@@ -1,11 +1,15 @@
 import el from "../../../messages/el.json";
 import en from "../../../messages/en.json";
 
-export type QrDesign = "a" | "b";
-export type PosterPaper = "a5" | "a7";
+export type QrDesign = "a" | "b" | "c";
+export type PosterPaper = "a5" | "a7" | "a8";
 
 export function parseQrDesign(value: string | null | undefined): QrDesign {
-  return value === "b" ? "b" : "a";
+  if (value === "b" || value === "c") {
+    return value;
+  }
+
+  return "a";
 }
 
 /** Spaced numeric date for Design B, in the locale's day/month order. */
@@ -36,12 +40,35 @@ export function parsePosterPaper(value: string | null | undefined): PosterPaper 
   return value === "a7" ? "a7" : "a5";
 }
 
-export function posterPdfPath(eventId: string, locale: string, design: QrDesign, paper: PosterPaper = "a5") {
+/** Design C is landscape A8 only. Designs A and B stay A5, with A7 as the smaller option. */
+export function paperForDesign(design: QrDesign, value: string | null | undefined): PosterPaper {
+  if (design === "c") {
+    return "a8";
+  }
+
+  return parsePosterPaper(value);
+}
+
+export function posterPdfPath(
+  eventId: string,
+  locale: string,
+  design: QrDesign,
+  paper: PosterPaper = "a5",
+) {
+  const selected = paperForDesign(design, paper);
   const path = `/api/events/${eventId}/poster?locale=${locale}&design=${design}`;
 
-  return paper === "a7" ? `${path}&paper=a7` : path;
+  return selected === "a5" ? path : `${path}&paper=${selected}`;
 }
 
 export function posterPngFilename(design: QrDesign) {
-  return design === "b" ? "guestmoments-share.png" : "guestmoments-poster.png";
+  if (design === "b") {
+    return "guestmoments-share.png";
+  }
+
+  if (design === "c") {
+    return "guestmoments-card.png";
+  }
+
+  return "guestmoments-poster.png";
 }

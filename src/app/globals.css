@@ -83,6 +83,11 @@ body {
   container-type: size;
 }
 
+.qr-poster-scale[data-qr-design="c"] {
+  width: min(148mm, 100%);
+  aspect-ratio: 74 / 52;
+}
+
 .qr-poster {
   box-sizing: border-box;
   display: flex;
@@ -372,6 +377,92 @@ body {
   line-height: 1.2;
   letter-spacing: 0.28em;
   text-indent: 0.28em;
+}
+
+.qr-poster.qr-card {
+  flex-direction: row;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 3mm;
+  padding: 4.2mm 4.6mm;
+  background: #ffffff;
+  color: #1a1a1a;
+}
+
+.qr-card-copy {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.22em;
+  text-align: left;
+}
+
+.qr-card-script,
+.qr-card-kicker,
+.qr-card-line,
+.qr-card-name,
+.qr-card-date {
+  margin: 0;
+  max-width: 100%;
+}
+
+.qr-card-script,
+.qr-card-name {
+  line-height: 1.08;
+}
+
+.qr-card-kicker {
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.qr-card-line {
+  font-size: min(4.6cqh, 3.2mm);
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.qr-card-line + .qr-card-line {
+  font-size: min(3.6cqh, 2.5mm);
+  font-weight: 500;
+}
+
+.qr-card-name {
+  overflow-wrap: anywhere;
+}
+
+.qr-card-date {
+  line-height: 1.2;
+  letter-spacing: 0.12em;
+}
+
+.qr-card-mark {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: center;
+  align-self: stretch;
+  justify-content: space-between;
+}
+
+.qr-card-camera {
+  width: min(9mm, 16cqh);
+  height: auto;
+  color: #1a1a1a;
+}
+
+.qr-card .qr-poster-qr {
+  margin-top: 0;
+}
+
+.qr-card .qr-poster-qr img {
+  width: min(24mm, 44cqh);
 }
 
 .color-well {

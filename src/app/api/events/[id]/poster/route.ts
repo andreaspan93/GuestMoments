@@ -2,8 +2,9 @@ import { getCustomerEvent } from "@/lib/events/service";
 import { guestEventUrl } from "@/lib/events/code";
 import { calendarDateFromDb, formatCalendarDate } from "@/lib/events/expiry";
 import { buildPosterPdf, posterCta } from "@/lib/events/poster-pdf";
+import { buildCardPosterPdf } from "@/lib/events/card-poster-pdf";
 import { fitPosterPdfToA7 } from "@/lib/events/poster-paper";
-import { parsePosterPaper, parseQrDesign, sharePosterCopy, sharePosterDate } from "@/lib/events/qr-design";
+import { paperForDesign, parseQrDesign, sharePosterCopy, sharePosterDate } from "@/lib/events/qr-design";
 import { renderEventQr } from "@/lib/events/qr";
 import { resolvePosterTypography } from "@/lib/events/poster-typography";
 import { buildSharePosterPdf } from "@/lib/events/share-poster-pdf";
@@ -138,28 +139,33 @@ export async function GET(
 
   const locale = url.searchParams.get("locale") === "el" ? "el" : "en";
   const design = parseQrDesign(url.searchParams.get("design"));
-  const paper = parsePosterPaper(url.searchParams.get("paper"));
+  const paper = paperForDesign(design, url.searchParams.get("paper"));
   const typography = resolvePosterTypography(event.posterTypography);
   const qrPromise = renderEventQr(guestEventUrl(event.uniqueCode));
+  const dated = sharePosterDate(calendarDateFromDb(event.eventDate), locale);
   const poster =
-    design === "b"
-      ? await sharePoster(
-          event.name,
-          sharePosterDate(calendarDateFromDb(event.eventDate), locale),
-          locale,
-          qrPromise,
+    design === "c"
+      ? await buildCardPosterPdf({
+          name: event.name,
+          dateLabel: dated,
+          ...sharePosterCopy(locale),
+          qr: { bytes: new Uint8Array(await qrPromise) },
           typography,
-        )
-      : await classicPoster(event, locale, qrPromise);
+        })
+      : design === "b"
+        ? await sharePoster(event.name, dated, locale, qrPromise, typography)
+        : await classicPoster(event, locale, qrPromise);
   const pdf = paper === "a7" ? await fitPosterPdfToA7(poster) : poster;
   const filename =
-    design === "b"
-      ? paper === "a7"
-        ? "guestmoments-share-a7.pdf"
-        : "guestmoments-share-a5.pdf"
-      : paper === "a7"
-        ? "guestmoments-a7.pdf"
-        : "guestmoments-a5.pdf";
+    design === "c"
+      ? "guestmoments-card-a8.pdf"
+      : design === "b"
+        ? paper === "a7"
+          ? "guestmoments-share-a7.pdf"
+          : "guestmoments-share-a5.pdf"
+        : paper === "a7"
+          ? "guestmoments-a7.pdf"
+          : "guestmoments-a5.pdf";
 
   return new Response(Buffer.from(pdf), {
     headers: {

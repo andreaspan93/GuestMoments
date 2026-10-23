@@ -1,3 +1,4 @@
+import { inflateSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
 import { PDFDocument } from "pdf-lib";
 import { A5_HEIGHT_PT, A5_WIDTH_PT, buildPosterPdf, posterCta } from "@/lib/events/poster-pdf";
@@ -83,7 +84,43 @@ describe("Design B A5 poster", () => {
     expect(fonts).toContain("Alegreya");
     expect((await pageSize(custom)).pages).toBe(1);
   });
+
+  it("draws SHARE as one tracked line instead of one clipped glyph at a time", async () => {
+    const bytes = await buildSharePosterPdf({
+      name: "Wedding day",
+      dateLabel: "06. 24. 2026",
+      ...sharePosterCopy("en"),
+      qr: { bytes: png },
+      typography: defaultPosterTypography,
+    });
+    const content = await contentStream(bytes);
+    const share = content.match(/\/NotoSans-SemiBold[\s\S]{0,160}?<([0-9A-F]+)> Tj/);
+    const glyphBytes = (share?.[1] ?? "").length / 4;
+
+    expect(glyphBytes).toBe(5);
+    expect((content.match(/\/NotoSans-SemiBold/g) ?? []).length).toBeLessThan(5);
+    expect(content).toMatch(/[\d.]+ Tc/);
+  });
 });
+
+async function contentStream(bytes: Uint8Array) {
+  const pdf = await PDFDocument.load(bytes);
+  const contents = pdf.getPage(0).node.Contents();
+  const array = pdf.context.lookup(contents) as unknown as {
+    size: () => number;
+    get: (index: number) => unknown;
+  };
+  const parts: string[] = [];
+
+  for (let index = 0; index < array.size(); index += 1) {
+    const stream = pdf.context.lookup(array.get(index) as never) as unknown as {
+      getContents: () => Uint8Array;
+    };
+    parts.push(inflateSync(Buffer.from(stream.getContents())).toString("latin1"));
+  }
+
+  return parts.join("\n");
+}
 
 function embeddedFontNames(pdf: PDFDocument) {
   const resources = pdf.getPage(0).node.normalizedEntries().Resources;
