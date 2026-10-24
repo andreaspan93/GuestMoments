@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { zip } from "fflate";
-import { Eye, EyeOff, FolderPlus, Heart, Pencil, Trash2 } from "lucide-react";
+import { CheckCheck, Eye, EyeOff, FolderPlus, Heart, Pencil, SquareMinus, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { GalleryViewer, ViewerIconButton } from "@/components/gallery-viewer";
 import { deliverMediaDownload, isPhoneDevice } from "@/lib/gallery/photo-library";
@@ -766,10 +766,30 @@ export function CustomerGallery({
           </button>
         </div>
         {selected.length > 0 ? (
-          <div className="grid grid-cols-2 gap-2">
+          <div className="flex min-w-0 items-center gap-1">
             <button
               type="button"
-              className="h-10 min-w-0 truncate rounded-full bg-primary px-3 text-sm font-medium whitespace-nowrap text-primary-foreground disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex size-9 shrink-0 items-center justify-center rounded-full border border-border bg-card disabled:cursor-not-allowed disabled:opacity-60"
+              aria-label={t("selectAll")}
+              title={t("selectAll")}
+              disabled={zipping || deleting}
+              onClick={() => setSelected(visible.map((item) => item.id))}
+            >
+              <CheckCheck className="size-4" aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              className="inline-flex size-9 shrink-0 items-center justify-center rounded-full border border-border bg-card disabled:cursor-not-allowed disabled:opacity-60"
+              aria-label={t("deselectAll")}
+              title={t("deselectAll")}
+              disabled={zipping || deleting}
+              onClick={() => setSelected([])}
+            >
+              <SquareMinus className="size-4" aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              className="h-10 min-w-0 flex-1 truncate rounded-full bg-primary px-2 text-xs font-medium whitespace-nowrap text-primary-foreground disabled:cursor-not-allowed disabled:opacity-60 sm:px-3 sm:text-sm"
               title={zipping ? t("bulkPending") : t("bulkDownload")}
               disabled={zipping || deleting}
               aria-busy={zipping}
@@ -779,7 +799,7 @@ export function CustomerGallery({
             </button>
             <button
               type="button"
-              className="h-10 min-w-0 truncate rounded-full border border-border bg-card px-3 text-sm font-medium whitespace-nowrap text-foreground disabled:cursor-not-allowed disabled:opacity-60"
+              className="h-10 min-w-0 flex-1 truncate rounded-full border border-border bg-card px-2 text-xs font-medium whitespace-nowrap text-foreground disabled:cursor-not-allowed disabled:opacity-60 sm:px-3 sm:text-sm"
               title={deleting ? t("bulkDeletePending") : t("bulkDelete")}
               disabled={deleting || zipping}
               aria-busy={deleting}

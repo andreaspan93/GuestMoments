@@ -199,6 +199,8 @@
     "noAlbum": "No album",
     "albumEmpty": "This album has no files.",
     "select": "Select",
+    "selectAll": "Select all",
+    "deselectAll": "Deselect all",
     "bulkDownload": "Download selected",
     "bulkDelete": "Delete selected",
     "bulkDeleteConfirm": "Delete the selected files?",
