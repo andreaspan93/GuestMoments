@@ -2,7 +2,7 @@ import { inflateSync } from "node:zlib";
 import fontkit from "@pdf-lib/fontkit";
 import { describe, expect, it } from "vitest";
 import { PDFDocument } from "pdf-lib";
-import { eventFontIds } from "@/lib/events/appearance";
+import { eventFontIds, type EventFontId } from "@/lib/events/appearance";
 import { buildCardPosterPdf } from "@/lib/events/card-poster-pdf";
 import { A5_HEIGHT_PT, A5_WIDTH_PT, buildPosterPdf, posterCta } from "@/lib/events/poster-pdf";
 import { defaultPosterTypography, type PosterTypography } from "@/lib/events/poster-typography";
@@ -154,7 +154,7 @@ describe("Design B A5 poster", () => {
   }, 180000);
 });
 
-function posterFonts(fontId: string, scriptFont: string): PosterTypography {
+function posterFonts(fontId: EventFontId, scriptFont: EventFontId): PosterTypography {
   return {
     nameFont: fontId,
     nameSizeMm: 10,
