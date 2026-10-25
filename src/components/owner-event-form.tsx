@@ -162,13 +162,15 @@ export function OwnerEventForm({
       </label>
       <label className="grid min-w-0 gap-2 text-sm font-medium">
         {events("date")}
-        <input
-          className={fieldClassName}
-          name="eventDate"
-          type="date"
-          required
-          defaultValue={defaults.eventDate}
-        />
+        <span className="event-date relative block h-10 w-full min-w-0 rounded-full border border-border bg-background focus-within:ring-2 focus-within:ring-ring">
+          <input
+            className="absolute inset-0 h-full w-full min-w-0 appearance-none bg-transparent px-4 pr-10 text-base text-foreground outline-none"
+            name="eventDate"
+            type="date"
+            required
+            defaultValue={defaults.eventDate}
+          />
+        </span>
       </label>
       {eventId ? (
         <>
