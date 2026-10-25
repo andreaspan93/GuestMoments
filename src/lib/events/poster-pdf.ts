@@ -15,7 +15,7 @@ import {
   type PDFImage,
   type PDFPage,
 } from "pdf-lib";
-import { drawTrackedLine } from "@/lib/events/poster-text";
+import { drawTrackedLine, posterFontSubset } from "@/lib/events/poster-text";
 import el from "../../../messages/el.json";
 import en from "../../../messages/en.json";
 import { isLogoSize, type LogoSize } from "@/lib/events/appearance";
@@ -255,7 +255,7 @@ async function embedTitleFont(pdf: PDFDocument, titleFont: string, text: string)
 
   for (const fileName of files) {
     try {
-      const font = await pdf.embedFont(fontBytes(fileName), { subset: true });
+      const font = await pdf.embedFont(fontBytes(fileName), { subset: posterFontSubset(fileName) });
 
       if (text) {
         font.widthOfTextAtSize(text, 12);
@@ -338,7 +338,7 @@ function drawContained(
 export async function buildPosterPdf(input: PosterPdfInput) {
   const pdf = await PDFDocument.create();
   pdf.registerFontkit(fontkit);
-  const regular = await pdf.embedFont(fontBytes("NotoSans-Regular.ttf"), { subset: true });
+  const regular = await pdf.embedFont(fontBytes("NotoSans-Regular.ttf"), { subset: posterFontSubset("NotoSans-Regular.ttf") });
   const dateFace = input.dateFont
     ? await embedTitleFont(pdf, input.dateFont, input.dateLabel)
     : regular;

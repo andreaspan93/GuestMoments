@@ -20,6 +20,16 @@ import {
 type PageWithFontKey = { fontKey?: Parameters<typeof setFontAndSize>[0] };
 
 /**
+ * fontkit's subsetter writes empty or unreadable outlines for some glyphs in
+ * these faces, so those letters keep their width and disappear in the PDF.
+ */
+const wholeFontFiles = new Set(["GFSDidot-Regular.ttf", "PlaypenSans-Regular.ttf"]);
+
+export function posterFontSubset(fileName: string) {
+  return !wholeFontFiles.has(fileName);
+}
+
+/**
  * Draw one tracked line from a single subset encoding.
  * Encoding each letter on its own leaves a hole in the subset font, so the A
  * in SHARE keeps its advance and disappears. The Tc operator also walks the

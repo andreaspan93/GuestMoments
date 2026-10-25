@@ -3,7 +3,7 @@ import path from "node:path";
 import fontkit from "@pdf-lib/fontkit";
 import { PDFDocument, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import { A5_HEIGHT_PT, A5_WIDTH_PT } from "@/lib/events/poster-pdf";
-import { drawTrackedLine } from "@/lib/events/poster-text";
+import { drawTrackedLine, posterFontSubset } from "@/lib/events/poster-text";
 import { posterTitleRuns, titleFontFile, type PosterTitleRun } from "@/lib/events/poster-title";
 import { resolvePosterTypography, type PosterTypography } from "@/lib/events/poster-typography";
 
@@ -113,7 +113,7 @@ async function embedRuns(pdf: PDFDocument, runs: PosterTitleRun[]) {
       continue;
     }
 
-    const font = await pdf.embedFont(fontBytes(fileName), { subset: true });
+    const font = await pdf.embedFont(fontBytes(fileName), { subset: posterFontSubset(fileName) });
 
     if (run.text) {
       font.widthOfTextAtSize(run.text, 12);
@@ -130,7 +130,7 @@ export async function buildSharePosterPdf(input: SharePosterPdfInput) {
   const pdf = await PDFDocument.create();
   pdf.registerFontkit(fontkit);
   const page = pdf.addPage([A5_WIDTH_PT, A5_HEIGHT_PT]);
-  const sans = await pdf.embedFont(fontBytes("NotoSans-Regular.ttf"), { subset: true });
+  const sans = await pdf.embedFont(fontBytes("NotoSans-Regular.ttf"), { subset: posterFontSubset("NotoSans-Regular.ttf") });
   const scriptRuns = posterTitleRuns(input.script, typography.scriptFont);
   const nameRuns = posterTitleRuns(input.name, typography.nameFont);
   const kickerRuns = posterTitleRuns(input.kicker, typography.kickerFont);
