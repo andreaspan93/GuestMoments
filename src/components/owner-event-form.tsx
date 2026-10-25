@@ -18,10 +18,10 @@ import {
 } from "@/lib/owner/actions";
 
 const fieldClassName =
-  "h-10 rounded-full border border-border bg-background px-4 text-base text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring";
+  "h-10 w-full min-w-0 max-w-full rounded-full border border-border bg-background px-4 text-base text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 const areaClassName =
-  "min-h-28 rounded-2xl border border-border bg-background px-4 py-3 text-base text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring";
+  "min-h-28 w-full min-w-0 max-w-full rounded-2xl border border-border bg-background px-4 py-3 text-base text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 export type OwnerEventDefaults = {
   customerId: string;
@@ -133,8 +133,8 @@ export function OwnerEventForm({
   }, [state, privacyMode, status]);
 
   return (
-    <form ref={formRef} action={formAction} className="grid gap-4">
-      <label className="grid gap-2 text-sm font-medium">
+    <form ref={formRef} action={formAction} className="grid w-full min-w-0 gap-4 [&>*]:min-w-0">
+      <label className="grid min-w-0 gap-2 text-sm font-medium">
         {t("customer")}
         <select
           className={fieldClassName}
@@ -150,7 +150,7 @@ export function OwnerEventForm({
           ))}
         </select>
       </label>
-      <label className="grid gap-2 text-sm font-medium">
+      <label className="grid min-w-0 gap-2 text-sm font-medium">
         {events("name")}
         <input
           className={fieldClassName}
@@ -160,7 +160,7 @@ export function OwnerEventForm({
           defaultValue={defaults.name}
         />
       </label>
-      <label className="grid gap-2 text-sm font-medium">
+      <label className="grid min-w-0 gap-2 text-sm font-medium">
         {events("date")}
         <input
           className={fieldClassName}
@@ -172,7 +172,7 @@ export function OwnerEventForm({
       </label>
       {eventId ? (
         <>
-          <label className="grid gap-2 text-sm font-medium">
+          <label className="grid min-w-0 gap-2 text-sm font-medium">
             {t("quota")}
             <input
               className={fieldClassName}
@@ -187,7 +187,7 @@ export function OwnerEventForm({
           </label>
         </>
       ) : null}
-      <label className="grid gap-2 text-sm font-medium">
+      <label className="grid min-w-0 gap-2 text-sm font-medium">
         {events("welcomeEl")}
         <textarea
           className={areaClassName}
@@ -196,7 +196,7 @@ export function OwnerEventForm({
           defaultValue={defaults.welcomeMessageEl}
         />
       </label>
-      <label className="grid gap-2 text-sm font-medium">
+      <label className="grid min-w-0 gap-2 text-sm font-medium">
         {events("welcomeEn")}
         <textarea
           className={areaClassName}
@@ -205,7 +205,7 @@ export function OwnerEventForm({
           defaultValue={defaults.welcomeMessageEn}
         />
       </label>
-      <label className="grid gap-2 text-sm font-medium">
+      <label className="grid min-w-0 gap-2 text-sm font-medium">
         {events("instructionsEl")}
         <textarea
           className={areaClassName}
@@ -214,7 +214,7 @@ export function OwnerEventForm({
           defaultValue={defaults.uploadInstructionsEl}
         />
       </label>
-      <label className="grid gap-2 text-sm font-medium">
+      <label className="grid min-w-0 gap-2 text-sm font-medium">
         {events("instructionsEn")}
         <textarea
           className={areaClassName}
@@ -224,8 +224,8 @@ export function OwnerEventForm({
         />
       </label>
       <p className="text-sm leading-6 text-foreground/80">{events("fallbackHint")}</p>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <label className="grid gap-2 text-sm font-medium">
+      <div className="grid min-w-0 gap-4 sm:grid-cols-2 [&>*]:min-w-0">
+        <label className="grid min-w-0 gap-2 text-sm font-medium">
           {events("background")}
           <input
             className="color-well"
@@ -234,7 +234,7 @@ export function OwnerEventForm({
             defaultValue={defaults.backgroundColor}
           />
         </label>
-        <label className="grid gap-2 text-sm font-medium">
+        <label className="grid min-w-0 gap-2 text-sm font-medium">
           {events("accent")}
           <input
             className="color-well"
@@ -254,7 +254,7 @@ export function OwnerEventForm({
         logoSize={defaults.logoSize}
         logoCorner={defaults.logoCorner}
       />
-      <label className="grid gap-2 text-sm font-medium">
+      <label className="grid min-w-0 gap-2 text-sm font-medium">
         {events("privacy")}
         <select
           className={fieldClassName}
@@ -270,7 +270,7 @@ export function OwnerEventForm({
           <option value="OWN_UPLOADS">{events("ownUploads")}</option>
         </select>
       </label>
-      <label className="grid gap-2 text-sm font-medium">
+      <label className="grid min-w-0 gap-2 text-sm font-medium">
         {events("status")}
         <select
           className={fieldClassName}

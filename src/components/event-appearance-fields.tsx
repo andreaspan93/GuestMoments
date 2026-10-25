@@ -14,7 +14,7 @@ import {
 } from "@/lib/events/appearance";
 
 const fieldClassName =
-  "h-10 rounded-full border border-border bg-background px-4 text-base text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring";
+  "h-10 w-full min-w-0 max-w-full rounded-full border border-border bg-background px-4 text-base text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 function FontField({
   name,
@@ -63,13 +63,13 @@ function FontField({
   }, [open]);
 
   return (
-    <div className="grid gap-2 text-sm font-medium">
+    <div className="grid min-w-0 gap-2 text-sm font-medium">
       <span id={labelId}>{label}</span>
       <div ref={rootRef} className="relative">
       <input type="hidden" name={name} value={selected} />
       <button
         type="button"
-        className={`${fieldClassName} flex w-full items-center justify-between text-left`}
+        className={`${fieldClassName} flex items-center justify-between text-left`}
         style={{ fontFamily: selectedFont.family, fontWeight: eventTextWeight(isBold) }}
         aria-labelledby={labelId}
         aria-haspopup="listbox"
@@ -178,7 +178,7 @@ export function EventAppearanceFields({
         boldName="guestBold"
         bold={guestBold}
       />
-      <label className="grid gap-2 text-sm font-medium">
+      <label className="grid min-w-0 gap-2 text-sm font-medium">
         {t("logoSize")}
         <select className={fieldClassName} name="logoSize" defaultValue={logoSize}>
           {logoSizes.map((size) => (
@@ -188,7 +188,7 @@ export function EventAppearanceFields({
           ))}
         </select>
       </label>
-      <label className="grid gap-2 text-sm font-medium">
+      <label className="grid min-w-0 gap-2 text-sm font-medium">
         {t("logoCorner")}
         <select className={fieldClassName} name="logoCorner" defaultValue={logoCorner}>
           {logoCorners.map((corner) => (
