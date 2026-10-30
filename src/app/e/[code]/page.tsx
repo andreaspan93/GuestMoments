@@ -200,7 +200,7 @@ export default async function GuestEventRoute({
                 {copy.interestLead}
                 <br />
                 {copy.interestContact}{" "}
-                <span className="underline underline-offset-4">{copy.interestEmail}</span>
+                <span className="underline underline-offset-4">{copy.interestWhatsApp}</span>
               </p>
               <GuestUploader
                 code={event.uniqueCode}
