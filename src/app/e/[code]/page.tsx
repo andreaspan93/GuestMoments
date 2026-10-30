@@ -196,6 +196,12 @@ export default async function GuestEventRoute({
                 {" · "}
                 <CookieSettingsButton label={copy.cookieSettings} />
               </p>
+              <p className="mt-2 text-xs leading-5 text-foreground/80">
+                {copy.interestLead}
+                <br />
+                {copy.interestContact}{" "}
+                <span className="underline underline-offset-4">{copy.interestEmail}</span>
+              </p>
               <GuestUploader
                 code={event.uniqueCode}
                 locale={locale}

@@ -68,6 +68,9 @@ export const guestChrome = {
     privacyLead: "Πριν ανεβάσετε, διαβάστε ποια στοιχεία και φωτογραφίες επεξεργάζεται αυτή η σελίδα.",
     privacyLink: "Ενημέρωση απορρήτου για καλεσμένους",
     cookieSettings: "Ρυθμίσεις cookies",
+    interestLead: "Θα θέλατε να δημιουργήσετε τη δική σας εκδήλωση στο GuestMoments;",
+    interestContact: "Επικοινωνήστε μαζί μας στο",
+    interestEmail: "pa.andreascy@gmail.com",
   },
   en: {
     language: "Language",
@@ -114,5 +117,8 @@ export const guestChrome = {
     privacyLead: "Before you upload, read what this page processes about you and the photos.",
     privacyLink: "Guest privacy notice",
     cookieSettings: "Cookie settings",
+    interestLead: "Interested in having your own GuestMoments?",
+    interestContact: "Contact us at",
+    interestEmail: "pa.andreascy@gmail.com",
   },
 } as const;
